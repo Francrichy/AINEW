@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="sw">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e3b24">
+<title>Mlimani AI — Msaidizi wa Kiswahili</title>
+<style>
+:root{--forest:#0e3b24;--leaf:#1f7a42;--lime:#7fc65a;--gold:#F2A900;--clay:#C1572D;--cream:#fff8ea;--ink:#1d2a1f}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);display:flex;flex-direction:column;background:var(--forest)}
+.scene{position:fixed;inset:0;z-index:-1;background:linear-gradient(180deg,#f7c04a 0,#ee8f3c 12%,#8cc060 32%,#1f7a42 58%,#0b2e1b 100%)}
+.scene svg{width:100%;height:100%;display:block}
+.kit{height:8px;background:repeating-linear-gradient(90deg,var(--clay) 0 18px,var(--gold) 18px 36px,var(--leaf) 36px 54px,#102a1a 54px 72px,#fff8ea 72px 80px)}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top,0px));background:rgba(8,36,23,.82);backdrop-filter:blur(8px);color:#fff;flex-wrap:wrap}
+.logo{font-weight:900;font-size:1.4rem;display:flex;align-items:center;gap:8px;letter-spacing:.3px}
+.logo svg{width:34px;height:34px}.logo small{display:block;font-size:.65rem;font-weight:600;color:var(--lime);letter-spacing:1.5px;margin-top:-2px}
+nav{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+nav button{border:0;border-radius:999px;padding:8px 15px;font-weight:700;cursor:pointer;background:rgba(255,255,255,.12);color:#fff;font-size:.9rem}
+nav button.on{background:var(--gold);color:var(--forest)}
+#bar{align-self:center;margin:12px 12px 0;padding:5px 16px;border-radius:999px;background:rgba(8,36,23,.7);color:#e9ffd9;font-size:.82rem;text-align:center}
+main{flex:1;overflow:auto;padding:14px 12px 8px;max-width:860px;width:100%;margin:0 auto}
+section{display:none}section.on{display:block}
+.card{background:var(--cream);border-radius:20px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.28);margin-bottom:14px;position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;left:0;right:0;top:0;height:5px;background:repeating-linear-gradient(90deg,var(--clay) 0 14px,var(--gold) 14px 28px,var(--leaf) 28px 42px)}
+.hero{text-align:center;padding:26px 14px 18px}
+.hero h1{margin:0 0 6px;font-size:1.9rem;color:var(--forest)}.hero p{margin:0 0 16px;color:#46594a}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.chip{border:2px solid var(--leaf);background:#fff;color:var(--forest);border-radius:999px;padding:8px 14px;font-weight:600;cursor:pointer;font-size:.9rem}
+.chip:hover{background:var(--lime)}
+#chatbox{display:flex;flex-direction:column;gap:10px;min-height:50vh}
+.msg{max-width:86%;padding:11px 15px;border-radius:18px;white-space:pre-wrap;word-wrap:break-word;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--leaf),#0f5a2a);color:#fff;border-bottom-right-radius:4px}
+.msg.bot{align-self:flex-start;background:var(--cream);border-left:5px solid var(--gold);border-bottom-left-radius:4px}
+.info{color:#fff;text-align:center;font-size:.9rem;text-shadow:0 1px 3px rgba(0,0,0,.5);margin-bottom:8px;font-weight:600}
+.compose{display:flex;gap:8px;padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));background:rgba(8,36,23,.85);backdrop-filter:blur(8px)}
+.compose textarea{flex:1;max-width:820px;margin:0 auto;border-radius:24px;border:2px solid var(--gold);padding:12px 16px;font:inherit;resize:none;height:48px;background:var(--cream)}
+.btn{border:0;border-radius:999px;padding:10px 18px;font-weight:800;cursor:pointer;background:var(--gold);color:var(--forest);font-size:.92rem}
+.btn.alt{background:var(--leaf);color:#fff}.btn.ghost{background:#e6dcc6;color:var(--ink)}.btn:disabled{opacity:.6}
+.f input,.f textarea{width:100%;padding:11px;margin:5px 0 10px;border:2px solid #cfdcc2;border-radius:12px;background:#fff;font:inherit}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.plan h3{margin:6px 0 0;color:var(--leaf);font-size:1.15rem}.plan .p{font-size:1.5rem;font-weight:900;color:var(--forest)}
+.plan ul{padding-left:18px;margin:8px 0 14px;font-size:.92rem;line-height:1.6}
+dialog{border:0;border-radius:20px;padding:22px;max-width:390px;width:92%;background:var(--cream);border-top:8px solid var(--gold)}
+dialog::backdrop{background:rgba(5,25,15,.7)}
+.err{color:var(--clay);font-weight:700;min-height:1.2em}
+.zig{height:14px;background:linear-gradient(135deg,var(--gold) 25%,transparent 25%) -7px 0,linear-gradient(225deg,var(--gold) 25%,transparent 25%) -7px 0,linear-gradient(315deg,var(--clay) 25%,transparent 25%),linear-gradient(45deg,var(--clay) 25%,transparent 25%);background-size:14px 14px;background-color:#102a1a}
+.hm{font-size:clamp(2.1rem,9vw,3.6rem);font-weight:900;letter-spacing:2px;line-height:1.05;margin:0;background:linear-gradient(90deg,#C1572D,#F2A900,#7fc65a,#F2A900,#C1572D);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite,pop .9s ease-out both;filter:drop-shadow(0 2px 0 rgba(8,36,23,.35))}
+.sub{font-size:1.05rem;font-weight:700;color:var(--forest);margin:8px 0 4px}
+.hero .dots{display:flex;justify-content:center;gap:8px;margin:10px 0 14px}
+.hero .dots i{width:14px;height:14px;border-radius:50%;background:var(--clay)}.hero .dots i:nth-child(2n){background:var(--gold)}.hero .dots i:nth-child(3n){background:var(--leaf)}
+.rays{transform-box:fill-box;transform-origin:center;animation:spin 80s linear infinite}
+.bird{animation:fly 14s ease-in-out infinite alternate}.bird:nth-of-type(2){animation-duration:19s}
+.logo small{color:var(--gold)}
+.chip{transition:transform .15s}.chip:hover{transform:translateY(-3px) rotate(-1deg)}
+.msg{animation:in .25s ease-out}
+@keyframes shine{to{background-position:300% 0}}
+@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fly{from{transform:translateX(-30px)}to{transform:translateX(60px) translateY(-10px)}}
+@keyframes in{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="scene"><svg viewBox="0 0 1200 700" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+<defs><symbol id="ac" viewBox="0 0 120 120"><g stroke="#082417" stroke-width="5" fill="none" stroke-linecap="round"><path d="M60 120C60 90 58 75 52 62M52 62 32 48M55 70 84 52M58 78 70 66"/></g><g fill="#0a2c1b"><ellipse cx="38" cy="42" rx="38" ry="9"/><ellipse cx="80" cy="46" rx="34" ry="8"/><ellipse cx="60" cy="30" rx="30" ry="8"/></g></symbol></defs>
+<g class="rays" stroke="#ffe08a" stroke-width="6" opacity=".45" stroke-linecap="round"><path d="M900 40v-30M900 340v30M750 190h-30M1050 190h30M794 84l-21-21M1006 296l21 21M794 296l-21 21M1006 84l21-21"/></g><circle cx="900" cy="190" r="130" fill="#ffe08a" opacity=".3"/><circle cx="900" cy="190" r="78" fill="#ffd45e"/>
+<path d="M0 480 L240 350 L330 395 L430 255 L530 390 L650 310 L780 480Z" fill="#3f8a5a" opacity=".6"/>
+<path d="M398 280 L430 255 L463 284 L441 275 L428 290 L414 277Z" fill="#fff" opacity=".9"/>
+<path class="bird" d="M200 130q12-14 24 0q12-14 24 0M300 90q10-12 20 0q10-12 20 0" stroke="#082417" fill="none" stroke-width="3"/><path class="bird" d="M1010 110q10-12 20 0q10-12 20 0" stroke="#082417" fill="none" stroke-width="3"/>
+<path d="M0 520C200 460 400 500 600 480S1000 440 1200 490V700H0Z" fill="#2b8a4e"/>
+<path d="M0 580C250 530 450 590 700 560S1050 520 1200 570V700H0Z" fill="#17512f"/>
+<path d="M0 640C300 610 600 660 900 630S1100 620 1200 640V700H0Z" fill="#0b2e1b"/>
+<use href="#ac" x="30" y="410" width="270" height="270"/><use href="#ac" x="930" y="440" width="230" height="230"/><use href="#ac" x="650" y="505" width="130" height="130"/>
+<g fill="#082417" stroke="#082417" transform="translate(520 592)"><ellipse rx="26" ry="13"/><path d="M16-6 36-64" stroke-width="8" fill="none" stroke-linecap="round"/><ellipse cx="42" cy="-68" rx="11" ry="6" transform="rotate(-25 42 -68)"/><path d="M-16 8V46M-8 10V46M10 10V46M18 8V46M-26-2Q-36 8-34 24" stroke-width="3.5" fill="none"/></g>
+</svg></div>
+<header>
+ <div class="logo"><svg viewBox="0 0 40 40"><path d="M2 36 15 10l7 12 5-8 11 22z" fill="#F2A900"/><path d="M15 10l4 7-4 3-3-6z" fill="#fff"/></svg><div>Mlimani AI<small>HAKUNA MATATA</small></div></div>
+ <nav>
+  <button data-t="chat" class="on">Gumzo</button><button data-t="bots">Boti</button><button data-t="img">Picha</button><button data-t="plans">Bei</button>
+  <button id="authBtn">Ingia</button>
+ </nav>
+</header>
+<div class="kit"></div><div class="zig"></div>
+<div id="bar"></div>
+<main>
+ <section id="chat" class="on">
+  <div class="info" id="botName"></div>
+  <div id="chatbox"><div class="card hero"><h1 class="hm">HAKUNA MATATA</h1><div class="sub">Karibu Mlimani AI 🌍 — hakuna shida, uliza tu!</div><div class="dots"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><p>Biashara, shule, kilimo, kuandika, kutafsiri — kwa Kiswahili chako.</p>
+   <div class="chips"><button class="chip">Nisaidie kuandika barua ya kuomba kazi</button><button class="chip">Nipe mbinu za kukuza duka langu</button><button class="chip">Eleza kilimo cha alizeti kwa ufupi</button><button class="chip">Tafsiri kwa Kiingereza: Habari za asubuhi</button></div></div></div>
+ </section>
+ <section id="bots">
+  <div class="card f"><h2 style="margin-top:6px">Unda Boti yako</h2>
+   <input id="bn" placeholder="Jina la boti (mf. Msaidizi wa Duka)" maxlength="60">
+   <textarea id="bp" rows="4" placeholder="Maelekezo: boti ifanye nini, ijibu kwa mtindo gani, ijue nini kuhusu biashara yako?"></textarea>
+   <button class="btn" id="bcreate">Unda Boti</button><div class="err" id="berr"></div></div>
+  <div id="botlist"></div>
+ </section>
+ <section id="img"><div class="card f"><h2 style="margin-top:6px">Tengeneza Picha (bure)</h2>
+  <div class="info" id="imgleft" style="color:#46594a;text-shadow:none"></div>
+  <textarea id="ip" rows="3" maxlength="400" placeholder="Eleza picha: mf. Simba chini ya mti wa mbuyu wakati wa machweo, rangi za kitenge"></textarea>
+  <button class="btn" id="igo">Tengeneza picha</button><div class="err" id="ierr"></div>
+  <img id="iimg" alt="Picha" style="display:none;max-width:100%;border-radius:14px;margin-top:10px"><a id="idl" class="btn alt" download="mlimani-picha.png" style="display:none;margin-top:10px;text-decoration:none">Pakua</a></div></section>
+ <section id="plans"><div class="grid" id="plangrid"></div><div class="card" id="payinfo" style="margin-top:14px"></div></section>
+</main>
+<div class="compose" id="compose"><textarea id="inp" placeholder="Andika ujumbe wako hapa…"></textarea><button class="btn" id="send">Tuma</button></div>
+
+<dialog id="authD"><form method="dialog" class="f"><h2 id="authT">Ingia</h2>
+ <input id="al" placeholder="Namba ya simu au barua pepe"><input id="ae" type="email" placeholder="Barua pepe (si lazima)"><input id="an" placeholder="Jina lako (kwa usajili)">
+ <input id="ap" type="password" placeholder="Nenosiri"><div class="err" id="aerr"></div>
+ <button class="btn alt" id="aok" type="button">Endelea</button> <button class="btn ghost" id="aswap" type="button">Sina akaunti</button> <button class="btn ghost" value="x">Funga</button></form></dialog>
+<dialog id="payD"><form method="dialog" class="f"><h2 id="payT">Lipia</h2><p id="payP" style="font-size:.9rem"></p>
+ <input id="ph" placeholder="Namba yako ya simu"><input id="pr" placeholder="Namba ya muamala"><div class="err" id="perr"></div>
+ <button class="btn alt" id="pok" type="button">Nimelipa</button> <button class="btn ghost" value="x">Funga</button></form></dialog>
+
+<script>
+const $=s=>document.querySelector(s);let token=localStorage.t||'',me={},hist=[],botId=null,reg=false,payPlan='';
+const api=async(p,o={})=>{const r=await fetch('/api/'+p,{...o,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:o.body&&JSON.stringify(o.body)});const d=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(d.error||'Hitilafu'),{d});return d};
+const tab=t=>{document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===t));document.querySelectorAll('nav [data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===t));$('#compose').style.display=t==='chat'?'flex':'none';if(t==='bots')loadBots();if(t==='plans')loadPlans()};
+document.querySelectorAll('nav [data-t]').forEach(b=>b.onclick=()=>tab(b.dataset.t));
+function imgBar(){$('#imgleft').textContent=me.imgLeft!=null?'Picha zilizobaki leo: '+me.imgLeft:''}
+function bar(){imgBar();const m=me;$('#authBtn').textContent=m.loggedIn?'Toka':'Ingia';
+ $('#bar').textContent=!m.loggedIn?`Bure: ujumbe ${m.dailyLeft??'-'} uliobaki leo · Fungua akaunti kupata zaidi`:m.dailyLeft!==null?`Mpango ${m.planName} · ujumbe ${m.dailyLeft} uliobaki leo`:`Mpango ${m.planName} · mkopo uliobaki: TZS ${(m.creditLeft||0).toLocaleString()}`}
+async function refresh(){try{me=await api('me');bar()}catch{}}
+function add(role,text){const d=document.createElement('div');d.className='msg '+role;d.textContent=text;$('#chatbox').appendChild(d);d.scrollIntoView({behavior:'smooth',block:'end'});return d}
+async function send(){const t=$('#inp').value.trim();if(!t)return;$('#inp').value='';add('user',t);hist.push({role:'user',content:t});const w=add('bot','…');$('#send').disabled=true;
+ try{const d=await api('chat',{method:'POST',body:{messages:hist,botId}});w.textContent=d.reply;hist.push({role:'assistant',content:d.reply});me=d.me;bar()}
+ catch(e){w.textContent=e.message;hist.pop();if(e.d?.me){me=e.d.me;bar()}}$('#send').disabled=false}
+$('#send').onclick=send;$('#inp').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}};
+function authUI(){$('#authT').textContent=reg?'Fungua akaunti':'Ingia';$('#an').style.display=reg?'':'none';$('#ae').style.display=reg?'':'none';$('#al').placeholder=reg?'Namba ya simu (mf. 0712345678)':'Namba ya simu au barua pepe';$('#aswap').textContent=reg?'Nina akaunti':'Sina akaunti'}
+$('#authBtn').onclick=()=>{if(me.loggedIn){token='';localStorage.removeItem('t');hist=[];botId=null;$('#botName').textContent='';refresh();return}reg=false;authUI();$('#aerr').textContent='';$('#authD').showModal()};
+$('#aswap').onclick=()=>{reg=!reg;authUI()};
+$('#aok').onclick=async()=>{try{const d=await api(reg?'register':'login',{method:'POST',body:{login:$('#al').value,email:$('#ae').value,name:$('#an').value,password:$('#ap').value}});token=d.token;localStorage.t=token;$('#authD').close();refresh()}catch(e){$('#aerr').textContent=e.message}};
+async function loadBots(){const l=$('#botlist');if(!me.loggedIn){l.innerHTML='<div class="card">Ingia kwanza ili kuunda na kutumia boti.</div>';return}
+ try{const bs=await api('bots');l.innerHTML='';if(!bs.length)l.innerHTML='<div class="card">Huna boti bado. Unda ya kwanza hapo juu (mipango ya kulipia).</div>';
+ bs.forEach(b=>{const c=document.createElement('div');c.className='card';const h=document.createElement('b');h.textContent=b.name;const p=document.createElement('p');p.textContent=b.prompt;
+  const u=document.createElement('button');u.className='btn alt';u.textContent='Tumia';u.onclick=()=>{botId=b.id;hist=[];$('#chatbox').innerHTML='';$('#botName').textContent='Unazungumza na: '+b.name;tab('chat')};
+  const x=document.createElement('button');x.className='btn ghost';x.textContent='Futa';x.onclick=async()=>{await api('bots/'+b.id,{method:'DELETE'});if(botId===b.id){botId=null;$('#botName').textContent=''}loadBots()};
+  c.append(h,p,u,' ',x);l.appendChild(c)})}catch(e){l.textContent=e.message}}
+$('#bcreate').onclick=async()=>{try{await api('bots',{method:'POST',body:{name:$('#bn').value,prompt:$('#bp').value}});$('#bn').value=$('#bp').value='';$('#berr').textContent='';loadBots()}catch(e){$('#berr').textContent=e.message}};
+async function loadPlans(){const {plans,payInfo}=await api('plans');const g=$('#plangrid');g.innerHTML='';$('#payinfo').textContent=payInfo;
+ const feat={free:['Ujumbe wachache bure kila siku','Hakuna boti'],kawaida:['Mazungumzo ya kila siku','Boti 1','Jibu fupi hadi la kati'],biashara:['Modeli bora zaidi','Boti 10','Majibu marefu'],kampuni:['Kwa timu na kampuni','Boti 50','Majibu marefu zaidi']};
+ for(const [k,p] of Object.entries(plans)){const c=document.createElement('div');c.className='card plan';
+  c.innerHTML=`<h3></h3><div class="p"></div><ul></ul>`;c.querySelector('h3').textContent=p.name;c.querySelector('.p').textContent=p.price?`TZS ${p.price.toLocaleString()}/mwezi`:'Bure';
+  feat[k].forEach(f=>{const li=document.createElement('li');li.textContent=f;c.querySelector('ul').appendChild(li)});
+  if(p.price){const b=document.createElement('button');b.className='btn';b.textContent='Chagua';b.onclick=()=>{if(!me.loggedIn){$('#authBtn').click();return}payPlan=k;$('#payT').textContent='Lipia '+p.name;$('#payP').textContent=`${payInfo} — Kiasi: TZS ${p.price.toLocaleString()}`;$('#perr').textContent='';$('#payD').showModal()};c.appendChild(b)}
+  g.appendChild(c)}}
+$('#pok').onclick=async()=>{try{const d=await api('pay',{method:'POST',body:{plan:payPlan,phone:$('#ph').value,ref:$('#pr').value}});$('#payD').close();alert(d.message)}catch(e){$('#perr').textContent=e.message}};
+$('#igo').onclick=async()=>{$('#ierr').textContent='';$('#iimg').style.display='none';$('#idl').style.display='none';$('#igo').disabled=true;$('#igo').textContent='Inatengeneza…';
+ try{const d=await api('image',{method:'POST',body:{prompt:$('#ip').value}});$('#iimg').src=d.image;$('#iimg').style.display='block';$('#idl').href=d.image;$('#idl').style.display='inline-block';me=d.me;bar()}
+ catch(e){$('#ierr').textContent=e.message;if(e.d?.me){me=e.d.me;bar()}}$('#igo').disabled=false;$('#igo').textContent='Tengeneza picha'};
+refresh();
+</script>
+<script>
+document.addEventListener('click',e=>{const c=e.target.closest('.chip');if(c){$('#inp').value=c.textContent;send()}});
+</script>
+</body>
+</html>
