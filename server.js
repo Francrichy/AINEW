@@ -2,6 +2,7 @@ import express from 'express';
 import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { randomUUID } from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -21,11 +22,14 @@ const PRO = (env.PRO_MODELS || 'google/gemini-2.5-flash,openai/gpt-4.1-mini,deep
 // Mikopo ya kila mwezi (TZS, bei ya rejareja) = bei ya mpango.
 // Mtumiaji akitumia mkopo wote, gharama halisi ya OpenRouter ni bei/3.
 const PLANS = {
-  free:     { name: 'Bure',    price: 0,      bots: 0,  maxTokens: 400,  tier: 'eco' },
-  kawaida:  { name: 'Kawaida', price: 5000,   bots: 1,  maxTokens: 800,  tier: 'eco' },
-  biashara: { name: 'Biashara',price: 25000,  bots: 10, maxTokens: 2000, tier: 'pro' },
+  free:     { name: 'Bure',    price: 0,      bots: 0,  maxTokens: 600,  tier: 'eco' },
+  kawaida:  { name: 'Kawaida', price: 10000,  bots: 1,  maxTokens: 1200, tier: 'eco' },
+  biashara: { name: 'Biashara',price: 30000,  bots: 10, maxTokens: 2500, tier: 'pro' },
   kampuni:  { name: 'Kampuni', price: 100000, bots: 50, maxTokens: 4000, tier: 'pro' },
 };
+const VIDEO_COST = +(env.VIDEO_COST_TZS || 1500);   // hukatwa kwenye mkopo kwa kila video
+const VIDEO_DAILY = +(env.VIDEO_DAILY || 5);
+const PK = env.POLLINATIONS_API_KEY;
 
 import fs from 'fs';
 let dbPath = env.DB_PATH || 'mlimani.db';
@@ -40,7 +44,7 @@ create table if not exists bots(id integer primary key, user_id integer, name te
 create table if not exists payments(id integer primary key, user_id integer, plan text, phone text, ref text, status text default 'pending', created integer);
 `);
 
-const BASE = `Wewe ni Mlimani AI, msaidizi wa akili bandia anayezungumza Kiswahili sanifu kwa ustadi (pia unaelewa Kiingereza). Jibu kwa ufupi, kwa adabu na kwa usahihi. ` +
+const BASE = `Wewe ni Mlimani AI, msaidizi wa akili bandia anayezungumza Kiswahili sanifu kwa ustadi (pia unaelewa Kiingereza). Jibu kwa adabu na kwa usahihi. ` +
   `Kamwe usitaje wala kuthibitisha ni modeli gani, kampuni gani, au API gani iliyokujenga au inayokuendesha. Ukiulizwa, sema tu: "Mimi ni Mlimani AI. Siwezi kushiriki maelezo ya kiufundi." Usijifanye kuwa binadamu.`;
 const REFUSAL = 'Mimi ni Mlimani AI, msaidizi wako wa Kiswahili. Siwezi kushiriki maelezo ya kiufundi kuhusu jinsi nilivyotengenezwa. Naweza kukusaidia na nini leo?';
 const ASK = /(umetengenezwa|umeundwa|ulitengenezwa|uliundwa|nani (alikutengeneza|aliyekutengeneza|aliyekuunda|alikuunda)|unatumia (model|modeli|api|ai|teknolojia)|(model|modeli|api) gani|ni (model|modeli|ai) gani|who (made|built|created|trained|developed) you|what (model|llm|ai|api) (are you|do you use|is this|powers)|which (model|llm|api)|are you (gpt|chatgpt|claude|gemini|llama|deepseek|qwen)|powered by|underlying (model|llm)|system prompt)/i;
@@ -85,7 +89,8 @@ function meInfo(req) {
     loggedIn: !!u, email: u?.email, name: u?.name, plan: u?.plan || 'free', planName: p.name,
     dailyLeft: lim === null ? null : Math.max(0, lim - used(k)), dailyLimit: lim, imgLeft: Math.max(0, IMG_LIM(u) - used('img:' + k)),
     creditLeft: u && u.plan !== 'free' ? Math.max(0, Math.round(p.price - u.credit_used)) : null,
-    botsMax: p.bots, expires: u?.expires || null,
+    botsMax: p.bots, expires: u?.expires || null, phone: u?.phone || null, videoCost: VIDEO_COST,
+    pending: u ? db.prepare("select plan,ref,created from payments where user_id=? and status='pending'").all(u.id) : [],
   };
 }
 
@@ -136,7 +141,7 @@ app.post('/api/login', (req, res) => {
   res.json({ token: sign(u) });
 });
 app.get('/api/me', (req, res) => res.json(meInfo(req)));
-app.get('/api/plans', (_req, res) => res.json({ plans: PLANS, payInfo: env.PAY_INFO || 'Wasiliana nasi kulipia.' }));
+app.get('/api/plans', (_req, res) => res.json({ plans: PLANS, payInfo: env.PAY_INFO || 'Wasiliana nasi kulipia.', videoCost: VIDEO_COST }));
 
 // ---------- boti ----------
 app.get('/api/bots', need, (req, res) => res.json(db.prepare('select id,name,prompt from bots where user_id=?').all(req.user.id)));
@@ -150,21 +155,51 @@ app.post('/api/bots', need, (req, res) => {
 });
 app.delete('/api/bots/:id', need, (req, res) => { db.prepare('delete from bots where id=? and user_id=?').run(req.params.id, req.user.id); res.json({ ok: 1 }); });
 
+async function notify(text) {   // taarifa ya Telegram kwa mmiliki
+  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) return;
+  try { await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID, text }) }); } catch {}
+}
+function activate(userId, plan, days = 30) {
+  db.prepare('update users set plan=?,expires=?,credit_used=0 where id=?').run(plan, Date.now() + days * 86400e3, userId);
+}
+
 // ---------- malipo (mwongozo: thibitisha kwa mkono, unganisha Selcom/ClickPesa baadaye) ----------
 app.post('/api/pay', need, (req, res) => {
   const { plan, phone, ref } = req.body || {};
   if (!PLANS[plan] || !PLANS[plan].price || !phone || !ref) return res.status(400).json({ error: 'Jaza mpango, namba ya simu na namba ya muamala.' });
-  db.prepare('insert into payments(user_id,plan,phone,ref,created) values(?,?,?,?,?)').run(req.user.id, plan, String(phone).slice(0, 20), String(ref).slice(0, 40), Date.now());
+  const r = String(ref).trim().slice(0, 40);
+  if (db.prepare('select 1 from payments where ref=?').get(r)) return res.status(409).json({ error: 'Namba hii ya muamala imeshatumwa.' });
+  db.prepare('insert into payments(user_id,plan,phone,ref,created) values(?,?,?,?,?)').run(req.user.id, plan, String(phone).slice(0, 20), r, Date.now());
+  notify(`💰 Malipo mapya Mlimani AI\nMpango: ${PLANS[plan].name} (TZS ${PLANS[plan].price})\nMtumiaji: ${req.user.phone || req.user.email}\nSimu: ${phone}\nMuamala: ${r}\nThibitisha: ${env.SITE_URL || ''}/admin.html`);
   res.json({ ok: 1, message: 'Tumepokea. Mpango utawashwa baada ya kuthibitisha malipo.' });
 });
 const admin = (req, res, next) => env.ADMIN_KEY && req.headers['x-admin-key'] === env.ADMIN_KEY ? next() : res.status(403).json({ error: 'Hapana.' });
-app.get('/api/admin/payments', admin, (_req, res) => res.json(db.prepare("select p.*,u.email from payments p join users u on u.id=p.user_id where status='pending'").all()));
+app.get('/api/admin/payments', admin, (_req, res) => res.json(db.prepare("select p.*,u.email,u.phone as uphone,u.name from payments p join users u on u.id=p.user_id where status='pending' order by p.id desc").all()));
+app.get('/api/admin/stats', admin, (_req, res) => res.json({
+  users: db.prepare('select count(*) c from users').get().c,
+  paid: db.prepare("select count(*) c from users where plan!='free' and expires>?").get(Date.now()).c,
+  pending: db.prepare("select count(*) c from payments where status='pending'").get().c }));
 app.post('/api/admin/approve', admin, (req, res) => {
   const p = db.prepare('select * from payments where id=?').get(req.body?.id);
   if (!p) return res.status(404).json({ error: 'Haipo.' });
-  db.prepare("update users set plan=?,expires=?,credit_used=0 where id=?").run(p.plan, Date.now() + 30 * 86400e3, p.user_id);
+  activate(p.user_id, p.plan);
   db.prepare("update payments set status='approved' where id=?").run(p.id);
   res.json({ ok: 1 });
+});
+app.post('/api/admin/reject', admin, (req, res) => { db.prepare("update payments set status='rejected' where id=?").run(req.body?.id); res.json({ ok: 1 }); });
+app.post('/api/admin/grant', admin, (req, res) => {   // washa mpango kwa mkono (simu au barua pepe)
+  const id = String(req.body?.login || '').trim(), plan = req.body?.plan;
+  const u = id.includes('@') ? db.prepare('select * from users where email=?').get(id.toLowerCase()) : db.prepare('select * from users where phone=?').get(normPhone(id));
+  if (!u || !PLANS[plan]) return res.status(404).json({ error: 'Mtumiaji au mpango haupatikani.' });
+  activate(u.id, plan, +req.body?.days || 30); res.json({ ok: 1 });
+});
+// Hiari: lango la malipo (Selcom/ClickPesa/AzamPay) likituma callback huwasha mpango yenyewe
+app.post('/api/webhook/pay', (req, res) => {
+  if (!env.WEBHOOK_SECRET || req.headers['x-webhook-secret'] !== env.WEBHOOK_SECRET) return res.status(403).json({ error: 'Hapana.' });
+  const p = db.prepare("select * from payments where ref=? and status='pending'").get(String(req.body?.ref || ''));
+  if (!p || +req.body?.amount < PLANS[p.plan].price) return res.status(404).json({ error: 'Muamala haulingani.' });
+  activate(p.user_id, p.plan); db.prepare("update payments set status='approved' where id=?").run(p.id);
+  notify(`✅ Malipo yamethibitishwa kiotomatiki: ${p.ref} (${PLANS[p.plan].name})`); res.json({ ok: 1 });
 });
 
 // ---------- picha (bure) ----------
@@ -190,11 +225,54 @@ app.post('/api/image', async (req, res) => {
   bump(k);
   try {
     const en = OR_KEY ? await quick(raw) : raw;
-    const r = await fetch(`https://image.pollinations.ai/prompt/${encodeURIComponent(en)}?width=768&height=768&nologo=true&seed=${Math.floor(Math.random() * 1e6)}`, { signal: AbortSignal.timeout(70000) });
+    const q = `width=768&height=768&nologo=true&seed=${Math.floor(Math.random() * 1e6)}`;
+    const r = PK ? await fetch(`https://gen.pollinations.ai/image/${encodeURIComponent(en)}?model=flux&${q}`, { headers: { Authorization: `Bearer ${PK}` }, signal: AbortSignal.timeout(70000) })
+                 : await fetch(`https://image.pollinations.ai/prompt/${encodeURIComponent(en)}?${q}`, { signal: AbortSignal.timeout(70000) });
     const ct = r.headers.get('content-type') || '';
     if (!r.ok || !ct.startsWith('image/')) throw new Error('picha imeshindwa ' + r.status);
     res.json({ image: `data:${ct};base64,${Buffer.from(await r.arrayBuffer()).toString('base64')}`, me: meInfo(req) });
   } catch (e) { bump(k, -1); console.error('image error:', e.message); res.status(502).json({ error: 'Samahani, huduma ya picha ina shida kwa sasa. Jaribu tena baadaye.' }); }
+});
+
+// ---------- video (kulipia, inakata mkopo) ----------
+const jobs = new Map();
+setInterval(() => { for (const [k, j] of jobs) if (Date.now() - j.t > 15 * 60e3) jobs.delete(k); }, 60e3);
+app.post('/api/video', need, (req, res) => {
+  const u = req.user, plan = PLANS[u.plan];
+  if (u.plan === 'free') return res.status(403).json({ error: 'Video inapatikana kwa mipango ya kulipia.' });
+  if (!PK) return res.status(500).json({ error: 'Huduma ya video haijawekwa bado.' });
+  const raw = String(req.body?.prompt || '').trim().slice(0, 400);
+  if (raw.length < 3) return res.status(400).json({ error: 'Eleza video unayotaka.' });
+  if (BAD.test(raw)) return res.status(400).json({ error: 'Maelezo haya hayaruhusiwi.' });
+  if (u.credit_used + VIDEO_COST > plan.price) return res.status(402).json({ error: 'Mkopo wako hautoshi kwa video.' });
+  if ([...jobs.values()].some(j => j.uid === u.id && j.status === 'working')) return res.status(429).json({ error: 'Subiri video ya kwanza imalizike.' });
+  const k = 'vid:u' + u.id;
+  if (used(k) >= VIDEO_DAILY) return res.status(429).json({ error: 'Video za leo zimeisha. Rudi kesho.' });
+  bump(k);
+  const id = randomUUID(), job = { uid: u.id, status: 'working', t: Date.now() }; jobs.set(id, job);
+  (async () => {
+    try {
+      const en = await quick(raw);
+      const r = await fetch(`https://gen.pollinations.ai/image/${encodeURIComponent(en)}?model=${env.VIDEO_MODEL || 'seedance'}&duration=5&nologo=true`, { headers: { Authorization: `Bearer ${PK}` }, signal: AbortSignal.timeout(240000) });
+      const ct = r.headers.get('content-type') || '';
+      if (!r.ok || !ct.startsWith('video/')) throw new Error('video imeshindwa ' + r.status);
+      job.buf = Buffer.from(await r.arrayBuffer()); job.ct = ct;
+      if (job.buf.length > 30e6) throw new Error('video kubwa mno');
+      db.prepare('update users set credit_used=credit_used+? where id=?').run(VIDEO_COST, u.id);
+      job.status = 'done';
+    } catch (e) { job.status = 'error'; bump(k, -1); console.error('video error:', e.message); }
+  })();
+  res.json({ id });
+});
+app.get('/api/video/:id', need, (req, res) => {
+  const j = jobs.get(req.params.id);
+  if (!j || j.uid !== req.user.id) return res.status(404).json({ error: 'Haipo.' });
+  res.json({ status: j.status });
+});
+app.get('/api/video/:id/file', need, (req, res) => {
+  const j = jobs.get(req.params.id);
+  if (!j || j.uid !== req.user.id || j.status !== 'done') return res.status(404).end();
+  res.set('Content-Type', j.ct).send(j.buf);
 });
 
 // ---------- gumzo ----------
@@ -209,7 +287,7 @@ app.post('/api/chat', async (req, res) => {
   if (lim !== null && used(k) >= lim) return res.status(429).json({ error: u ? 'Umetumia ujumbe wako wa bure wa leo. Rudi kesho au chagua mpango wa kulipia.' : 'Ujumbe wa bure wa leo umeisha. Fungua akaunti kupata zaidi, au rudi kesho.', limit: true, me: meInfo(req) });
   if (u && u.plan !== 'free' && u.credit_used >= plan.price) return res.status(402).json({ error: 'Mkopo wako wa mwezi umeisha. Pandisha mpango au subiri mwezi ujao.', me: meInfo(req) });
 
-  let system = BASE;
+  let system = BASE + ((u && u.plan !== 'free') ? '\nToa majibu kamili yenye maelezo ya kutosha.' : '\nJibu kwa ufupi, sentensi chache.');
   if (u && req.body.botId) {
     const b = db.prepare('select * from bots where id=? and user_id=?').get(req.body.botId, u.id);
     if (b) system += `\n\nJina lako kwa mtumiaji ni "${b.name}". Maelekezo ya mmiliki wa boti:\n${b.prompt}`;
