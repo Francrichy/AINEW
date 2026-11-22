@@ -1,0 +1,16 @@
+<!doctype html><html lang="sw"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mlimani AI API</title>
+<style>body{font-family:system-ui;background:#0e3b24;color:#1d2a1f;margin:0;padding:16px}.c{background:#fff8ea;border-radius:14px;padding:16px;margin:0 auto 12px;max-width:760px}pre{background:#102a1a;color:#e9ffd9;padding:12px;border-radius:10px;overflow:auto;font-size:.85rem}code{background:#eadfce;padding:1px 5px;border-radius:5px}h1,h2{color:#0e3b24}</style></head><body>
+<div class="c"><h1>Mlimani AI API 🌍</h1><p>API rahisi ya gumzo kwa waendelezaji. Inapatikana kwa mipango ya kulipia. Tengeneza ufunguo kwenye <b>Akaunti</b> kisha <b>Funguo za API</b>. Tumia ufunguo kutoka kwenye seva yako tu, usiuweke kwenye kivinjari au programu ya simu.</p></div>
+<div class="c"><h2>Ombi</h2><pre>curl https://www.mlimani.net/v1/chat \
+  -H "Authorization: Bearer mlm_XXXXXXXX" \
+  -H "Content-Type: application/json" \
+  -d '{"messages":[{"role":"user","content":"Habari! Nieleze kuhusu Mlimani Kilimanjaro."}],"max_tokens":500}'</pre>
+<p><code>messages</code>: majukumu <code>system</code>, <code>user</code>, <code>assistant</code>; ujumbe wa mwisho uwe wa <code>user</code>. <code>max_tokens</code>: hadi 2000.</p></div>
+<div class="c"><h2>Jibu</h2><pre>{
+  "id": "mlm-...",
+  "object": "chat.completion",
+  "choices": [{"index":0,"message":{"role":"assistant","content":"..."},"finish_reason":"stop"}],
+  "usage": {"prompt_tokens":23,"completion_tokens":210,"total_tokens":233,"cost_tzs":1.9}
+}</pre></div>
+<div class="c"><h2>Bei na mipaka</h2><ul><li>Kila ombi linakata gharama halisi (<code>cost_tzs</code>) kutoka kwenye mkopo wa mwezi wa mpango wako.</li><li>Mkopo ukiisha unapata hitilafu 402. Pandisha mpango au subiri mwezi ujao.</li><li>Kikomo: maombi 30 kwa dakika kwa kila ufunguo.</li><li>Hitilafu: 401 ufunguo si sahihi, 403 mpango umeisha, 429 maombi mengi, 502 huduma ina shida.</li><li>Mlimani AI haitoi maelezo ya kiufundi kuhusu jinsi ilivyotengenezwa.</li></ul></div>
+</body></html>

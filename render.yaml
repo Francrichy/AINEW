@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: mlimani-ai
+    name: AINEW
     runtime: node
     plan: starter
     buildCommand: npm install
