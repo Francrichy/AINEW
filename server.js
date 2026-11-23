@@ -52,7 +52,8 @@ create table if not exists bots(id integer primary key, user_id integer, name te
 create table if not exists api_keys(id integer primary key, user_id integer, name text, prefix text, hash text unique, created integer, last_used integer, revoked integer default 0);
 create table if not exists connections(user_id integer, provider text, secret text, meta text, created integer, primary key(user_id,provider));
 create table if not exists plugin_prefs(user_id integer, plugin_id text, enabled integer, primary key(user_id,plugin_id));
-create table if not exists payments(id integer primary key, user_id integer, plan text, phone text, ref text, status text default 'pending', created integer);\ncreate table if not exists partner_applications(id integer primary key, company text, contact text, email text, website text, api_url text, description text, status text default 'pending', created integer);
+create table if not exists payments(id integer primary key, user_id integer, plan text, phone text, ref text, status text default 'pending', created integer);
+create table if not exists partner_applications(id integer primary key, company text, contact text, email text, website text, api_url text, description text, status text default 'pending', created integer);
 `);
 
 const BASE = `Wewe ni Mlimani AI, msaidizi wa akili bandia anayezungumza Kiswahili sanifu kwa ustadi (pia unaelewa Kiingereza). Jibu kwa adabu na kwa usahihi. ` +
