@@ -166,7 +166,7 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
     const production = req.body?.production === true;
     const catalog = await liveAvatarCatalog();
     const voiceGender = character === 'Ethan' ? 'male' : 'female';
-    const voiceCandidates = catalog.voices.filter(v => String(v.language || '').toLowerCase() === language || (language === 'sw' && String(v.language || '').toLowerCase().includes('multilingual')));
+    const voiceCandidates = catalog.voices.filter(v => String(v.language || '').toLowerCase() === language || (language === 'sw' && (String(v.language || '').toLowerCase().includes('swahili') || String(v.language || '').toLowerCase().includes('multilingual'))));
     const voice = voiceCandidates.find(v => String(v.gender || '').toLowerCase() === voiceGender) || voiceCandidates[0];
     if (!voice?.id) {
       throw new Error(language === 'sw'
