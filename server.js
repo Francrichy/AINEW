@@ -33,8 +33,11 @@ const PK = env.POLLINATIONS_API_KEY;
 const OR_URL = env.OPENROUTER_URL || 'https://openrouter.ai/api/v1';
 const GH_API = env.GITHUB_API || 'https://api.github.com', RD_API = env.RENDER_API || 'https://api.render.com/v1';
 const PLUGIN_PLANS = (env.PLUGIN_PLANS || 'biashara,kampuni').split(',');         // miunganisho ya GitHub na Render
-const CX_PLANS = (env.COMPOSIO_PLANS || 'kawaida,biashara,kampuni').split(',').map(x => x.trim()); // Plugins zenye gharama za nje ni kwa wateja wa kulipia
-const BUILTIN_PLANS = (env.BUILTIN_PLANS || 'kawaida,biashara,kampuni').split(','); // plugins za bure zilizojengwa ndani
+const CX_PLANS = (env.COMPOSIO_PLANS || 'free,kawaida,biashara,kampuni').split(',').map(x => x.trim()); // Free inaruhusiwa kwa toolkit zilizoidhinishwa na zenye kikomo
+const CX_FREE_IDS = new Set((env.COMPOSIO_FREE_PLUGINS || 'google_drive,google_calendar,google_sheets,slack,notion,canva,salesforce').split(',').map(x => x.trim()).filter(Boolean));
+const CX_FREE_USER_MONTHLY = Math.max(1, +(env.COMPOSIO_FREE_USER_MONTHLY || 100));
+const CX_FREE_GLOBAL_MONTHLY = Math.max(1, +(env.COMPOSIO_FREE_GLOBAL_MONTHLY || 8000));
+const BUILTIN_PLANS = (env.BUILTIN_PLANS || 'free,kawaida,biashara,kampuni').split(','); // plugins za bure zilizojengwa ndani
 const CX_API = env.COMPOSIO_URL || 'https://backend.composio.dev', CX_KEY = env.COMPOSIO_API_KEY;
 let CX_CFG = []; try { CX_CFG = JSON.parse(env.COMPOSIO_PLUGINS || '[]'); } catch { console.warn('COMPOSIO_PLUGINS si JSON sahihi.'); }
 const ENC_KEY = env.ENCRYPTION_KEY ? Buffer.from(env.ENCRYPTION_KEY, 'hex') : null;
@@ -54,6 +57,7 @@ create table if not exists connections(user_id integer, provider text, secret te
 create table if not exists plugin_prefs(user_id integer, plugin_id text, enabled integer, primary key(user_id,plugin_id));
 create table if not exists payments(id integer primary key, user_id integer, plan text, phone text, ref text, status text default 'pending', created integer);
 create table if not exists partner_applications(id integer primary key, company text, contact text, email text, website text, api_url text, description text, status text default 'pending', created integer);
+create table if not exists composio_usage(user_id integer, month text, calls integer default 0, primary key(user_id,month));
 `);
 
 const BASE = `Wewe ni Mlimani AI, msaidizi wa akili bandia anayezungumza Kiswahili sanifu kwa ustadi (pia unaelewa Kiingereza). Jibu kwa adabu na kwa usahihi. ` +
@@ -457,10 +461,20 @@ async function cxTool(cfg, slug) {
   } catch (e) { console.error('cx schema:', slug, e.message); return null; }
 }
 async function cxExec(uid, t, args) {
+  const user = db.prepare('select plan from users where id=?').get(uid);
+  const month = new Date().toISOString().slice(0, 7);
+  if (user?.plan === 'free') {
+    if (!CX_FREE_IDS.has(t.plugin)) throw new Error('Plugin hii si sehemu ya huduma za bure. Badili kwenda mpango wa kulipia.');
+    const used = db.prepare('select calls from composio_usage where user_id=? and month=?').get(uid, month)?.calls || 0;
+    const total = db.prepare('select coalesce(sum(calls),0) as n from composio_usage where month=?').get(month).n;
+    if (used >= CX_FREE_USER_MONTHLY) throw new Error('Umefikia kikomo cha Composio cha bure cha mwezi huu. Kikomo kitaanza upya mwezi ujao au unaweza kuboresha mpango.');
+    if (total >= CX_FREE_GLOBAL_MONTHLY) throw new Error('Kikomo cha pamoja cha huduma za Composio za bure kimefikiwa kwa mwezi huu. Jaribu tena mwezi ujao.');
+  }
   const row = db.prepare('select * from connections where user_id=? and provider=?').get(uid, 'cx:' + t.plugin); if (!row) throw new Error('Muunganisho haupo.');
   const r = await fetch(`${CX_API}/api/v3/tools/execute/${encodeURIComponent(t.slug)}`, { method: 'POST', signal: AbortSignal.timeout(30000), headers: { 'x-api-key': CX_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify({ connected_account_id: dec(row.secret), user_id: 'mlm-' + uid, arguments: args }) });
   const j = await r.json().catch(() => ({})); if (!r.ok || j.successful === false) throw new Error(j.error?.message || (typeof j.error === 'string' ? j.error : 'HTTP ' + r.status));
+  if (user?.plan === 'free') db.prepare('insert into composio_usage(user_id,month,calls) values(?,?,1) on conflict(user_id,month) do update set calls=calls+1').run(uid, month);
   return j.data;
 }
 async function activeTools(u) {
@@ -478,10 +492,13 @@ async function activeTools(u) {
 app.get('/api/plugins', need, (req, res) => {
   const u = req.user, conns = new Map(db.prepare('select provider,meta from connections where user_id=?').all(u.id).map(r => [r.provider, JSON.parse(r.meta || '{}')]));
   const on = new Set(db.prepare('select plugin_id from plugin_prefs where user_id=? and enabled=1').all(u.id).map(r => r.plugin_id));
-  res.json({ categories: CATS, plugins: fullCatalog().map(p => {
+  const freeMonth = new Date().toISOString().slice(0, 7);
+  const freeUsed = db.prepare('select calls from composio_usage where user_id=? and month=?').get(u.id, freeMonth)?.calls || 0;
+  res.json({ freeComposioLimit: CX_FREE_USER_MONTHLY, freeComposioUsed: freeUsed, freeComposioRemaining: Math.max(0, CX_FREE_USER_MONTHLY - freeUsed), categories: CATS, plugins: fullCatalog().map(p => {
     const c = conns.get(p.kind === 'composio' ? 'cx:' + p.id : p.id);
     return { id: p.id, icon: p.icon, name: p.name, desc: p.desc, cats: p.cats, kind: p.kind, soon: !!p.soon,
-      locked: p.kind === 'builtin' ? !BUILTIN_PLANS.includes(u.plan) : p.kind === 'composio' ? !CX_PLANS.includes(u.plan) : !PLUGIN_PLANS.includes(u.plan),
+      locked: p.kind === 'builtin' ? !BUILTIN_PLANS.includes(u.plan) : p.kind === 'composio' ? !(CX_PLANS.includes(u.plan) && (u.plan !== 'free' || CX_FREE_IDS.has(p.id))) : !PLUGIN_PLANS.includes(u.plan),
+      freeEligible: p.kind === 'composio' && CX_FREE_IDS.has(p.id),
       enabled: p.kind === 'builtin' ? on.has(p.id) : !!c && (c.status ? c.status === 'active' : true), pending: p.kind === 'composio' && c?.status === 'pending', meta: c || null };
   }) });
 });
@@ -492,7 +509,7 @@ app.post('/api/plugins/:id/toggle', need, (req, res) => {
 });
 app.post('/api/plugins/:id/connect', need, async (req, res) => {   // Composio: tengeneza kiungo cha kuunganisha akaunti
   const cfg = cxConfig(req.params.id); if (!cfg) return res.status(404).json({ error: 'Plugin hii bado haijawezeshwa.' });
-  if (!CX_PLANS.includes(req.user.plan)) return res.status(403).json({ error: 'Plugin hii inahitaji mpango wa kulipia.' });
+  if (!CX_PLANS.includes(req.user.plan) || (req.user.plan === 'free' && !CX_FREE_IDS.has(cfg.id))) return res.status(403).json({ error: 'Plugin hii inahitaji mpango wa kulipia.' });
   try {
     const r = await fetch(`${CX_API}/api/v3/connected_accounts/link`, { method: 'POST', signal: AbortSignal.timeout(20000), headers: { 'x-api-key': CX_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({ auth_config_id: cfg.authConfigId, user_id: 'mlm-' + req.user.id, callback_url: (env.SITE_URL || '') + '/' }) });
