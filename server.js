@@ -362,7 +362,7 @@ app.post('/api/video', need, (req, res) => {
       job.status = 'done';
     } catch (e) { job.status = 'error'; bump(k, -1); console.error('video error:', e.message); }
   })();
-  res.json({ id, videoCredits: Math.max(0, (u.video_credits || 0) - 1) });
+  res.json({ id, videoCredits: u.video_credits || 0 });
 });
 app.get('/api/video/:id', need, (req, res) => {
   const j = jobs.get(req.params.id);
