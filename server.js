@@ -176,13 +176,21 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
     };
     const voiceCandidates = catalog.voices.filter(v => {
       const value = voiceLanguage(v);
-      if (language === 'sw') return value === 'sw' || value.startsWith('sw-') || value.includes('swahili') || value.includes('multilingual');
-      return value === 'en' || value.startsWith('en-') || value.includes('english') || value.includes('multilingual');
+      if (language === 'sw') return value === 'sw' || value.startsWith('sw-') || value.includes('swahili');
+      return value === 'en' || value.startsWith('en-') || value.includes('english');
     });
-    const voice = voiceCandidates.find(v => String(v.gender || '').toLowerCase() === voiceGender) || voiceCandidates[0];
+    const multilingualCandidates = catalog.voices.filter(v => voiceLanguage(v).includes('multilingual'));
+    const englishCandidates = language === 'sw' ? catalog.voices.filter(v => {
+      const value = voiceLanguage(v);
+      return value === 'en' || value.startsWith('en-') || value.includes('english');
+    }) : [];
+    const preferredCandidates = voiceCandidates.length ? voiceCandidates
+      : (language === 'sw' ? [...multilingualCandidates, ...englishCandidates] : []);
+    const voice = preferredCandidates.find(v => String(v.gender || '').toLowerCase() === voiceGender) || preferredCandidates[0];
+    const voiceFallback = language === 'sw' && !voiceCandidates.length && Boolean(voice?.id);
     if (!voice?.id) {
       throw new Error(language === 'sw'
-        ? 'LiveAvatar haijaonyesha sauti ya Kiswahili inayopatikana kwenye akaunti hii. Tunaweza kujaribu English au kuangalia sauti za lugha nyingi kwenye akaunti.'
+        ? 'Hakuna sauti ya Kiswahili, lugha nyingi, au English inayopatikana kwenye akaunti hii ya LiveAvatar.'
         : 'Hakuna sauti ya English inayopatikana kwenye akaunti hii ya LiveAvatar.');
     }
     let avatarId = LIVEAVATAR_SANDBOX_AVATAR;
@@ -210,6 +218,8 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
       avatarName: production ? (catalog.avatars.find(a => a.id === avatarId)?.name || 'Avatar') : 'Wayne (Sandbox)',
       voiceName: voice.name || voice.id,
       language,
+      voiceFallback,
+      voiceNotice: voiceFallback ? 'Sauti ya Kiswahili haikupatikana; mfumo umetumia sauti mbadala. Matamshi ya Kiswahili yanaweza kutofautiana.' : null,
       sandbox: !production,
       maxSessionDuration: production ? 180 : 60,
     });
