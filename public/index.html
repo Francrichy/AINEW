@@ -69,6 +69,33 @@ dialog::backdrop{background:rgba(5,25,15,.7)}
 .pend{background:#fff3cd;border-radius:12px;padding:10px;margin-top:10px;font-size:.9rem}
 .newchat{background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:999px;padding:5px 12px;cursor:pointer;font-weight:700;font-size:.8rem}
 video{max-width:100%;border-radius:14px;margin-top:10px}
+
+/* ChatGPT-style left navigation */
+header{position:relative;z-index:5;min-height:72px;flex-wrap:nowrap}
+.sidebar{position:fixed;z-index:4;left:0;top:72px;bottom:0;width:224px;padding:18px 12px 22px;background:rgba(8,36,23,.94);backdrop-filter:blur(12px);border-right:1px solid rgba(255,255,255,.12);overflow-y:auto}
+.side-caption{color:#b8d6ad;font-size:.7rem;font-weight:800;letter-spacing:1.6px;padding:0 12px 12px}
+.sidebar nav{display:flex;flex-direction:column;gap:5px;margin:0}
+.sidebar nav button{width:100%;display:flex;align-items:center;gap:12px;text-align:left;border-radius:12px;padding:11px 13px;background:transparent;color:#f5f8f1;font-size:.92rem}
+.sidebar nav button:hover{background:rgba(255,255,255,.1)}
+.sidebar nav button.on{background:var(--gold);color:var(--forest)}
+.side-icon{width:23px;flex:0 0 23px;text-align:center;font-size:1.1rem}
+.side-label{white-space:nowrap}
+.sidebar nav .side-auth{margin-top:18px;border-top:1px solid rgba(255,255,255,.16);border-radius:12px;padding-top:14px}
+#bar{align-self:flex-start;margin:12px 12px 0 240px}
+main{margin:0 0 0 224px;width:calc(100% - 224px);max-width:none;padding:18px 22px 12px}
+.compose{margin-left:224px;width:calc(100% - 224px)}
+.pluginGroupTitle{grid-column:1/-1;margin:12px 0 0;padding:10px 2px 6px;border-bottom:1px solid rgba(255,255,255,.25);color:#fff;font-size:1rem;font-weight:800}
+.pluginCard{min-width:0}
+@media(max-width:700px){
+ .sidebar{width:68px;padding:14px 7px}
+ .side-caption,.side-label{display:none}
+ .sidebar nav button{justify-content:center;padding:12px 6px}
+ .side-icon{font-size:1.25rem}
+ main{margin-left:68px;width:calc(100% - 68px);padding:14px 10px}
+ #bar{margin-left:80px;margin-right:8px;font-size:.72rem}
+ .compose{margin-left:68px;width:calc(100% - 68px);padding-left:8px;padding-right:8px}
+ .compose textarea{min-width:0}
+}
 </style>
 </head>
 <body>
@@ -86,16 +113,26 @@ video{max-width:100%;border-radius:14px;margin-top:10px}
 </svg></div>
 <header>
  <div class="logo"><svg viewBox="0 0 40 40"><path d="M2 36 15 10l7 12 5-8 11 22z" fill="#F2A900"/><path d="M15 10l4 7-4 3-3-6z" fill="#fff"/></svg><div>Mlimani AI<small>HAKUNA MATATA</small></div></div>
- <nav>
-  <button data-t="chat" class="on">Gumzo</button><button data-t="tools">Zana</button><button data-t="img">Picha</button><button data-t="vid">Video</button><button data-t="bots">Boti</button><button data-t="plans">Bei</button>
-  <button data-t="plugins">Plugins</button><button data-t="acct">Akaunti</button><button id="authBtn">Ingia</button>
- </nav>
 </header>
+<aside class="sidebar" aria-label="Menyu kuu">
+ <div class="side-caption">MENYU</div>
+ <nav id="sideNav">
+  <button data-t="chat" class="on" aria-label="Chati"><span class="side-icon">💬</span><span class="side-label">Chati</span></button>
+  <button data-t="tools" aria-label="Zana"><span class="side-icon">🧰</span><span class="side-label">Zana</span></button>
+  <button data-t="img" aria-label="Picha"><span class="side-icon">🖼️</span><span class="side-label">Picha</span></button>
+  <button data-t="vid" aria-label="Video"><span class="side-icon">🎬</span><span class="side-label">Video</span></button>
+  <button data-t="bots" aria-label="Boti"><span class="side-icon">🤖</span><span class="side-label">Boti</span></button>
+  <button data-t="plans" aria-label="Bei"><span class="side-icon">💳</span><span class="side-label">Bei</span></button>
+  <button data-t="plugins" aria-label="Plugins"><span class="side-icon">🧩</span><span class="side-label">Plugins</span></button>
+  <button data-t="acct" aria-label="Akaunti"><span class="side-icon">👤</span><span class="side-label">Akaunti</span></button>
+  <button id="authBtn" class="side-auth" aria-label="Toka"><span class="side-icon">🚪</span><span class="side-label">Ingia</span></button>
+ </nav>
+</aside>
 <div class="kit"></div><div class="zig"></div>
 <div id="bar"></div>
 <main>
  <section id="chat" class="on">
-  <div class="info" id="botName"></div><div style="text-align:center;margin-bottom:8px"><button class="newchat" id="newchat">+ Gumzo jipya</button></div>
+  <div class="info" id="botName"></div><div style="text-align:center;margin-bottom:8px"><button class="newchat" id="newchat">+ Chati jipya</button></div>
   <div id="chatbox"><div class="card hero"><h1 class="hm">HAKUNA MATATA</h1><div class="sub">Karibu Mlimani AI 🌍 — hakuna shida, uliza tu!</div><div class="dots"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><p>Biashara, shule, kilimo, kuandika, kutafsiri — kwa Kiswahili chako.</p>
    <div class="chips"><button class="chip">Nisaidie kuandika barua ya kuomba kazi</button><button class="chip">Nipe mbinu za kukuza duka langu</button><button class="chip">Eleza kilimo cha alizeti kwa ufupi</button><button class="chip">Tafsiri kwa Kiingereza: Habari za asubuhi</button></div></div></div>
  </section>
@@ -157,7 +194,7 @@ function renderPlugins(categories){
  const grid=$('#pluginGrid');grid.innerHTML='';
  const list=pluginData.filter(p=>pluginCategory==='all'||(p.cats||[]).includes(pluginCategory));
  if(!list.length){grid.appendChild(el('div','card','Hakuna plugins katika kundi hili.'));return}
- list.forEach(p=>{
+ const makeCard=p=>{
   const c=el('div','pluginCard'),head=el('div','','');
   head.style.fontSize='1.7rem';head.textContent=p.icon||'🔌';
   c.appendChild(head);c.appendChild(el('h3','',p.name));c.appendChild(el('div','desc',p.desc||''));
@@ -185,19 +222,28 @@ function renderPlugins(categories){
    }catch(e){err.textContent=e.message}
   };
   if(!p.soon)c.appendChild(b);
-  grid.appendChild(c);
+  return c;
+ };
+ const sections=[
+  {key:'native',title:'Plugins za Mlimani',items:list.filter(p=>p.kind!=='composio').sort((a,b)=>a.name.localeCompare(b.name))},
+  {key:'composio',title:'Programu za Composio',items:list.filter(p=>p.kind==='composio').sort((a,b)=>a.name.localeCompare(b.name))}
+ ];
+ sections.forEach(group=>{
+  if(!group.items.length)return;
+  grid.appendChild(el('div','pluginGroupTitle',group.title));
+  group.items.forEach(p=>grid.appendChild(makeCard(p)));
  });
 }
 
 function imgBar(){$('#imgleft').textContent=me.imgLeft!=null?'Picha zilizobaki leo: '+me.imgLeft:''}
 function vidBar(){$('#vidnote').textContent=me.plan==='free'||!me.loggedIn?'Video inapatikana kwa mipango ya kulipia (kila video inakata mkopo wako).':'Kila video inakata takriban TZS '+(me.videoCost||1500).toLocaleString()+' kwenye mkopo wako.'}
-function bar(){imgBar();$('#authBtn').textContent=me.loggedIn?'Toka':'Ingia';const m=me;
+function bar(){imgBar();$('#authBtn .side-label').textContent=me.loggedIn?'Toka':'Ingia';$('#authBtn').setAttribute('aria-label',me.loggedIn?'Toka':'Ingia');const m=me;
  $('#bar').textContent=!m.loggedIn?`Bure: ujumbe ${m.dailyLeft??'-'} uliobaki leo · Fungua akaunti kupata zaidi`:m.dailyLeft!==null?`Mpango ${m.planName} · ujumbe ${m.dailyLeft} uliobaki leo`:`Mpango ${m.planName} · mkopo uliobaki: TZS ${(m.creditLeft||0).toLocaleString()}`}
 async function refresh(){try{me=await api('me');bar()}catch{}}
 function add(role,text){const d=el('div','msg '+role);const t=el('span','t',text);d.appendChild(t);if(role==='bot'){const c=el('button','cp','Nakili');c.onclick=()=>{navigator.clipboard?.writeText(t.textContent);c.textContent='Imenakiliwa ✓'};d.appendChild(c)}$('#chatbox').appendChild(d);d.scrollIntoView({behavior:'smooth',block:'end'});return t}
 const save=()=>localStorage.h=JSON.stringify(hist.slice(-30));
 if(hist.length){$('#chatbox').innerHTML='';hist.forEach(m=>add(m.role==='user'?'user':'bot',m.content))}
-$('#newchat').onclick=()=>{hist=[];save();$('#chatbox').innerHTML='<div class="info">Gumzo jipya. Uliza chochote! 🌍</div>'};
+$('#newchat').onclick=()=>{hist=[];save();$('#chatbox').innerHTML='<div class="info">Chati jipya. Uliza chochote! 🌍</div>'};
 async function send(){const t=$('#inp').value.trim();if(!t)return;$('#inp').value='';add('user',t);hist.push({role:'user',content:t});const w=add('bot','…');$('#send').disabled=true;
  try{const d=await api('chat',{method:'POST',body:{messages:hist,botId}});w.textContent=d.reply;hist.push({role:'assistant',content:d.reply});save();me=d.me;bar()}
  catch(e){w.textContent=e.message;hist.pop();if(e.d?.me){me=e.d.me;bar()}}$('#send').disabled=false}
