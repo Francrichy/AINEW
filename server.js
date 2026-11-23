@@ -164,7 +164,7 @@ app.get('/api/usage', need, (req, res) => {
 });
 app.get('/api/developer', need, (req, res) => {
   if (req.user.plan === 'free') return res.status(403).json({error:'API inapatikana kwa wateja wa kulipia.'});
-  res.json({baseUrl:(env.SITE_URL||'').replace(/\\/$/,''),endpoint:'/v1/chat',authentication:'Bearer mlm_...',pricing:'Gharama halisi x4; hukatwa kwenye mkopo wa mwezi.',limits:{monthlyCreditTzs:PLANS[req.user.plan].price,maxTokens:API_MAX,requestsPerMinute:API_RPM},example:{method:'POST',path:'/v1/chat',headers:{Authorization:'Bearer YOUR_MLIMANI_API_KEY','Content-Type':'application/json'},body:{messages:[{role:'user',content:'Habari Mlimani'}]}}});
+  res.json({baseUrl:(env.SITE_URL||'').replace(/\/$/,''),endpoint:'/v1/chat',authentication:'Bearer mlm_...',pricing:'Gharama halisi x4; hukatwa kwenye mkopo wa mwezi.',limits:{monthlyCreditTzs:PLANS[req.user.plan].price,maxTokens:API_MAX,requestsPerMinute:API_RPM},example:{method:'POST',path:'/v1/chat',headers:{Authorization:'Bearer YOUR_MLIMANI_API_KEY','Content-Type':'application/json'},body:{messages:[{role:'user',content:'Habari Mlimani'}]}}});
 });
 app.post('/api/partners/apply', (req,res) => {
  const b=req.body||{}, company=String(b.company||'').trim().slice(0,120), contact=String(b.contact||'').trim().slice(0,100), email=String(b.email||'').trim().slice(0,160), website=String(b.website||'').trim().slice(0,250), apiUrl=String(b.apiUrl||'').trim().slice(0,500), description=String(b.description||'').trim().slice(0,2000);
