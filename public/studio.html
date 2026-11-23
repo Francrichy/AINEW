@@ -12,14 +12,7 @@
 <div id="chatFields" class="hidden"><label>Muda wa mazungumzo</label><div class="duration"><button data-duration="normal" aria-pressed="true">Muda wa kawaida</button><button data-duration="extended" aria-pressed="false">Muda mrefu</button></div><p class="note" id="durationNote">Muda wa kawaida wa mazungumzo.</p>
 <div class="chatlog" id="chatlog" aria-live="polite"><div class="bubble assistant">Habari! Mimi ni Mlimani AI. Unaweza kuniuliza swali lolote. Nitakusaidia kwa Kiswahili au English.</div></div><label for="chatInput">Andika swali au ujumbe</label><textarea id="chatInput" placeholder="Andika swali lako hapa..."></textarea><div class="actions"><button class="primary" id="sendChat">Tuma ujumbe</button><button class="light" id="downloadChat">Pakua mazungumzo</button><button class="light" id="clearChat">Anza mazungumzo mapya</button></div></div>
 <div id="liveFields">
-<div class="live-config">
-<div class="live-config-grid">
-<div><label for="ethanLiveAvatar">Avatar ya Ethan</label><select id="ethanLiveAvatar" disabled><option value="">Inapakia avatars...</option></select></div>
-<div><label for="nginaLiveAvatar">Avatar ya Ngina</label><select id="nginaLiveAvatar" disabled><option value="">Inapakia avatars...</option></select></div>
-</div>
-<label class="production-toggle"><input type="checkbox" id="liveProduction"> Tumia avatars halisi za public (zinaweza kutumia credits)</label>
-<p class="note" id="liveCatalogStatus">Tunathibitisha muunganisho wa LiveAvatar. Kwa majaribio ya bure tutatumia avatar ya Sandbox ya dakika moja.</p>
-</div>
+<div class="live-config"><p><strong>Avatar za Mlimani:</strong> Ethan na Ngina</p><p class="note" id="liveCatalogStatus">Tunatumia wahusika wa Mlimani pekee. Hakuna avatar ya mteja kupakia na hakuna avatar za public za watu wengine zitakazochaguliwa.</p></div>
 <div class="preview" style="display:block">
 <div class="call-stage">
 <video id="liveAvatarVideo" autoplay playsinline style="width:100%;max-height:520px;min-height:260px;object-fit:contain;border-radius:16px;background:#102b1c"></video>
@@ -34,7 +27,7 @@
 </div>
 <div class="chatlog" id="voiceLog" aria-live="polite"><div class="bubble assistant">Karibu Mlimani Studio. Bonyeza Anza video conference ili kuzungumza na AI avatar.</div></div>
 <div class="live-text-row"><input id="liveTextInput" placeholder="Au andika ujumbe kwa Ethan / Ngina"><button class="secondary" id="sendLiveText" disabled>Tuma</button></div>
-<p class="note">Sandbox ni ya majaribio bila kutumia credits, lakini inatumia avatar ya mfano Wayne kwa takribani dakika moja. Ili Ethan na Ngina wawe na sura tofauti, chagua avatars zao na uwashe matumizi ya production baada ya kuthibitisha gharama.</p>
+<p class="note">Mlimani inatumia wahusika wake Ethan na Ngina. Kikao cha majaribio bila credits bado kinaweza kuonyesha avatar ya mfano ya LiveAvatar mpaka avatar maalum za Mlimani ziunganishwe kwenye akaunti ya LiveAvatar. Hakuna malipo ya production yatakayowashwa yenyewe.</p>
 </div>
 <div id="videoFields" class="hidden">
 <h3>Unatengeneza video ya aina gani?</h3>
@@ -51,7 +44,7 @@
 <label for="format">Muundo wa video</label><select id="format"><option value="9:16">9:16 — TikTok / Reels</option><option value="16:9">16:9 — YouTube / Presentation</option><option value="1:1">1:1 — Social media</option></select>
 <p class="note">Tengeneza video fupi ya sekunde 5 kwa kutumia huduma ya video iliyopo. Kifurushi cha Video na kuingia kwenye akaunti vinahitajika. Picha ya bidhaa hapa ni preview; haitatumwa kwenye injini ya video katika toleo hili.</p><div class="actions"><button class="primary" id="createVideo">Tengeneza video sasa</button></div><div class="status" id="videoProviderStatus">Jaza taarifa kisha bonyeza Tengeneza video sasa.</div><video id="generatedVideo" class="hidden" controls playsinline style="width:100%;max-height:420px;border-radius:16px;background:#111;margin-top:12px"></video>
 </div>
-<div class="status" id="status">Live Talk inaruhusu kuuliza maswali kwa sauti na kusikia majibu. Create Video hutengeneza video fupi ya sekunde 5 kwa kutumia salio la Video. Lip-sync ya avatar bado inahitaji kuunganishwa na LiveAvatar.</div><div class="actions"><button class="secondary" id="back">Rudi Mlimani AI</button></div>
+<div class="status" id="status">Live Talk inaruhusu kuuliza maswali kwa sauti na kusikia majibu. Create Video hutengeneza video fupi ya sekunde 5 kwa kutumia salio la Video. Avatar za video za moja kwa moja zinaunganishwa kupitia LiveAvatar.</div><div class="actions"><button class="secondary" id="back">Rudi Mlimani AI</button></div>
 <p class="note">Ngina na Ethan ni wahusika wa AI. Kamera/microphone zitaombwa ruhusa tu Live Talk itakapowashwa. Mazungumzo hayatapakuliwa mpaka uchague kitufe cha kupakua.</p>
 </section></main>
 <script>
@@ -66,69 +59,83 @@ $$('[data-duration]').forEach(b=>b.addEventListener('click',()=>{durationTier=b.
 $$('[data-mode]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.mode;$$('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#chatFields').classList.toggle('hidden',mode!=='chat');$('#liveFields').classList.toggle('hidden',mode!=='live');$('#videoFields').classList.toggle('hidden',mode!=='video');}));
 $$('[data-vtype]').forEach(b=>b.addEventListener('click',()=>{videoType=b.dataset.vtype;$$('[data-vtype]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#marketingFields').classList.toggle('hidden',videoType!=='marketing');$('#newsFields').classList.toggle('hidden',videoType!=='news');}));
 $('#productImage').addEventListener('change',e=>{const file=e.target.files?.[0];if(!file)return;const url=URL.createObjectURL(file);$('#productPreview').src=url;$('#productPreview').classList.remove('hidden');});
-async function loadLiveAvatarCatalog(){
- const status=$('#liveCatalogStatus');
- try{
-  const token=localStorage.getItem('t')||'';
-  if(!token){status.textContent='Ingia kwenye akaunti ya Mlimani kwanza ili kuunganisha LiveAvatar.';return;}
-  const r=await fetch('/api/liveavatar/catalog',{headers:{Authorization:'Bearer '+token}});
-  const d=await r.json();
-  if(!r.ok)throw new Error(d.error||'Imeshindikana kuwasiliana na LiveAvatar.');
-  liveAvatarCatalogData=d;
-  const options=d.avatars||[];
-  for(const id of ['ethanLiveAvatar','nginaLiveAvatar']){
-   const select=$('#'+id);select.innerHTML='';
-   options.forEach(a=>{const o=document.createElement('option');o.value=a.id;o.textContent=a.name+(a.gender?' · '+a.gender:'');select.append(o);});
-   select.disabled=!$('#liveProduction').checked||!options.length;
-  }
-  status.textContent='LiveAvatar imeunganishwa. '+options.length+' avatars za public/account zimepatikana; '+(d.voices||[]).length+' sauti zimeorodheshwa. Sandbox hutumia Wayne bila credits.';
- }catch(e){status.textContent='Muunganisho wa LiveAvatar: '+e.message;}
-}
-$('#liveProduction').addEventListener('change',()=>{
- const enabled=$('#liveProduction').checked;
- ['ethanLiveAvatar','nginaLiveAvatar'].forEach(id=>$('#'+id).disabled=!enabled||!liveAvatarCatalogData?.avatars?.length);
- $('#liveCatalogStatus').textContent=enabled?'Umechagua production. Kila kikao kinaweza kutumia credits za LiveAvatar. Hakikisha umechagua avatar sahihi.':'Sandbox imewashwa: hakuna credits zitakazotumika; avatar ya mfano Wayne itatumika.';
-});
+$('#liveCatalogStatus').textContent='Wahusika wa Mlimani wamechaguliwa. Tunaunganisha kikao salama cha LiveAvatar.';
 $$('[data-avatar]').forEach(b=>b.addEventListener('click',()=>{avatar=b.dataset.avatar;$$('[data-avatar]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#liveTitle').textContent=avatar+' yuko tayari kuzungumza nawe';$('#studioHeading').textContent='Chagua msaidizi wako';$('#sendChat').textContent='Ongea na '+avatar;}));
+function resetLiveControls(message){
+ liveAvatarSession=null;
+ const video=$('#liveAvatarVideo');
+ if(video){video.pause();video.srcObject=null;video.classList.add('hidden');}
+ $('#liveAvatarPlaceholder').classList.remove('hidden');
+ $('#startLive').disabled=false;$('#startLive').textContent='Anza video conference';
+ $('#stopLive').disabled=true;$('#stopLive').textContent='Maliza mazungumzo';
+ $('#sendLiveText').disabled=true;
+ if(message)$('#liveStatus').textContent=message;
+}
+let liveAvatarStarting=false,liveAvatarCancelRequested=false;
 async function startLiveAvatar(){
- if(liveAvatarSession){$('#liveStatus').textContent='Tayari uko kwenye mazungumzo.';return;}
+ if(liveAvatarSession||liveAvatarStarting){$('#liveStatus').textContent='Kikao kinaendelea au kinaunganishwa.';return;}
  const token=localStorage.getItem('t')||'';
  if(!token){$('#liveStatus').textContent='Tafadhali ingia kwenye akaunti ya Mlimani kwanza.';return;}
- $('#startLive').disabled=true;$('#liveStatus').textContent='Tunaandaa video conference ya '+avatar+'...';
+ liveAvatarStarting=true;liveAvatarCancelRequested=false;
+ $('#startLive').disabled=true;$('#startLive').textContent='Inaunganisha...';
+ $('#stopLive').disabled=false;$('#liveStatus').textContent='Hatua 1/3: Tunaandaa kikao cha '+avatar+'...';
  try{
-  const production=$('#liveProduction').checked;
-  const avatarId=$('#'+(avatar==='Ethan'?'ethanLiveAvatar':'nginaLiveAvatar')).value;
-  if(production&&!avatarId)throw new Error('Chagua avatar ya '+avatar+' kwanza.');
-  const response=await fetch('/api/liveavatar/session-token',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({character:avatar,language:$('#language').value,production,avatarId})});
-  const payload=await response.json();if(!response.ok)throw new Error(payload.error||'Imeshindikana kuunda session token.');
-  $('#liveStatus').textContent='Token imepatikana. Tunaunganisha microphone na avatar...';
+  const response=await fetch('/api/liveavatar/session-token',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({character:avatar,language:$('#language').value})});
+  const payload=await response.json();
+  if(!response.ok)throw new Error(payload.error||'Imeshindikana kuunda kikao cha video.');
+  $('#liveStatus').textContent='Hatua 2/3: Tunafungua video na microphone...';
   const sdk=await import('https://esm.sh/@heygen/liveavatar-web-sdk@0.0.20?bundle');
+  if(typeof sdk.LiveAvatarSession!=='function')throw new Error('SDK ya LiveAvatar haikupakiwa vizuri. Refresh ukurasa ujaribu tena.');
   const session=new sdk.LiveAvatarSession(payload.sessionToken,{autoKeepAlive:true});
   liveAvatarSession=session;
-  session.on('session.stream_ready',()=>{session.attach($('#liveAvatarVideo'));$('#liveAvatarVideo').classList.remove('hidden');$('#liveAvatarPlaceholder').classList.add('hidden');$('#liveSpeakingStatus').textContent=payload.character+' yuko hewani.';});
-  session.on('session.state_changed',state=>{$('#liveStatus').textContent='Hali ya mazungumzo: '+state;});
+  session.on('session.stream_ready',async()=>{
+   try{
+    const video=$('#liveAvatarVideo');session.attach(video);
+    video.classList.remove('hidden');$('#liveAvatarPlaceholder').classList.add('hidden');
+    await video.play().catch(()=>{});
+    $('#liveSpeakingStatus').textContent=avatar+' yuko hewani. Video imeunganishwa.';
+    $('#liveStatus').textContent='Video ya '+avatar+' imeunganishwa. Zungumza sasa au andika ujumbe.';
+   }catch(e){$('#liveStatus').textContent='Video imeunganishwa lakini haijacheza: '+e.message;}
+  });
+  session.on('session.state_changed',state=>{
+   if(state==='CONNECTING')$('#liveStatus').textContent='Hatua 2/3: Inaunganisha video...';
+   if(state==='CONNECTED')$('#liveStatus').textContent='Hatua 3/3: '+avatar+' ameunganishwa. Unaweza kuzungumza.';
+  });
   session.on('user.transcription',event=>{if(event?.text)addVoiceLine('user','Wewe: '+event.text);});
   session.on('avatar.transcription',event=>{if(event?.text)addVoiceLine('assistant',avatar+': '+event.text);});
   session.on('avatar.speak_started',()=>{$('#liveSpeakingStatus').textContent=avatar+' anazungumza...';});
   session.on('avatar.speak_ended',()=>{$('#liveSpeakingStatus').textContent=avatar+' amemaliza kujibu. Unaweza kuzungumza tena.';});
-  session.on('session.disconnected',()=>{liveAvatarSession=null;$('#startLive').disabled=false;$('#stopLive').disabled=true;$('#sendLiveText').disabled=true;$('#liveStatus').textContent='Kikao kimefungwa.';});
-  await session.start();
-  $('#liveStatus').textContent=payload.character+' ameunganishwa. '+(payload.sandbox?'Sandbox ya majaribio (bila credits, takribani dakika 1).':'Production avatar: credits zinaweza kutumika.');
-  $('#startLive').textContent='Umeunganishwa';
-  $('#stopLive').disabled=false;$('#sendLiveText').disabled=false;
-  if(payload.sandbox)$('#liveCatalogStatus').textContent='Sandbox: Wayne ndiye avatar wa majaribio. Ethan na Ngina watapata sura tofauti ukichagua avatars zao za production.';
+  session.on('session.disconnected',()=>{liveAvatarStarting=false;resetLiveControls('Kikao kimefungwa. Unaweza kuanza tena.');});
+  await session.start();liveAvatarStarting=false;
+  if(liveAvatarCancelRequested){await session.stop();resetLiveControls('Umefunga kikao wakati kinaunganisha.');return;}
+  $('#startLive').textContent='Umeunganishwa';$('#stopLive').disabled=false;$('#sendLiveText').disabled=false;
+  $('#liveStatus').textContent=payload.character+' ameunganishwa. '+(payload.sandbox?'Sandbox ya majaribio bila credits (avatar ya mfano).':'Avatar ya Mlimani imeunganishwa.');
  }catch(e){
-  try{await liveAvatarSession?.stop();}catch{}
-  liveAvatarSession=null;$('#startLive').disabled=false;$('#stopLive').disabled=true;$('#sendLiveText').disabled=true;
-  $('#liveStatus').textContent='Imeshindikana kuanzisha LiveAvatar: '+(e.message||'Jaribu tena.');
+  const session=liveAvatarSession;liveAvatarStarting=false;
+  try{await session?.stop();}catch{}
+  resetLiveControls('Imeshindikana kuanzisha video conference: '+(e.message||'Jaribu tena.'));
  }
 }
+function addVoiceLine(role,text){const log=$('#voiceLog');const d=document.createElement('div');d.className='bubble '+role;d.textContent=text;log.append(d);log.scrollTop=log.scrollHeight;}
+$('#startLive').addEventListener('click',startLiveAvatar);
+$('#stopLive').addEventListener('click',async()=>{
+ if(liveAvatarStarting){liveAvatarCancelRequested=true;$('#stopLive').disabled=true;$('#liveStatus').textContent='Tunafunga kikao kinachoendelea kuunganishwa...';return;}
+ const session=liveAvatarSession;$('#stopLive').disabled=true;$('#liveStatus').textContent='Tunafunga mazungumzo...';
+ try{await session?.stop();}catch(e){$('#liveStatus').textContent='Kikao kimefungwa. '+(e.message||'');}
+ resetLiveControls('Mazungumzo yameisha. Unaweza kuanza tena.');
+});
+$('#sendLiveText').addEventListener('click',()=>{
+ const text=$('#liveTextInput').value.trim();if(!text||!liveAvatarSession)return;
+ try{liveAvatarSession.message(text);addVoiceLine('user','Wewe (umeandika): '+text);$('#liveTextInput').value='';}
+ catch(e){$('#liveStatus').textContent='Ujumbe haukutumwa: '+e.message;}
+});
+$('#liveTextInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#sendLiveText').click();});
 function addVoiceLine(role,text){const log=$('#voiceLog');const d=document.createElement('div');d.className='bubble '+role;d.textContent=text;log.append(d);log.scrollTop=log.scrollHeight;}
 $('#startLive').addEventListener('click',startLiveAvatar);
 $('#stopLive').addEventListener('click',async()=>{try{await liveAvatarSession?.stop();}catch{}liveAvatarSession=null;$('#liveAvatarVideo').srcObject=null;$('#liveAvatarVideo').classList.add('hidden');$('#liveAvatarPlaceholder').classList.remove('hidden');$('#startLive').disabled=false;$('#startLive').textContent='Anza video conference';$('#stopLive').disabled=true;$('#sendLiveText').disabled=true;$('#liveStatus').textContent='Mazungumzo yameisha. Unaweza kuanza tena.';});
 $('#sendLiveText').addEventListener('click',()=>{const text=$('#liveTextInput').value.trim();if(!text||!liveAvatarSession)return;try{liveAvatarSession.message(text);addVoiceLine('user','Wewe (umeandika): '+text);$('#liveTextInput').value='';}catch(e){$('#liveStatus').textContent=e.message;}});
 $('#liveTextInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#sendLiveText').click();});
-loadLiveAvatarCatalog();
+
 $('#createVideo').addEventListener('click',async()=>{const token=localStorage.getItem('t')||'';if(!token){$('#videoProviderStatus').textContent='Tafadhali ingia kwenye akaunti kwanza.';return;}let prompt='';if(videoType==='marketing'){const name=$('#productName').value.trim(),benefit=$('#productBenefit').value.trim(),cta=$('#productCTA').value.trim();if(!name||!benefit){$('#videoProviderStatus').textContent='Jaza jina la bidhaa na faida kuu kwanza.';return;}prompt='Create a polished '+$('#format').value+' five-second marketing video for '+name+'. Main benefit: '+benefit+'. Call to action: '+cta+'. Presenter: '+avatar+'. Professional East African commercial style.';}else{const script=$('#newsScript').value.trim();if(!script){$('#videoProviderStatus').textContent='Andika script ya habari kwanza.';return;}prompt='Create a professional '+$('#format').value+' five-second news bulletin video. Presenter: '+avatar+'. News script: '+script;}if(prompt.length>390)prompt=prompt.slice(0,390);$('#createVideo').disabled=true;$('#videoProviderStatus').textContent='Video inatengenezwa. Subiri kidogo...';try{const r=await fetch('/api/video',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({prompt})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Ombi la video limeshindwa.');let status='working',tries=0;while(status==='working'&&tries++<80){await new Promise(resolve=>setTimeout(resolve,3000));const p=await fetch('/api/video/'+encodeURIComponent(d.id),{headers:{Authorization:'Bearer '+token}});const pj=await p.json();if(!p.ok)throw new Error(pj.error||'Imeshindikana kufuatilia video.');status=pj.status;}if(status!=='done')throw new Error(status==='error'?'Video imeshindwa kutengenezwa. Hakuna salio lililokatwa.':'Video bado inachakatwa. Jaribu kuangalia tena baada ya muda.');const file=await fetch('/api/video/'+encodeURIComponent(d.id)+'/file',{headers:{Authorization:'Bearer '+token}});if(!file.ok)throw new Error('Video imetengenezwa lakini haikuweza kupakuliwa.');const blob=await file.blob();if(videoObjectUrl)URL.revokeObjectURL(videoObjectUrl);videoObjectUrl=URL.createObjectURL(blob);$('#generatedVideo').src=videoObjectUrl;$('#generatedVideo').classList.remove('hidden');$('#videoProviderStatus').textContent='Video yako iko tayari. Bonyeza Play kuitazama.';refreshVideoWallet();}catch(e){$('#videoProviderStatus').textContent=e.message;}finally{$('#createVideo').disabled=false;}});
 
 async function send(){const q=$('#chatInput').value.trim();if(!q)return;if(sessionEndsAt&&Date.now()>=sessionEndsAt){$('#status').textContent='Muda wa mazungumzo umeisha. Anza mazungumzo mapya.';$('#sendChat').disabled=true;return;}if(!sessionEndsAt){$('[data-duration]').forEach(b=>b.disabled=true);sessionEndsAt=Date.now()+(durationTier==='extended'?60:15)*60*1000;sessionTimer=setInterval(()=>{const left=Math.max(0,sessionEndsAt-Date.now());if(!left){clearInterval(sessionTimer);$('#sendChat').disabled=true;$('#status').textContent='Muda wa mazungumzo umeisha. Pakua mazungumzo au anza upya.';return;}const mins=Math.floor(left/60000),secs=Math.floor(left%60000/1000);$('#status').textContent='Muda uliobaki: '+mins+' dakika '+secs+' sekunde.';},1000);}const lang=$('#language').value;history.push({role:'user',content:q});addBubble('user',q);$('#chatInput').value='';$('#sendChat').disabled=true;$('#status').textContent='Mlimani AI inatafakari...';try{const token=localStorage.getItem('t')||'';const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify({messages:history.slice(-12),studio:true,studioAvatar:avatar,sessionId:(studioSessionId||(studioSessionId=crypto.randomUUID())),language:lang,durationTier})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Imeshindikana kupata jibu.');if(d.sessionExpiresAt)sessionEndsAt=d.sessionExpiresAt;const answer=d.reply||'Samahani, sijapata jibu.';history.push({role:'assistant',content:answer});addBubble('assistant',answer);$('#status').textContent='Jibu limepatikana.';}catch(e){history.pop();addBubble('assistant','Samahani: '+e.message);$('#status').textContent=e.message;}finally{$('#sendChat').disabled=false;}}
