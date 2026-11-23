@@ -12,7 +12,7 @@ h1{color:white;margin:8px 0} .lead{color:#e7f4df;margin:0 0 20px}
 .choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .avatar{border:3px solid transparent;border-radius:18px;background:white;padding:12px;text-align:left;cursor:pointer;font:inherit}
 .avatar[aria-pressed=true]{border-color:var(--gold);box-shadow:0 0 0 3px #f2a90033}
-.avatar img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;background:#dce8d7}
+.avatar-art{width:100%;aspect-ratio:4/3;border-radius:12px;background:radial-gradient(circle at 50% 35%,#d7a27c 0 13%,transparent 13.5%),radial-gradient(ellipse at 50% 78%,#315b43 0 27%,transparent 27.5%),linear-gradient(135deg,#dce8d7,#a9c9a4);display:grid;place-items:end center;padding:10px;color:#173d28;font-weight:800}
 .avatar strong{display:block;font-size:1.15rem;color:var(--forest);margin-top:8px}.avatar small{color:#536656}
 .modes{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.modes button,.primary,.secondary{border:0;border-radius:999px;padding:11px 17px;font-weight:800;cursor:pointer}
 .modes button{background:#e8e1d1;color:var(--forest)}.modes button[aria-pressed=true],.primary{background:var(--gold);color:var(--forest)}
@@ -28,8 +28,8 @@ textarea{min-height:110px;resize:vertical}.actions{display:flex;gap:10px;flex-wr
 <h1>Ongea na AI. Tengeneza video.</h1><p class="lead">Wahusika wa Mlimani wenye sura za kitaalamu na lugha unayochagua.</p>
 <section class="panel">
 <h2>1. Chagua avatar</h2><div class="choices">
-<button class="avatar" data-avatar="Ngina" aria-pressed="true"><img src="/img/ngina-preview.jpg" alt="Picha ya mfano ya Ngina"><strong>Ngina</strong><small>Avatar wa kike · Kiswahili / English</small></button>
-<button class="avatar" data-avatar="Ethan" aria-pressed="false"><img src="/img/ethan-preview.jpg" alt="Picha ya mfano ya Ethan"><strong>Ethan</strong><small>Avatar wa kiume · Kiswahili / English</small></button>
+<button class="avatar" data-avatar="Ngina" aria-pressed="true"><div class="avatar-art" role="img" aria-label="Mchoro wa muda wa Ngina">NGINA · PREVIEW</div><strong>Ngina</strong><small>Avatar wa kike · Kiswahili / English</small></button>
+<button class="avatar" data-avatar="Ethan" aria-pressed="false"><div class="avatar-art" role="img" aria-label="Mchoro wa muda wa Ethan">ETHAN · PREVIEW</div><strong>Ethan</strong><small>Avatar wa kiume · Kiswahili / English</small></button>
 </div>
 <h2 style="margin-top:22px">2. Chagua huduma</h2><div class="modes"><button data-mode="live" aria-pressed="true">🎙️ Live Talk</button><button data-mode="video" aria-pressed="false">🎬 Create Video</button></div>
 <label for="language">Lugha</label><select id="language"><option value="sw">Kiswahili</option><option value="en">English</option></select>
