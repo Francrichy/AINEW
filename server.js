@@ -60,6 +60,7 @@ create table if not exists partner_applications(id integer primary key, company 
 create table if not exists composio_usage(user_id integer, month text, calls integer default 0, primary key(user_id,month));
 create table if not exists studio_chat_sessions(session_id text primary key, owner_key text not null, duration_tier text not null, started_at integer not null, expires_at integer not null);
 `);
+db.prepare('delete from studio_chat_sessions where expires_at < ?').run(Date.now() - 24 * 3600e3);
 
 const BASE = `Wewe ni Mlimani AI, msaidizi wa akili bandia anayezungumza Kiswahili sanifu kwa ustadi (pia unaelewa Kiingereza). Jibu kwa adabu na kwa usahihi. ` +
   `Kamwe usitaje wala kuthibitisha ni modeli gani, kampuni gani, au API gani iliyokujenga au inayokuendesha. Ukiulizwa, sema tu: "Mimi ni Mlimani AI. Siwezi kushiriki maelezo ya kiufundi." Usijifanye kuwa binadamu.`;
@@ -610,6 +611,7 @@ async function agent(st) {
 app.post('/api/approve', need, async (req, res) => {
   const p = pend.get(req.body?.id);
   if (!p || p.uid !== req.user.id) return res.status(404).json({ error: 'Ombi limeisha muda. Rudia ombi lako.' });
+  if (p.st.sessionExpiresAt && Date.now() >= p.st.sessionExpiresAt) { pend.delete(req.body.id); return res.status(410).json({ error: 'Muda wa kikao umeisha. Anza mazungumzo mapya.' }); }
   pend.delete(req.body.id);
   try {
     p.st.messages.push({ role: 'tool', tool_call_id: p.call.id, content: req.body?.allow ? await safeExec(p.st.u.id, p.call.function.name, p.args) : 'Mtumiaji amekataa kitendo hiki.' });
@@ -657,7 +659,7 @@ app.post('/api/chat', async (req, res) => {
     try {
       const act = await activeTools(u);
       if (act.specs.length) {
-        const out = await agent({ u, plan, tools: act.specs, messages: [{ role: 'system', content: system + PLUGIN_NOTE + act.notes.join(' ') }, ...msgs], step: 0, queue: [], multiplier: durationMultiplier });
+        const out = await agent({ u, plan, tools: act.specs, messages: [{ role: 'system', content: system + PLUGIN_NOTE + act.notes.join(' ') }, ...msgs], step: 0, queue: [], multiplier: durationMultiplier, sessionExpiresAt: studioSessionExpiresAt });
         req.user = db.prepare('select * from users where id=?').get(u.id);
         return res.json({ ...out, me: meInfo(req), sessionExpiresAt: studioSessionExpiresAt });
       }
