@@ -186,6 +186,14 @@ app.post('/api/bots', need, (req, res) => {
   const r = db.prepare('insert into bots(user_id,name,prompt) values(?,?,?)').run(req.user.id, name, prompt);
   res.json({ id: r.lastInsertRowid });
 });
+app.put('/api/bots/:id', need, (req, res) => {
+  const name = String(req.body?.name || '').slice(0, 60).trim();
+  const prompt = String(req.body?.prompt || '').slice(0, 2000).trim();
+  if (!name || !prompt) return res.status(400).json({ error: 'Weka jina na maelekezo ya boti.' });
+  const result = db.prepare('update bots set name=?,prompt=? where id=? and user_id=?').run(name, prompt, req.params.id, req.user.id);
+  if (!result.changes) return res.status(404).json({ error: 'Boti haipatikani.' });
+  res.json({ ok: 1 });
+});
 app.delete('/api/bots/:id', need, (req, res) => { db.prepare('delete from bots where id=? and user_id=?').run(req.params.id, req.user.id); res.json({ ok: 1 }); });
 
 async function notify(text) {   // taarifa ya Telegram kwa mmiliki

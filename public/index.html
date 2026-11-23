@@ -251,13 +251,15 @@ function renderAcct(){const b=$('#acctbox');b.innerHTML='';if(!me.loggedIn){b.ap
  rows.forEach(([k,v])=>{const r=el('div','row');r.append(el('span','',k),el('b','',v));b.appendChild(r)});
  (me.pending||[]).forEach(p=>b.appendChild(el('div','pend','⏳ Malipo ya mpango wa '+p.plan+' (muamala '+p.ref+') yanasubiri uthibitisho. Utaarifiwa mpango ukiwashwa.')));
  const up=el('button','btn','Pandisha mpango');up.style.marginTop='12px';up.onclick=()=>tab('plans');b.appendChild(up)}
+let editingBotId=null;
 async function loadBots(){const l=$('#botlist');if(!me.loggedIn){l.innerHTML='<div class="card">Ingia kwanza ili kuunda na kutumia boti.</div>';return}
  try{const bs=await api('bots');l.innerHTML='';if(!bs.length)l.innerHTML='<div class="card">Huna boti bado. Unda ya kwanza hapo juu (mipango ya kulipia).</div>';
  bs.forEach(b=>{const c=el('div','card');const p=el('p','',b.prompt);
   const u=el('button','btn alt','Tumia');u.onclick=()=>{botId=b.id;hist=[];save();$('#chatbox').innerHTML='';$('#botName').textContent='Unazungumza na: '+b.name;tab('chat')};
+  const edit=el('button','btn alt','Hariri');edit.onclick=()=>{editingBotId=b.id;$('#bn').value=b.name;$('#bp').value=b.prompt;$('#bcreate').textContent='Hifadhi mabadiliko';$('#berr').textContent='Unahariri: '+b.name;window.scrollTo({top:0,behavior:'smooth'})};
   const x=el('button','btn ghost','Futa');x.onclick=async()=>{await api('bots/'+b.id,{method:'DELETE'});if(botId===b.id){botId=null;$('#botName').textContent=''}loadBots()};
-  c.append(el('b','',b.name),p,u,' ',x);l.appendChild(c)})}catch(e){l.textContent=e.message}}
-$('#bcreate').onclick=async()=>{try{await api('bots',{method:'POST',body:{name:$('#bn').value,prompt:$('#bp').value}});$('#bn').value=$('#bp').value='';$('#berr').textContent='';loadBots()}catch(e){$('#berr').textContent=e.message}};
+  c.append(el('b','',b.name),p,u,' ',edit,' ',x);l.appendChild(c)})}catch(e){l.textContent=e.message}}
+$('#bcreate').onclick=async()=>{try{const editing=editingBotId!==null;await api(editing?'bots/'+editingBotId:'bots',{method:editing?'PUT':'POST',body:{name:$('#bn').value,prompt:$('#bp').value}});editingBotId=null;$('#bn').value=$('#bp').value='';$('#bcreate').textContent='Unda Boti';$('#berr').textContent=editing?'Mabadiliko yamehifadhiwa.':'';loadBots()}catch(e){$('#berr').textContent=e.message}};
 async function loadPlans(){const d=await api('plans');cfg=d;const {plans,payInfo}=d;const g=$('#plangrid');g.innerHTML='';const pi=$('#payinfo');pi.textContent=payInfo;
  const vc='Video (TZS '+d.videoCost.toLocaleString()+' kwa video, kutoka mkopo)';
  const feat={free:['Ujumbe wachache bure kila siku','Picha 2 kwa siku','Majibu mafupi'],kawaida:['Mkopo wa TZS 10,000 kila mwezi','Boti 1','Majibu marefu',vc],biashara:['Mkopo wa TZS 30,000 kila mwezi','Modeli bora zaidi','Boti 10','Majibu marefu sana',vc],kampuni:['Mkopo wa TZS 100,000 kila mwezi','Kwa timu na kampuni','Boti 50','Majibu marefu zaidi',vc]};
