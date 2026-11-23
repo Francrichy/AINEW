@@ -588,7 +588,7 @@ async function orStep(st) {
   const d = await r.json();
   if (!r.ok || !d.choices?.[0]) throw new Error(d.error?.message || 'imeshindwa');
   const usd = d.usage?.cost ?? ((d.usage?.prompt_tokens || 0) * top[0].p + (d.usage?.completion_tokens || 0) * top[0].c);
-  db.prepare('update users set credit_used=credit_used+? where id=?').run(usd * MARKUP * USD_TZS, st.u.id);
+  db.prepare('update users set credit_used=credit_used+? where id=?').run(usd * MARKUP * USD_TZS * (st.multiplier || 1), st.u.id);
   return d.choices[0].message;
 }
 async function agent(st) {
@@ -625,6 +625,8 @@ app.post('/api/chat', async (req, res) => {
   if (!msgs.length || msgs.at(-1).role !== 'user') return res.status(400).json({ error: 'Andika ujumbe.' });
 
   const u = req.user, plan = PLANS[u ? u.plan : 'free'], k = keyFor(req), lim = limitFor(u);
+  const durationMultiplier = req.body?.durationTier === 'extended' ? 4 : 1;
+  if (durationMultiplier === 4 && (!u || u.plan === 'free')) return res.status(403).json({ error: 'Muda mrefu wa AI Chat unapatikana kwa wateja wa mpango wa kulipia pekee. Chagua mpango kwanza.' });
   if (ASK.test(msgs.at(-1).content)) return res.json({ reply: REFUSAL, me: meInfo(req) }); // haitumii token, haihesabiwi
   if (lim !== null && used(k) >= lim) return res.status(429).json({ error: u ? 'Umetumia ujumbe wako wa bure wa leo. Rudi kesho au chagua mpango wa kulipia.' : 'Ujumbe wa bure wa leo umeisha. Fungua akaunti kupata zaidi, au rudi kesho.', limit: true, me: meInfo(req) });
   if (u && u.plan !== 'free' && u.credit_used >= plan.price) return res.status(402).json({ error: 'Mkopo wako wa mwezi umeisha. Pandisha mpango au subiri mwezi ujao.', me: meInfo(req) });
@@ -638,7 +640,7 @@ app.post('/api/chat', async (req, res) => {
     try {
       const act = await activeTools(u);
       if (act.specs.length) {
-        const out = await agent({ u, plan, tools: act.specs, messages: [{ role: 'system', content: system + PLUGIN_NOTE + act.notes.join(' ') }, ...msgs], step: 0, queue: [] });
+        const out = await agent({ u, plan, tools: act.specs, messages: [{ role: 'system', content: system + PLUGIN_NOTE + act.notes.join(' ') }, ...msgs], step: 0, queue: [], multiplier: durationMultiplier });
         req.user = db.prepare('select * from users where id=?').get(u.id);
         return res.json({ ...out, me: meInfo(req) });
       }
@@ -668,7 +670,7 @@ app.post('/api/chat', async (req, res) => {
     if (!d) throw new Error('modeli zote zimeshindwa');
     console.log(step.free ? 'IMETUMIA BURE' : 'IMETUMIA KULIPIA');
     const usd = step.free ? 0 : (d.usage?.cost ?? ((d.usage?.prompt_tokens || 0) * step.p + (d.usage?.completion_tokens || 0) * step.c));
-    if (u && u.plan !== 'free') db.prepare('update users set credit_used=credit_used+? where id=?').run(usd * MARKUP * USD_TZS, u.id);
+    if (u && u.plan !== 'free') db.prepare('update users set credit_used=credit_used+? where id=?').run(usd * MARKUP * USD_TZS * durationMultiplier, u.id);
     if (u) req.user = db.prepare('select * from users where id=?').get(u.id);
     res.json({ reply: d.choices[0].message.content, me: meInfo(req) }); // jina la modeli halitumwi kwa mtumiaji
   } catch (e) {
