@@ -31,3 +31,26 @@ The SQL creates the isolated `ainew` schema and the tables currently initialized
 Do not cut over until row counts and representative records have been reconciled for every table. Keep the old SQLite export and database backup until the new service has passed production smoke tests. Rollback must restore the previous application build and must not overwrite the Fleet `public` schema.
 
 The Render PostgreSQL instance currently has a Free plan and a displayed expiry of 19 December 2026. Upgrade/retention must be handled before expiry; this change does not upgrade any Render resource.
+
+
+## Guarded data-copy utility
+
+A one-time copy utility is included at `scripts/migrate-sqlite-to-postgres.js`.
+
+It:
+- Opens the source SQLite file in read-only mode.
+- Requires `DATABASE_URL` and the pre-created `ainew` schema.
+- Copies only the ten AINEW application tables listed in the script.
+- Refuses to proceed if any target table already contains rows.
+- Runs the copy in one PostgreSQL transaction and rolls back on errors.
+- Preserves primary-key IDs and resets identity sequences.
+- Verifies source and destination row counts before commit.
+- Does not delete or modify the SQLite source file and never targets Fleet's `public` schema.
+
+Example command (run only from a secured environment after a verified SQLite backup):
+
+```bash
+DATABASE_URL="$RENDER_INTERNAL_DATABASE_URL" SQLITE_PATH="./mlimani.db" PG_SCHEMA="ainew" node scripts/migrate-sqlite-to-postgres.js
+```
+
+Do not paste database URLs or passwords into GitHub, chat, logs, or screenshots. This utility copies data only; it does not switch the live AINEW server to PostgreSQL. The live backend still requires the separate async adapter refactor and functional tests before cutover.
