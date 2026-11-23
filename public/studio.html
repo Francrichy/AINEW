@@ -63,8 +63,8 @@ $$('[data-avatar]').forEach(b=>b.addEventListener('click',()=>{avatar=b.dataset.
 $('#sendChat').textContent='Ongea na '+avatar;
 $$('[data-age]').forEach(b=>b.addEventListener('click',()=>{age=b.dataset.age;$$('[data-age]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));}));
 $$('[data-duration]').forEach(b=>b.addEventListener('click',()=>{durationTier=b.dataset.duration;$$('[data-duration]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#durationNote').textContent=durationTier==='extended'?'Muda mrefu wa mazungumzo umechaguliwa.':'Muda wa kawaida wa mazungumzo.';}));
-$$('[data-mode]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.mode;$('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#chatFields').classList.toggle('hidden',mode!=='chat');$('#liveFields').classList.toggle('hidden',mode!=='live');$('#videoFields').classList.toggle('hidden',mode!=='video');}));
-$$('[data-vtype]').forEach(b=>b.addEventListener('click',()=>{videoType=b.dataset.vtype;$$('[data-vtype]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#marketingFields').classList.toggle('hidden',videoType!=='marketing');$('#newsFields').classList.toggle('hidden',videoType!=='news');}));
+$('[data-mode]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.mode;$('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#chatFields').classList.toggle('hidden',mode!=='chat');$('#liveFields').classList.toggle('hidden',mode!=='live');$('#videoFields').classList.toggle('hidden',mode!=='video');}));
+$('[data-vtype]').forEach(b=>b.addEventListener('click',()=>{videoType=b.dataset.vtype;$('[data-vtype]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#marketingFields').classList.toggle('hidden',videoType!=='marketing');$('#newsFields').classList.toggle('hidden',videoType!=='news');}));
 $('#productImage').addEventListener('change',e=>{const file=e.target.files?.[0];if(!file)return;const url=URL.createObjectURL(file);$('#productPreview').src=url;$('#productPreview').classList.remove('hidden');});
 async function loadLiveAvatarCatalog(){
  const status=$('#liveCatalogStatus');
