@@ -72,6 +72,7 @@ const ASK = /(umetengenezwa|umeundwa|ulitengenezwa|uliundwa|nani (alikutengeneza
 const app = express();
 app.set('trust proxy', 1);
 app.use(express.json({ limit: '100kb' }));
+app.use('/studio.html', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate'); res.setHeader('Pragma', 'no-cache'); res.setHeader('Expires', '0'); next(); });
 app.use(express.static(path.join(__dirname, 'public')));
 
 try { db.exec('alter table users add column phone text'); } catch {}
@@ -163,7 +164,8 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
   try {
     const character = ['Ethan', 'Ngina'].includes(req.body?.character) ? req.body.character : 'Ngina';
     const language = ['sw', 'en'].includes(req.body?.language) ? req.body.language : 'sw';
-    const production = req.body?.production === true;
+    const configuredAvatarId = env['LIVEAVATAR_' + character.toUpperCase() + '_AVATAR_ID'] || '';
+    const production = Boolean(configuredAvatarId);
     const catalog = await liveAvatarCatalog();
     const voiceGender = character === 'Ethan' ? 'male' : 'female';
     const voiceLanguage = v => {
@@ -185,8 +187,8 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
     }
     let avatarId = LIVEAVATAR_SANDBOX_AVATAR;
     if (production) {
-      avatarId = String(req.body?.avatarId || '');
-      if (!catalog.avatars.some(a => a.id === avatarId)) return res.status(400).json({ error: 'Chagua avatar iliyopo kwenye orodha ya LiveAvatar.' });
+      avatarId = String(configuredAvatarId);
+      if (!catalog.avatars.some(a => a.id === avatarId)) return res.status(503).json({ error: 'Avatar maalum ya Mlimani (' + character + ') bado haijaunganishwa au haiko tayari kwenye LiveAvatar. Hakuna avatar za watu wengine zitakazotumika.' });
     }
     const contextId = await liveAvatarContext(character, language);
     const payload = {
