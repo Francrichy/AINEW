@@ -46,3 +46,12 @@ Nuance Labs may be evaluated as one candidate, but it must not be treated as the
 
 ## Current implementation status
 This branch adds a clearly labelled front-end prototype at /studio.html and a navigation link. It does not start a camera/microphone, call an avatar vendor, generate video, or charge credits. Production APIs and provider credentials are intentionally not configured yet.
+
+
+## AI Chat and avatar age choices (2026-11-23)
+- Added an AI Chat mode in the Studio that calls the existing authenticated `POST /api/chat` endpoint; it uses Mlimani AI's configured model routing rather than pretending a static response is live AI.
+- The chat supports Kiswahili and English selection and maintains the current conversation in the browser for the session. The user can download a plain-text transcript or start a fresh conversation.
+- Ngina and Ethan remain the selected character identities; users can choose a youthful or mature/older visual presentation. Current portraits are still placeholders until approved avatar image assets are committed.
+- Normal AI Chat session duration is 15 minutes; Extended is 60 minutes. Extended is restricted to signed-in paid-plan users and applies a 4x multiplier to metered model usage on the server. The existing base retail markup remains in force, so the extended option costs four times the normal Mlimani AI Chat usage rate. No charge is made just for selecting the option; usage is metered when messages are processed.
+- Session transcript download is user-initiated and generated locally as a TXT file; chat history is not automatically uploaded as a downloadable file.
+- Live Talk and Create Video remain prototypes and are not represented as operational until real providers, consent flow, language tests and server-side billing are integrated.
