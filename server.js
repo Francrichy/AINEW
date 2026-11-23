@@ -401,7 +401,7 @@ const BUILTIN = {
 };
 
 // ---------- KATALOGI YA PLUGINS (makundi kama ChatGPT) ----------
-const CATS = [['maarufu', 'Maarufu'], ['habari', 'Habari'], ['biashara', 'Biashara ndogo'], ['mali', 'Mali isiyohamishika'], ['uzalishaji', 'Uzalishaji'], ['watengenezaji', 'Watengenezaji'], ['usafirishaji', 'Usafirishaji na Fleet'], ['kilimo', 'Kilimo']];
+const CATS = [['maarufu', 'Maarufu'], ['sme', 'SME'], ['habari', 'Habari'], ['biashara', 'Biashara ndogo'], ['mali', 'Mali isiyohamishika'], ['uzalishaji', 'Uzalishaji'], ['watengenezaji', 'Watengenezaji'], ['usafirishaji', 'Usafirishaji na Fleet'], ['kilimo', 'Kilimo']];
 const CATALOG = [
   { id: 'hali_ya_hewa', icon: '🌦️', name: 'Hali ya hewa', desc: 'Joto, mvua na utabiri wa siku 3 kwa mji wowote.', cats: ['maarufu', 'kilimo'], kind: 'builtin', tools: ['weather'] },
   { id: 'kiwango_fedha', icon: '💱', name: 'Kiwango cha fedha', desc: 'Dola, euro na TZS: badilisha fedha kwa kiwango cha sasa.', cats: ['maarufu', 'biashara'], kind: 'builtin', tools: ['exchange_rate'] },
@@ -413,7 +413,7 @@ const CATALOG = [
   { id: 'mkopo_nyumba', icon: '🏠', name: 'Mkopo wa nyumba', desc: 'Kokotoa malipo ya kila mwezi ya mkopo wa nyumba au kiwanja.', cats: ['mali'], kind: 'builtin', tools: ['loan_calc'] },
   { id: 'github', icon: '🐙', name: 'GitHub', desc: 'Soma repo, commits, issues na tengeneza issue (kwa ruhusa yako).', cats: ['watengenezaji'], kind: 'connector' },
   { id: 'render', icon: '🚀', name: 'Render', desc: 'Hali ya huduma na deploys; anzisha deploy kwa ruhusa yako.', cats: ['watengenezaji'], kind: 'connector' },
-  { id: 'mlimanifleet', icon: '🚛', name: 'Mlimani Fleet Management', desc: 'Unganisha Mlimani Fleet kusoma taarifa za magari, madereva, safari, mafuta, matengenezo na ripoti.', cats: ['usafirishaji', 'maarufu', 'biashara'], kind: 'fleet', soon: true },
+  { id: 'mlimanifleet', icon: '🚛', name: 'Mlimani Fleet Management', desc: 'Unganisha Mlimani Fleet kusoma taarifa za magari, madereva, safari, mafuta, matengenezo na ripoti.', cats: ['usafirishaji', 'maarufu', 'biashara', 'sme'], kind: 'fleet', soon: true },
   { id: 'mlimani', icon: '⛰️', name: 'Mlimani Business Platform', desc: 'Unganisha mfumo mkuu wa Mlimani kwa taarifa za biashara, shughuli, wateja na ripoti.', cats: ['maarufu', 'biashara', 'uzalishaji'], kind: 'platform', soon: true },
   { id: 'whatsapp_biz', icon: '💬', name: 'WhatsApp Business', desc: 'AI inajibu wateja wako kwa Kiswahili.', cats: ['biashara'], kind: 'soon', soon: true },
   { id: 'malipo_simu', icon: '📲', name: 'Malipo ya simu', desc: 'M-Pesa, Tigo Pesa, Airtel Money (Selcom/ClickPesa).', cats: ['biashara'], kind: 'soon', soon: true },
