@@ -58,6 +58,7 @@ create table if not exists plugin_prefs(user_id integer, plugin_id text, enabled
 create table if not exists payments(id integer primary key, user_id integer, plan text, phone text, ref text, status text default 'pending', created integer);
 create table if not exists partner_applications(id integer primary key, company text, contact text, email text, website text, api_url text, description text, status text default 'pending', created integer);
 create table if not exists composio_usage(user_id integer, month text, calls integer default 0, primary key(user_id,month));
+create table if not exists studio_chat_sessions(session_id text primary key, owner_key text not null, duration_tier text not null, started_at integer not null, expires_at integer not null);
 `);
 
 const BASE = `Wewe ni Mlimani AI, msaidizi wa akili bandia anayezungumza Kiswahili sanifu kwa ustadi (pia unaelewa Kiingereza). Jibu kwa adabu na kwa usahihi. ` +
@@ -625,11 +626,27 @@ app.post('/api/chat', async (req, res) => {
   if (!msgs.length || msgs.at(-1).role !== 'user') return res.status(400).json({ error: 'Andika ujumbe.' });
 
   const u = req.user, plan = PLANS[u ? u.plan : 'free'], k = keyFor(req), lim = limitFor(u);
-  const durationMultiplier = req.body?.durationTier === 'extended' ? 4 : 1;
+  const durationTier = req.body?.durationTier === 'extended' ? 'extended' : 'normal';
+  const durationMultiplier = durationTier === 'extended' ? 4 : 1;
   if (durationMultiplier === 4 && (!u || u.plan === 'free')) return res.status(403).json({ error: 'Muda mrefu wa AI Chat unapatikana kwa wateja wa mpango wa kulipia pekee. Chagua mpango kwanza.' });
-  if (ASK.test(msgs.at(-1).content)) return res.json({ reply: REFUSAL, me: meInfo(req) }); // haitumii token, haihesabiwi
+  let studioSessionExpiresAt = null;
+  if (req.body?.studio === true) {
+    const sessionId = String(req.body?.sessionId || '');
+    if (!/^[a-zA-Z0-9-]{16,80}$/.test(sessionId)) return res.status(400).json({ error: 'Anza upya mazungumzo ya Studio.' });
+    const ownerKey = u ? 'u' + u.id : 'ip' + req.ip;
+    const now = Date.now(), existing = db.prepare('select * from studio_chat_sessions where session_id=?').get(sessionId);
+    if (existing && existing.owner_key !== ownerKey) return res.status(404).json({ error: 'Kikao hiki hakipatikani.' });
+    if (existing && existing.duration_tier !== durationTier) return res.status(409).json({ error: 'Huwezi kubadilisha muda katikati ya kikao. Anza mazungumzo mapya.' });
+    if (existing && existing.expires_at <= now) return res.status(410).json({ error: 'Muda wa kikao umeisha. Anza mazungumzo mapya.' });
+    if (!existing) {
+      studioSessionExpiresAt = now + (durationTier === 'extended' ? 60 : 15) * 60 * 1000;
+      db.prepare('insert into studio_chat_sessions(session_id,owner_key,duration_tier,started_at,expires_at) values(?,?,?,?,?)').run(sessionId, ownerKey, durationTier, now, studioSessionExpiresAt);
+    } else studioSessionExpiresAt = existing.expires_at;
+  }
+  if (ASK.test(msgs.at(-1).content)) return res.json({ reply: REFUSAL, me: meInfo(req), sessionExpiresAt: studioSessionExpiresAt }); // haitumii token, haihesabiwi
   if (lim !== null && used(k) >= lim) return res.status(429).json({ error: u ? 'Umetumia ujumbe wako wa bure wa leo. Rudi kesho au chagua mpango wa kulipia.' : 'Ujumbe wa bure wa leo umeisha. Fungua akaunti kupata zaidi, au rudi kesho.', limit: true, me: meInfo(req) });
   if (u && u.plan !== 'free' && u.credit_used >= plan.price) return res.status(402).json({ error: 'Mkopo wako wa mwezi umeisha. Pandisha mpango au subiri mwezi ujao.', me: meInfo(req) });
+  if (lim !== null) bump(k);
 
   let system = BASE + ((u && u.plan !== 'free') ? '\nToa majibu kamili yenye maelezo ya kutosha.' : '\nJibu kwa ufupi, sentensi chache.');
   if (u && req.body.botId) {
@@ -642,11 +659,10 @@ app.post('/api/chat', async (req, res) => {
       if (act.specs.length) {
         const out = await agent({ u, plan, tools: act.specs, messages: [{ role: 'system', content: system + PLUGIN_NOTE + act.notes.join(' ') }, ...msgs], step: 0, queue: [], multiplier: durationMultiplier });
         req.user = db.prepare('select * from users where id=?').get(u.id);
-        return res.json({ ...out, me: meInfo(req) });
+        return res.json({ ...out, me: meInfo(req), sessionExpiresAt: studioSessionExpiresAt });
       }
-    } catch (e) { console.error('agent error:', e.message); return res.status(e.status || 502).json({ error: e.status === 402 ? e.message : 'Samahani, huduma ina shida kwa sasa. Jaribu tena baadaye.' }); }
+    } catch (e) { if (lim !== null) bump(k, -1); console.error('agent error:', e.message); return res.status(e.status || 502).json({ error: e.status === 402 ? e.message : 'Samahani, huduma ina shida kwa sasa. Jaribu tena baadaye.' }); }
   }
-  if (lim !== null) bump(k);
   try {
     const paid = await cheapest(plan.tier);
     const free = FREE_FIRST ? (await freeModels()).slice(0, 2) : [];
@@ -672,7 +688,7 @@ app.post('/api/chat', async (req, res) => {
     const usd = step.free ? 0 : (d.usage?.cost ?? ((d.usage?.prompt_tokens || 0) * step.p + (d.usage?.completion_tokens || 0) * step.c));
     if (u && u.plan !== 'free') db.prepare('update users set credit_used=credit_used+? where id=?').run(usd * MARKUP * USD_TZS * durationMultiplier, u.id);
     if (u) req.user = db.prepare('select * from users where id=?').get(u.id);
-    res.json({ reply: d.choices[0].message.content, me: meInfo(req) }); // jina la modeli halitumwi kwa mtumiaji
+    res.json({ reply: d.choices[0].message.content, me: meInfo(req), sessionExpiresAt: studioSessionExpiresAt }); // jina la modeli halitumwi kwa mtumiaji
   } catch (e) {
     if (lim !== null) bump(k, -1);
     console.error('chat error:', e.message);
