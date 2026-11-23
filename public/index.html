@@ -128,7 +128,6 @@ main{margin:0 0 0 224px;width:calc(100% - 224px);max-width:none;padding:18px 22p
   <button id="authBtn" class="side-auth" aria-label="Toka"><span class="side-icon">🚪</span><span class="side-label">Ingia</span></button>
  </nav>
 </aside>
-</header>
 <div class="kit"></div><div class="zig"></div>
 <div id="bar"></div>
 <main>
@@ -238,7 +237,7 @@ function renderPlugins(categories){
 
 function imgBar(){$('#imgleft').textContent=me.imgLeft!=null?'Picha zilizobaki leo: '+me.imgLeft:''}
 function vidBar(){$('#vidnote').textContent=me.plan==='free'||!me.loggedIn?'Video inapatikana kwa mipango ya kulipia (kila video inakata mkopo wako).':'Kila video inakata takriban TZS '+(me.videoCost||1500).toLocaleString()+' kwenye mkopo wako.'}
-function bar(){imgBar();$('#authBtn').textContent=me.loggedIn?'Toka':'Ingia';const m=me;
+function bar(){imgBar();$('#authBtn .side-label').textContent=me.loggedIn?'Toka':'Ingia';$('#authBtn').setAttribute('aria-label',me.loggedIn?'Toka':'Ingia');const m=me;
  $('#bar').textContent=!m.loggedIn?`Bure: ujumbe ${m.dailyLeft??'-'} uliobaki leo · Fungua akaunti kupata zaidi`:m.dailyLeft!==null?`Mpango ${m.planName} · ujumbe ${m.dailyLeft} uliobaki leo`:`Mpango ${m.planName} · mkopo uliobaki: TZS ${(m.creditLeft||0).toLocaleString()}`}
 async function refresh(){try{me=await api('me');bar()}catch{}}
 function add(role,text){const d=el('div','msg '+role);const t=el('span','t',text);d.appendChild(t);if(role==='bot'){const c=el('button','cp','Nakili');c.onclick=()=>{navigator.clipboard?.writeText(t.textContent);c.textContent='Imenakiliwa ✓'};d.appendChild(c)}$('#chatbox').appendChild(d);d.scrollIntoView({behavior:'smooth',block:'end'});return t}
