@@ -166,7 +166,7 @@ app.get('/api/me', (req, res) => res.json(meInfo(req)));
 app.get('/api/plans', (_req, res) => res.json({ plans: PLANS, videoPackages: VIDEO_PACKAGES, payInfo: env.PAY_INFO || 'Wasiliana nasi kulipia.' }));
 app.get('/api/usage', need, (req, res) => {
   const u = db.prepare('select plan,expires,credit_used from users where id=?').get(req.user.id), p = PLANS[u.plan];
-  res.json({plan:u.plan,monthlyLimitTzs:p.price,usedTzs:Math.round(u.credit_used*100)/100,remainingTzs:u.plan==='free'?0:Math.max(0,Math.round((p.price-u.credit_used)*100)/100),expires:u.expires,markup:4,currency:'TZS'});
+  res.json({plan:u.plan,monthlyLimitTzs:p.price,usedTzs:Math.round(u.credit_used*100)/100,remainingTzs:u.plan==='free'?0:Math.max(0,Math.round((p.price-u.credit_used)*100)/100),expires:u.expires,currency:'TZS'});
 });
 app.get('/api/developer', need, (req, res) => {
   if (req.user.plan === 'free') return res.status(403).json({error:'API inapatikana kwa wateja wa kulipia.'});
