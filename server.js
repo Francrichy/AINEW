@@ -100,6 +100,112 @@ app.use((req, _res, next) => {
   next();
 });
 const need = (req, res, next) => req.user ? next() : res.status(401).json({ error: 'Tafadhali ingia kwanza.' });
+
+const LIVEAVATAR_API = 'https://api.liveavatar.com';
+const LIVEAVATAR_SANDBOX_AVATAR = 'dd73ea75-1218-4ef3-92ce-606d5f7fbc0a';
+const liveAvatarContextCache = new Map();
+async function liveAvatarRequest(route, options = {}) {
+  if (!env.LIVEAVATAR_API_KEY) throw new Error('LIVEAVATAR_API_KEY haijawekwa kwenye Render Environment.');
+  const response = await fetch(LIVEAVATAR_API + route, {
+    ...options,
+    headers: { 'X-API-KEY': env.LIVEAVATAR_API_KEY, 'Content-Type': 'application/json', ...(options.headers || {}) },
+    signal: options.signal || AbortSignal.timeout(30000),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail = Array.isArray(data.detail) ? data.detail.map(v => v.msg).filter(Boolean).join('; ') : '';
+    throw new Error(detail || data.message || data.error || ('LiveAvatar API error ' + response.status));
+  }
+  return data;
+}
+async function liveAvatarCatalog() {
+  const [publicAvatars, userAvatars, voices, languages] = await Promise.all([
+    liveAvatarRequest('/v1/avatars/public?page=1&page_size=100').catch(() => ({ data: { results: [] } })),
+    liveAvatarRequest('/v1/avatars?page=1&page_size=100').catch(() => ({ data: { results: [] } })),
+    liveAvatarRequest('/v1/voices?page=1&page_size=100&voice_type=public').catch(() => ({ data: { results: [] } })),
+    fetch(LIVEAVATAR_API + '/v1/languages', { signal: AbortSignal.timeout(15000) }).then(r => r.json()).catch(() => ({ data: [] })),
+  ]);
+  const rows = value => Array.isArray(value?.data) ? value.data : (value?.data?.results || []);
+  const avatars = [...rows(publicAvatars), ...rows(userAvatars)]
+    .filter(a => a && a.id && !a.is_expired)
+    .map(a => ({ id: a.id, name: a.name || 'Avatar', preview_url: a.preview_url || null, type: a.type || 'VIDEO', status: a.status || 'READY', gender: a.gender || null }));
+  const voiceRows = rows(voices).map(v => ({ id: v.id, name: v.name, language: v.language, gender: v.gender }));
+  const languageRows = (Array.isArray(languages?.data) ? languages.data : []).map(l => ({ code: l.code, language: l.language }));
+  return { avatars, voices: voiceRows, languages: languageRows };
+}
+async function liveAvatarContext(character, language) {
+  const key = character + ':' + language;
+  if (liveAvatarContextCache.has(key)) return liveAvatarContextCache.get(key);
+  const promise = (async () => {
+    const isSwahili = language === 'sw';
+    const prompt = isSwahili
+      ? 'Wewe ni ' + character + ', msaidizi wa AI wa Mlimani Studio. Zungumza kwa Kiswahili sanifu, cha kawaida na chenye urafiki. Sikiliza swali lote kabla ya kujibu. Jibu kwa ufupi lakini kwa manufaa, uliza ufafanuzi inapohitajika, na usibuni taarifa. Jitambulishe kama ' + character + '. Wewe ni AI, usijidai kuwa binadamu. Unasaidia kuhusu biashara, elimu, kilimo, huduma kwa wateja na matumizi ya Mlimani.'
+      : 'You are ' + character + ', the friendly AI assistant for Mlimani Studio. Listen carefully, answer naturally and helpfully, ask clarifying questions when needed, and never invent facts. Identify yourself as ' + character + '. Be transparent that you are an AI assistant.';
+    const opening_text = isSwahili ? 'Habari! Mimi ni ' + character + '. Karibu Mlimani Studio. Unaweza kuniuliza swali lolote.' : 'Hello! I am ' + character + ' from Mlimani Studio. What can I help you with today?';
+    const result = await liveAvatarRequest('/v1/contexts', { method: 'POST', body: JSON.stringify({ name: 'Mlimani ' + character + ' ' + language, prompt, opening_text }) });
+    const id = result?.data?.id;
+    if (!id) throw new Error('LiveAvatar haikurudisha Context ID kwa ' + character + '.');
+    return id;
+  })();
+  liveAvatarContextCache.set(key, promise);
+  try { return await promise; } catch (error) { liveAvatarContextCache.delete(key); throw error; }
+}
+app.get('/api/liveavatar/catalog', need, async (_req, res) => {
+  try {
+    const catalog = await liveAvatarCatalog();
+    res.json({ connected: true, sandboxAvatarId: LIVEAVATAR_SANDBOX_AVATAR, ...catalog });
+  } catch (error) {
+    res.status(502).json({ connected: false, error: error.message });
+  }
+});
+app.post('/api/liveavatar/session-token', need, async (req, res) => {
+  try {
+    const character = ['Ethan', 'Ngina'].includes(req.body?.character) ? req.body.character : 'Ngina';
+    const language = ['sw', 'en'].includes(req.body?.language) ? req.body.language : 'sw';
+    const production = req.body?.production === true;
+    const catalog = await liveAvatarCatalog();
+    const voiceGender = character === 'Ethan' ? 'male' : 'female';
+    const voiceCandidates = catalog.voices.filter(v => String(v.language || '').toLowerCase() === language || (language === 'sw' && String(v.language || '').toLowerCase().includes('multilingual')));
+    const voice = voiceCandidates.find(v => String(v.gender || '').toLowerCase() === voiceGender) || voiceCandidates[0];
+    if (!voice?.id) {
+      throw new Error(language === 'sw'
+        ? 'LiveAvatar haijaonyesha sauti ya Kiswahili inayopatikana kwenye akaunti hii. Tunaweza kujaribu English au kuangalia sauti za lugha nyingi kwenye akaunti.'
+        : 'Hakuna sauti ya English inayopatikana kwenye akaunti hii ya LiveAvatar.');
+    }
+    let avatarId = LIVEAVATAR_SANDBOX_AVATAR;
+    if (production) {
+      avatarId = String(req.body?.avatarId || '');
+      if (!catalog.avatars.some(a => a.id === avatarId)) return res.status(400).json({ error: 'Chagua avatar iliyopo kwenye orodha ya LiveAvatar.' });
+    }
+    const contextId = await liveAvatarContext(character, language);
+    const payload = {
+      mode: 'FULL',
+      is_sandbox: !production,
+      avatar_id: avatarId,
+      avatar_persona: { voice_id: voice.id, context_id: contextId, language },
+      interactivity_type: 'CONVERSATIONAL',
+      video_settings: { quality: 'high', encoding: 'H264' },
+      max_session_duration: production ? 180 : 60,
+    };
+    const result = await liveAvatarRequest('/v1/sessions/token', { method: 'POST', body: JSON.stringify(payload) });
+    if (!result?.data?.session_token) throw new Error('LiveAvatar haikurudisha session token.');
+    res.json({
+      sessionToken: result.data.session_token,
+      sessionId: result.data.session_id || null,
+      character,
+      avatarId,
+      avatarName: production ? (catalog.avatars.find(a => a.id === avatarId)?.name || 'Avatar') : 'Wayne (Sandbox)',
+      voiceName: voice.name || voice.id,
+      language,
+      sandbox: !production,
+      maxSessionDuration: production ? 180 : 60,
+    });
+  } catch (error) {
+    console.error('LiveAvatar session token error:', error.message);
+    res.status(502).json({ error: error.message || 'Imeshindikana kuanzisha LiveAvatar.' });
+  }
+});
+
 const limitFor = u => u ? (u.plan === 'free' ? FREE_DAILY : null) : ANON_DAILY;
 const keyFor = (req) => req.user ? 'u' + req.user.id : 'ip' + req.ip;
 
