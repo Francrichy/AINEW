@@ -2,21 +2,14 @@ services:
   - type: web
     name: AINEW
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm install
     startCommand: npm start
-    # SQLite inahitaji disk ya kudumu (plan ya kulipia). Bila disk, data hupotea kila deploy.
-    disk:
-      name: data
-      mountPath: /data
-      sizeGB: 1
     envVars:
       - key: NODE_VERSION
         value: 20
       - key: SITE_URL
         value: https://www.mlimani.net
-      - key: DB_PATH
-        value: /data/mlimani.db
       - key: OPENROUTER_API_KEY
         sync: false
       - key: JWT_SECRET
