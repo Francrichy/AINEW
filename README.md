@@ -17,9 +17,8 @@ git remote add origin https://github.com/JINA/mlimani-ai.git && git push -u orig
 ```
 (`.env` haipo kwenye git — usiweke funguo kwenye GitHub kamwe.)
 
-## Render
-New → Blueprint → chagua repo (render.yaml inasomwa). Weka OPENROUTER_API_KEY, ADMIN_KEY, PAY_INFO.
-Disk ya kudumu inahitaji plan ya kulipia; bila hiyo watumiaji hupotea kila deploy (au tumia Postgres).
+## Render (Free plan)
+AINEW can run on Render Free for early testing. The current setup uses SQLite on the service filesystem. Render Free web services do not provide a persistent disk, so the database file may be lost when the service restarts, is redeployed, or is replaced. Do not use this Free setup for important production customer records until persistent storage is arranged. The Blueprint is intentionally set to `plan: free` and does not create a paid disk. For reliable production storage, move to a persistent database/storage option after approving its cost or selecting an external free-tier provider with its own limits.
 
 ## Kuthibitisha malipo
 GET  /api/admin/payments  (header x-admin-key)
