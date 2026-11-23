@@ -156,7 +156,7 @@ main{margin:0 0 0 224px;width:calc(100% - 224px);max-width:none;padding:18px 22p
   <video id="vout" controls playsinline style="display:none"></video><a id="vdl" class="btn alt" download="mlimani-video.mp4" style="display:none;margin-top:10px;text-decoration:none">Pakua</a></div></section>
  <section id="acct"><div class="card" id="acctbox"></div></section>
  <section id="plans"><div class="grid" id="plangrid"></div><div class="card" id="payinfo" style="margin-top:14px"></div></section>
- <section id="plugins"><div class="card"><h2 style="margin-top:6px">Mlimani Plugins</h2><p>Unganisha huduma zako zote za biashara chini ya chapa ya Mlimani.</p><div id="pluginCats" class="pluginCats"></div></div><div class="grid" id="pluginGrid"></div><div class="err" id="pluginErr"></div></section><section id="api"><div class="card f"><h2>Mlimani API</h2><p>API ya kuunganisha Mlimani AI na website, ERP au programu yako. Kwa wateja wa kulipia.</p><div id="apiUsage" class="info"></div><input id="apiKeyName" placeholder="Jina la API key"><button class="btn" id="apiCreate">Tengeneza API Key</button><div id="apiNewKey" class="info"></div><div id="apiKeys"></div><pre id="apiDocs" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre><div id="apiErr" class="err"></div></div><div class="card f"><h2>Jiunge kama Mlimani Plugin Partner</h2><p>ERP, POS, accounting na e-commerce zinaweza kuomba kuorodheshwa bure. Orodha baada ya ukaguzi.</p><input id="partnerCompany" placeholder="Jina la kampuni / mfumo"><input id="partnerContact" placeholder="Mtu wa mawasiliano"><input id="partnerEmail" type="email" placeholder="Barua pepe"><input id="partnerWebsite" placeholder="Website (si lazima)"><input id="partnerApi" placeholder="API documentation URL (si lazima)"><textarea id="partnerDesc" rows="3" placeholder="Eleza mfumo na huduma zake"></textarea><button class="btn" id="partnerApply">Tuma ombi</button><div id="partnerMsg" class="err"></div></div></section>
+ <section id="plugins"><div class="card"><h2 style="margin-top:6px">Mlimani Plugins</h2><p>Unganisha huduma zako zote za biashara chini ya chapa ya Mlimani.</p><div id="pluginCats" class="pluginCats"></div><div id="pluginFreeInfo" class="info" style="margin-top:10px">Plugins za bure zina kikomo cha matumizi ya kila mwezi.</div></div><div class="grid" id="pluginGrid"></div><div class="err" id="pluginErr"></div></section><section id="api"><div class="card f"><h2>Mlimani API</h2><p>API ya kuunganisha Mlimani AI na website, ERP au programu yako. Kwa wateja wa kulipia.</p><div id="apiUsage" class="info"></div><input id="apiKeyName" placeholder="Jina la API key"><button class="btn" id="apiCreate">Tengeneza API Key</button><div id="apiNewKey" class="info"></div><div id="apiKeys"></div><pre id="apiDocs" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre><div id="apiErr" class="err"></div></div><div class="card f"><h2>Jiunge kama Mlimani Plugin Partner</h2><p>ERP, POS, accounting na e-commerce zinaweza kuomba kuorodheshwa bure. Orodha baada ya ukaguzi.</p><input id="partnerCompany" placeholder="Jina la kampuni / mfumo"><input id="partnerContact" placeholder="Mtu wa mawasiliano"><input id="partnerEmail" type="email" placeholder="Barua pepe"><input id="partnerWebsite" placeholder="Website (si lazima)"><input id="partnerApi" placeholder="API documentation URL (si lazima)"><textarea id="partnerDesc" rows="3" placeholder="Eleza mfumo na huduma zake"></textarea><button class="btn" id="partnerApply">Tuma ombi</button><div id="partnerMsg" class="err"></div></div></section>
 </main>
 <div class="compose" id="compose"><textarea id="inp" placeholder="Andika ujumbe wako hapa…"></textarea><button class="btn" id="send">Tuma</button></div>
 
@@ -184,7 +184,7 @@ async function loadPlugins(){
  grid.innerHTML='';cats.innerHTML='';err.textContent='';
  if(!me.loggedIn){grid.appendChild(el('div','card','Ingia kwanza ili kuona na kusimamia plugins zako.'));return}
  try{
-  const d=await api('plugins');pluginData=d.plugins||[];
+  const d=await api('plugins');pluginData=d.plugins||[];$('#pluginFreeInfo').textContent='Composio Free: matumizi '+d.freeComposioUsed+'/'+d.freeComposioLimit+' kwa mwezi · yaliyobaki '+d.freeComposioRemaining+'. Kikomo cha pamoja cha Mlimani pia kipo ili kuzuia gharama za ziada.';
   const options=[['all','Zote'],...(d.categories||[])];
   options.forEach(([id,label])=>{const b=el('button',pluginCategory===id?'on':'',label);b.onclick=()=>{pluginCategory=id;renderPlugins(d.categories||[])};cats.appendChild(b)});
   renderPlugins(d.categories||[]);
@@ -197,7 +197,7 @@ function renderPlugins(categories){
  const makeCard=p=>{
   const c=el('div','pluginCard'),head=el('div','','');
   head.style.fontSize='1.7rem';head.textContent=p.icon||'🔌';
-  c.appendChild(head);c.appendChild(el('h3','',p.name));c.appendChild(el('div','desc',p.desc||''));
+  c.appendChild(head);c.appendChild(el('h3','',p.name));c.appendChild(el('div','desc',p.desc||''));if(p.freeEligible)c.appendChild(el('div','pluginMeta','BURE kwa Free · hadi 100 matumizi kwa mwezi'));
   let status=p.soon?'Inatayarishwa':p.enabled?'Imeunganishwa / imewashwa':p.locked?'Inahitaji mpango wa kulipia':'Haijaunganishwa';
   c.appendChild(el('div','pluginMeta',status));
   const b=el('button','btn',p.soon?'Inatayarishwa':p.locked?'Angalia mipango':p.enabled?'Simamia':'Washa / Unganisha');
