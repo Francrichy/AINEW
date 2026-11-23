@@ -669,6 +669,7 @@ app.post('/api/chat', async (req, res) => {
   if (lim !== null) bump(k);
 
   let system = BASE + ((u && u.plan !== 'free') ? '\nToa majibu kamili yenye maelezo ya kutosha.' : '\nJibu kwa ufupi, sentensi chache.');
+  if (req.body?.studio === true && ['Ethan', 'Ngina'].includes(req.body?.studioAvatar)) system += `\nKatika Studio, jina lako ni ${req.body.studioAvatar}. Jitambulishe kama ${req.body.studioAvatar} kwa adabu. Wewe ni msaidizi wa AI wa mazungumzo ya sauti; jibu kwa lugha aliyochagua mtumiaji na kwa mtindo wa mazungumzo ya ana kwa ana. Usidai kuwa binadamu.`;
   if (u && req.body.botId) {
     const b = db.prepare('select * from bots where id=? and user_id=?').get(req.body.botId, u.id);
     if (b) system += `\n\nJina lako kwa mtumiaji ni "${b.name}". Maelekezo ya mmiliki wa boti:\n${b.prompt}`;
