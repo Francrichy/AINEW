@@ -119,6 +119,7 @@ async function liveAvatarRequest(route, options = {}) {
   return data;
 }
 async function liveAvatarCatalog() {
+  if (!env.LIVEAVATAR_API_KEY) throw new Error('LIVEAVATAR_API_KEY haijawekwa kwenye Render Environment.');
   const [publicAvatars, userAvatars, voices, languages] = await Promise.all([
     liveAvatarRequest('/v1/avatars/public?page=1&page_size=100').catch(() => ({ data: { results: [] } })),
     liveAvatarRequest('/v1/avatars?page=1&page_size=100').catch(() => ({ data: { results: [] } })),
