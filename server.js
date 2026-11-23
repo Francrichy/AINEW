@@ -32,7 +32,8 @@ const VIDEO_DAILY = +(env.VIDEO_DAILY || 5);
 const PK = env.POLLINATIONS_API_KEY;
 const OR_URL = env.OPENROUTER_URL || 'https://openrouter.ai/api/v1';
 const GH_API = env.GITHUB_API || 'https://api.github.com', RD_API = env.RENDER_API || 'https://api.render.com/v1';
-const PLUGIN_PLANS = (env.PLUGIN_PLANS || 'biashara,kampuni').split(',');         // miunganisho (GitHub, Render, Composio)
+const PLUGIN_PLANS = (env.PLUGIN_PLANS || 'biashara,kampuni').split(',');         // miunganisho ya GitHub na Render
+const CX_PLANS = (env.COMPOSIO_PLANS || 'free,kawaida,biashara,kampuni').split(',').map(x => x.trim()); // Composio inaanza bure
 const BUILTIN_PLANS = (env.BUILTIN_PLANS || 'kawaida,biashara,kampuni').split(','); // plugins za bure zilizojengwa ndani
 const CX_API = env.COMPOSIO_URL || 'https://backend.composio.dev', CX_KEY = env.COMPOSIO_API_KEY;
 let CX_CFG = []; try { CX_CFG = JSON.parse(env.COMPOSIO_PLUGINS || '[]'); } catch { console.warn('COMPOSIO_PLUGINS si JSON sahihi.'); }
@@ -351,7 +352,7 @@ const must = async r => { if (!r.ok) throw new Error('HTTP ' + r.status); return
 app.get('/api/connections', need, (req, res) => res.json(db.prepare('select provider,meta,created from connections where user_id=?').all(req.user.id).map(r => ({ provider: r.provider, meta: JSON.parse(r.meta || '{}'), created: r.created }))));
 app.post('/api/connections/:provider', need, async (req, res) => {
   const prov = req.params.provider, tok = String(req.body?.token || '').trim(), def = String(req.body?.default || '').trim().slice(0, 100);
-  if (!PLUGIN_PLANS.includes(req.user.plan)) return res.status(403).json({ error: 'Miunganisho inahitaji mpango wa Biashara au Kampuni.' });
+  if (!CX_PLANS.includes(req.user.plan)) return res.status(403).json({ error: 'Composio haipatikani kwenye mpango huu.' });
   if (!['github', 'render'].includes(prov) || tok.length < 10) return res.status(400).json({ error: 'Weka token au API key sahihi.' });
   try {
     let meta = {};
@@ -448,10 +449,10 @@ async function cxExec(uid, t, args) {
 }
 async function activeTools(u) {
   const specs = [], notes = [], seen = new Set(); const add = (n, t) => { if (!seen.has(n)) { seen.add(n); specs.push(specOf(n, t)); } };
-  if (PLUGIN_PLANS.includes(u.plan)) for (const r of db.prepare('select provider,meta from connections where user_id=?').all(u.id)) {
+  for (const r of db.prepare('select provider,meta from connections where user_id=?').all(u.id)) {
     const m = JSON.parse(r.meta || '{}');
-    if (r.provider === 'github' || r.provider === 'render') { for (const [n, t] of Object.entries(TOOLS)) if (t.p === r.provider) add(n, t); notes.push(r.provider === 'github' ? `GitHub repo ya kawaida: ${m.defaultRepo || 'haijawekwa'}.` : `Render huduma ya kawaida: ${m.defaultService || 'haijawekwa'}.`); }
-    else if (r.provider.startsWith('cx:') && m.status === 'active') { const cfg = cxConfig(r.provider.slice(3)); if (cfg) for (const slug of cfg.tools) { const t = await cxTool(cfg, slug); if (t) add(t.name, t); } }
+    if ((r.provider === 'github' || r.provider === 'render') && PLUGIN_PLANS.includes(u.plan)) { for (const [n, t] of Object.entries(TOOLS)) if (t.p === r.provider) add(n, t); notes.push(r.provider === 'github' ? `GitHub repo ya kawaida: ${m.defaultRepo || 'haijawekwa'}.` : `Render huduma ya kawaida: ${m.defaultService || 'haijawekwa'}.`); }
+    else if (r.provider.startsWith('cx:') && CX_PLANS.includes(u.plan) && m.status === 'active') { const cfg = cxConfig(r.provider.slice(3)); if (cfg) for (const slug of cfg.tools) { const t = await cxTool(cfg, slug); if (t) add(t.name, t); } }
   }
   if (BUILTIN_PLANS.includes(u.plan)) { const on = new Set(db.prepare('select plugin_id from plugin_prefs where user_id=? and enabled=1').all(u.id).map(r => r.plugin_id));
     for (const p of CATALOG) if (p.kind === 'builtin' && on.has(p.id)) for (const tn of p.tools) add(tn, BUILTIN[tn]); }
@@ -464,7 +465,7 @@ app.get('/api/plugins', need, (req, res) => {
   res.json({ categories: CATS, plugins: fullCatalog().map(p => {
     const c = conns.get(p.kind === 'composio' ? 'cx:' + p.id : p.id);
     return { id: p.id, icon: p.icon, name: p.name, desc: p.desc, cats: p.cats, kind: p.kind, soon: !!p.soon,
-      locked: p.kind === 'builtin' ? !BUILTIN_PLANS.includes(u.plan) : !PLUGIN_PLANS.includes(u.plan),
+      locked: p.kind === 'builtin' ? !BUILTIN_PLANS.includes(u.plan) : p.kind === 'composio' ? !CX_PLANS.includes(u.plan) : !PLUGIN_PLANS.includes(u.plan),
       enabled: p.kind === 'builtin' ? on.has(p.id) : !!c && (c.status ? c.status === 'active' : true), pending: p.kind === 'composio' && c?.status === 'pending', meta: c || null };
   }) });
 });
