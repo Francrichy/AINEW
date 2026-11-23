@@ -10,7 +10,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const env = process.env;
 const OR_KEY = env.OPENROUTER_API_KEY;
 const JWT_SECRET = env.JWT_SECRET || 'badilisha-hii';
-const MARKUP = +(env.MARKUP || 3);          // bei yetu = gharama ya OpenRouter x 3
+const MARKUP = Math.max(4, +(env.MARKUP || 4)); // bei ya matumizi = gharama halisi x4; hairuhusu chini ya x4
 const USD_TZS = +(env.USD_TZS || 2600);
 const FREE_DAILY = +(env.FREE_DAILY || 6);
 const ANON_DAILY = +(env.ANON_DAILY || 3);
@@ -20,7 +20,7 @@ const FREE_MODELS = (env.FREE_MODELS || '').split(',').map(x => x.trim()).filter
 const PRO = (env.PRO_MODELS || 'google/gemini-2.5-flash,openai/gpt-4.1-mini,deepseek/deepseek-chat').split(',');
 
 // Mikopo ya kila mwezi (TZS, bei ya rejareja) = bei ya mpango.
-// Mtumiaji akitumia mkopo wote, gharama halisi ya OpenRouter ni bei/3.
+// Mkopo wa rejareja; gharama ya mtoa huduma inazidishwa mara 4.
 const PLANS = {
   free:     { name: 'Bure',    price: 0,      bots: 0,  maxTokens: 600,  tier: 'eco' },
   kawaida:  { name: 'Kawaida', price: 10000,  bots: 1,  maxTokens: 1200, tier: 'eco' },
@@ -33,7 +33,7 @@ const PK = env.POLLINATIONS_API_KEY;
 const OR_URL = env.OPENROUTER_URL || 'https://openrouter.ai/api/v1';
 const GH_API = env.GITHUB_API || 'https://api.github.com', RD_API = env.RENDER_API || 'https://api.render.com/v1';
 const PLUGIN_PLANS = (env.PLUGIN_PLANS || 'biashara,kampuni').split(',');         // miunganisho ya GitHub na Render
-const CX_PLANS = (env.COMPOSIO_PLANS || 'free,kawaida,biashara,kampuni').split(',').map(x => x.trim()); // Composio inaanza bure
+const CX_PLANS = (env.COMPOSIO_PLANS || 'kawaida,biashara,kampuni').split(',').map(x => x.trim()); // Plugins zenye gharama za nje ni kwa wateja wa kulipia
 const BUILTIN_PLANS = (env.BUILTIN_PLANS || 'kawaida,biashara,kampuni').split(','); // plugins za bure zilizojengwa ndani
 const CX_API = env.COMPOSIO_URL || 'https://backend.composio.dev', CX_KEY = env.COMPOSIO_API_KEY;
 let CX_CFG = []; try { CX_CFG = JSON.parse(env.COMPOSIO_PLUGINS || '[]'); } catch { console.warn('COMPOSIO_PLUGINS si JSON sahihi.'); }
@@ -52,7 +52,7 @@ create table if not exists bots(id integer primary key, user_id integer, name te
 create table if not exists api_keys(id integer primary key, user_id integer, name text, prefix text, hash text unique, created integer, last_used integer, revoked integer default 0);
 create table if not exists connections(user_id integer, provider text, secret text, meta text, created integer, primary key(user_id,provider));
 create table if not exists plugin_prefs(user_id integer, plugin_id text, enabled integer, primary key(user_id,plugin_id));
-create table if not exists payments(id integer primary key, user_id integer, plan text, phone text, ref text, status text default 'pending', created integer);
+create table if not exists payments(id integer primary key, user_id integer, plan text, phone text, ref text, status text default 'pending', created integer);\ncreate table if not exists partner_applications(id integer primary key, company text, contact text, email text, website text, api_url text, description text, status text default 'pending', created integer);
 `);
 
 const BASE = `Wewe ni Mlimani AI, msaidizi wa akili bandia anayezungumza Kiswahili sanifu kwa ustadi (pia unaelewa Kiingereza). Jibu kwa adabu na kwa usahihi. ` +
@@ -153,6 +153,21 @@ app.post('/api/login', (req, res) => {
 });
 app.get('/api/me', (req, res) => res.json(meInfo(req)));
 app.get('/api/plans', (_req, res) => res.json({ plans: PLANS, payInfo: env.PAY_INFO || 'Wasiliana nasi kulipia.', videoCost: VIDEO_COST }));
+app.get('/api/usage', need, (req, res) => {
+  const u = db.prepare('select plan,expires,credit_used from users where id=?').get(req.user.id), p = PLANS[u.plan];
+  res.json({plan:u.plan,monthlyLimitTzs:p.price,usedTzs:Math.round(u.credit_used*100)/100,remainingTzs:u.plan==='free'?0:Math.max(0,Math.round((p.price-u.credit_used)*100)/100),expires:u.expires,markup:4,currency:'TZS'});
+});
+app.get('/api/developer', need, (req, res) => {
+  if (req.user.plan === 'free') return res.status(403).json({error:'API inapatikana kwa wateja wa kulipia.'});
+  res.json({baseUrl:(env.SITE_URL||'').replace(/\\/$/,''),endpoint:'/v1/chat',authentication:'Bearer mlm_...',pricing:'Gharama halisi x4; hukatwa kwenye mkopo wa mwezi.',limits:{monthlyCreditTzs:PLANS[req.user.plan].price,maxTokens:API_MAX,requestsPerMinute:API_RPM},example:{method:'POST',path:'/v1/chat',headers:{Authorization:'Bearer YOUR_MLIMANI_API_KEY','Content-Type':'application/json'},body:{messages:[{role:'user',content:'Habari Mlimani'}]}}});
+});
+app.post('/api/partners/apply', (req,res) => {
+ const b=req.body||{}, company=String(b.company||'').trim().slice(0,120), contact=String(b.contact||'').trim().slice(0,100), email=String(b.email||'').trim().slice(0,160), website=String(b.website||'').trim().slice(0,250), apiUrl=String(b.apiUrl||'').trim().slice(0,500), description=String(b.description||'').trim().slice(0,2000);
+ if(!company||!contact||!email||!description) return res.status(400).json({error:'Jaza jina la kampuni, mtu wa mawasiliano, barua pepe na maelezo ya mfumo.'});
+ const r=db.prepare('insert into partner_applications(company,contact,email,website,api_url,description,created) values(?,?,?,?,?,?,?)').run(company,contact,email,website,apiUrl,description,Date.now());
+ notify('Ombi jipya la Mlimani Plugin Partner: '+company+' / '+email);
+ res.json({ok:1,id:r.lastInsertRowid,message:'Ombi limepokelewa. Timu ya Mlimani italipitia kabla ya kuorodhesha plugin.'});
+});
 
 // ---------- boti ----------
 app.get('/api/bots', need, (req, res) => res.json(db.prepare('select id,name,prompt from bots where user_id=?').all(req.user.id)));
@@ -352,7 +367,7 @@ const must = async r => { if (!r.ok) throw new Error('HTTP ' + r.status); return
 app.get('/api/connections', need, (req, res) => res.json(db.prepare('select provider,meta,created from connections where user_id=?').all(req.user.id).map(r => ({ provider: r.provider, meta: JSON.parse(r.meta || '{}'), created: r.created }))));
 app.post('/api/connections/:provider', need, async (req, res) => {
   const prov = req.params.provider, tok = String(req.body?.token || '').trim(), def = String(req.body?.default || '').trim().slice(0, 100);
-  if (!CX_PLANS.includes(req.user.plan)) return res.status(403).json({ error: 'Composio haipatikani kwenye mpango huu.' });
+  if (!CX_PLANS.includes(req.user.plan)) return res.status(403).json({ error: 'Plugins zinazotumia huduma za nje zinahitaji mpango wa kulipia.' });
   if (!['github', 'render'].includes(prov) || tok.length < 10) return res.status(400).json({ error: 'Weka token au API key sahihi.' });
   try {
     let meta = {};
@@ -476,7 +491,7 @@ app.post('/api/plugins/:id/toggle', need, (req, res) => {
 });
 app.post('/api/plugins/:id/connect', need, async (req, res) => {   // Composio: tengeneza kiungo cha kuunganisha akaunti
   const cfg = cxConfig(req.params.id); if (!cfg) return res.status(404).json({ error: 'Plugin hii bado haijawezeshwa.' });
-  if (!PLUGIN_PLANS.includes(req.user.plan)) return res.status(403).json({ error: 'Miunganisho inahitaji mpango wa Biashara au Kampuni.' });
+  if (!CX_PLANS.includes(req.user.plan)) return res.status(403).json({ error: 'Plugin hii inahitaji mpango wa kulipia.' });
   try {
     const r = await fetch(`${CX_API}/api/v3/connected_accounts/link`, { method: 'POST', signal: AbortSignal.timeout(20000), headers: { 'x-api-key': CX_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({ auth_config_id: cfg.authConfigId, user_id: 'mlm-' + req.user.id, callback_url: (env.SITE_URL || '') + '/' }) });
