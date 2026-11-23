@@ -27,8 +27,8 @@ const PLANS = {
   biashara: { name: 'Biashara',price: 30000,  bots: 10, maxTokens: 2500, tier: 'pro' },
   kampuni:  { name: 'Kampuni', price: 100000, bots: 50, maxTokens: 4000, tier: 'pro' },
 };
-const VIDEO_COST = +(env.VIDEO_COST_TZS || 1500);   // hukatwa kwenye mkopo kwa kila video
 const VIDEO_DAILY = +(env.VIDEO_DAILY || 5);
+const VIDEO_PACKAGES = { video_5:{name:'Video 5 kwa mwezi',price:7500,credits:5,days:30}, video_10:{name:'Video 10 kwa mwezi',price:15000,credits:10,days:30}, video_30:{name:'Video 30 kwa mwezi',price:45000,credits:30,days:30} };
 const PK = env.POLLINATIONS_API_KEY;
 const OR_URL = env.OPENROUTER_URL || 'https://openrouter.ai/api/v1';
 const GH_API = env.GITHUB_API || 'https://api.github.com', RD_API = env.RENDER_API || 'https://api.render.com/v1';
@@ -60,6 +60,8 @@ create table if not exists partner_applications(id integer primary key, company 
 create table if not exists composio_usage(user_id integer, month text, calls integer default 0, primary key(user_id,month));
 create table if not exists studio_chat_sessions(session_id text primary key, owner_key text not null, duration_tier text not null, started_at integer not null, expires_at integer not null);
 `);
+try { db.exec('alter table users add column video_credits integer default 0'); } catch {}
+try { db.exec('alter table users add column video_expires integer default 0'); } catch {}
 db.prepare('delete from studio_chat_sessions where expires_at < ?').run(Date.now() - 24 * 3600e3);
 
 const BASE = `Wewe ni Mlimani AI, msaidizi wa akili bandia anayezungumza Kiswahili sanifu kwa ustadi (pia unaelewa Kiingereza). Jibu kwa adabu na kwa usahihi. ` +
@@ -107,7 +109,9 @@ function meInfo(req) {
     loggedIn: !!u, email: u?.email, name: u?.name, plan: u?.plan || 'free', planName: p.name,
     dailyLeft: lim === null ? null : Math.max(0, lim - used(k)), dailyLimit: lim, imgLeft: Math.max(0, IMG_LIM(u) - used('img:' + k)),
     creditLeft: u && u.plan !== 'free' ? Math.max(0, Math.round(p.price - u.credit_used)) : null,
-    botsMax: p.bots, expires: u?.expires || null, phone: u?.phone || null, videoCost: VIDEO_COST,
+    botsMax: p.bots, expires: u?.expires || null, phone: u?.phone || null,
+    videoCredits: u ? (u.video_expires > Date.now() ? (u.video_credits || 0) : 0) : 0,
+    videoExpires: u?.video_expires > Date.now() ? u.video_expires : null,
     pending: u ? db.prepare("select plan,ref,created from payments where user_id=? and status='pending'").all(u.id) : [],
   };
 }
@@ -159,7 +163,7 @@ app.post('/api/login', (req, res) => {
   res.json({ token: sign(u) });
 });
 app.get('/api/me', (req, res) => res.json(meInfo(req)));
-app.get('/api/plans', (_req, res) => res.json({ plans: PLANS, payInfo: env.PAY_INFO || 'Wasiliana nasi kulipia.', videoCost: VIDEO_COST }));
+app.get('/api/plans', (_req, res) => res.json({ plans: PLANS, videoPackages: VIDEO_PACKAGES, payInfo: env.PAY_INFO || 'Wasiliana nasi kulipia.' }));
 app.get('/api/usage', need, (req, res) => {
   const u = db.prepare('select plan,expires,credit_used from users where id=?').get(req.user.id), p = PLANS[u.plan];
   res.json({plan:u.plan,monthlyLimitTzs:p.price,usedTzs:Math.round(u.credit_used*100)/100,remainingTzs:u.plan==='free'?0:Math.max(0,Math.round((p.price-u.credit_used)*100)/100),expires:u.expires,markup:4,currency:'TZS'});
@@ -203,15 +207,20 @@ async function notify(text) {   // taarifa ya Telegram kwa mmiliki
 function activate(userId, plan, days = 30) {
   db.prepare('update users set plan=?,expires=?,credit_used=0 where id=?').run(plan, Date.now() + days * 86400e3, userId);
 }
+function activateVideo(userId, plan) {
+  const pack = VIDEO_PACKAGES[plan];
+  db.prepare('update users set video_credits=?,video_expires=? where id=?').run(pack.credits, Date.now() + pack.days * 86400e3, userId);
+}
 
 // ---------- malipo (mwongozo: thibitisha kwa mkono, unganisha Selcom/ClickPesa baadaye) ----------
 app.post('/api/pay', need, (req, res) => {
   const { plan, phone, ref } = req.body || {};
-  if (!PLANS[plan] || !PLANS[plan].price || !phone || !ref) return res.status(400).json({ error: 'Jaza mpango, namba ya simu na namba ya muamala.' });
+  if ((!PLANS[plan]?.price && !VIDEO_PACKAGES[plan]) || !phone || !ref) return res.status(400).json({ error: 'Jaza kifurushi, namba ya simu na namba ya muamala.' });
   const r = String(ref).trim().slice(0, 40);
   if (db.prepare('select 1 from payments where ref=?').get(r)) return res.status(409).json({ error: 'Namba hii ya muamala imeshatumwa.' });
   db.prepare('insert into payments(user_id,plan,phone,ref,created) values(?,?,?,?,?)').run(req.user.id, plan, String(phone).slice(0, 20), r, Date.now());
-  notify(`💰 Malipo mapya Mlimani AI\nMpango: ${PLANS[plan].name} (TZS ${PLANS[plan].price})\nMtumiaji: ${req.user.phone || req.user.email}\nSimu: ${phone}\nMuamala: ${r}\nThibitisha: ${env.SITE_URL || ''}/admin.html`);
+  const isVideo = !!VIDEO_PACKAGES[plan], item = isVideo ? VIDEO_PACKAGES[plan] : PLANS[plan];
+  notify(`💰 Malipo mapya Mlimani AI\nAina: ${isVideo ? 'Video' : 'Chat'}\nKifurushi: ${item.name} (TZS ${item.price})\nMtumiaji: ${req.user.phone || req.user.email}\nSimu: ${phone}\nMuamala: ${r}\nThibitisha: ${env.SITE_URL || ''}/admin.html`);
   res.json({ ok: 1, message: 'Tumepokea. Mpango utawashwa baada ya kuthibitisha malipo.' });
 });
 const admin = (req, res, next) => env.ADMIN_KEY && req.headers['x-admin-key'] === env.ADMIN_KEY ? next() : res.status(403).json({ error: 'Hapana.' });
@@ -223,7 +232,7 @@ app.get('/api/admin/stats', admin, (_req, res) => res.json({
 app.post('/api/admin/approve', admin, (req, res) => {
   const p = db.prepare('select * from payments where id=?').get(req.body?.id);
   if (!p) return res.status(404).json({ error: 'Haipo.' });
-  activate(p.user_id, p.plan);
+  if (VIDEO_PACKAGES[p.plan]) activateVideo(p.user_id, p.plan); else activate(p.user_id, p.plan);
   db.prepare("update payments set status='approved' where id=?").run(p.id);
   res.json({ ok: 1 });
 });
@@ -238,9 +247,11 @@ app.post('/api/admin/grant', admin, (req, res) => {   // washa mpango kwa mkono 
 app.post('/api/webhook/pay', (req, res) => {
   if (!env.WEBHOOK_SECRET || req.headers['x-webhook-secret'] !== env.WEBHOOK_SECRET) return res.status(403).json({ error: 'Hapana.' });
   const p = db.prepare("select * from payments where ref=? and status='pending'").get(String(req.body?.ref || ''));
-  if (!p || +req.body?.amount < PLANS[p.plan].price) return res.status(404).json({ error: 'Muamala haulingani.' });
-  activate(p.user_id, p.plan); db.prepare("update payments set status='approved' where id=?").run(p.id);
-  notify(`✅ Malipo yamethibitishwa kiotomatiki: ${p.ref} (${PLANS[p.plan].name})`); res.json({ ok: 1 });
+  const item = p && (VIDEO_PACKAGES[p.plan] || PLANS[p.plan]);
+  if (!p || !item || +req.body?.amount < item.price) return res.status(404).json({ error: 'Muamala haulingani.' });
+  if (VIDEO_PACKAGES[p.plan]) activateVideo(p.user_id, p.plan); else activate(p.user_id, p.plan);
+  db.prepare("update payments set status='approved' where id=?").run(p.id);
+  notify(`✅ Malipo yamethibitishwa kiotomatiki: ${p.ref} (${item.name})`); res.json({ ok: 1 });
 });
 
 // ---------- picha (bure) ----------
@@ -329,12 +340,11 @@ const jobs = new Map();
 setInterval(() => { for (const [k, j] of jobs) if (Date.now() - j.t > 15 * 60e3) jobs.delete(k); }, 60e3);
 app.post('/api/video', need, (req, res) => {
   const u = req.user, plan = PLANS[u.plan];
-  if (u.plan === 'free') return res.status(403).json({ error: 'Video inapatikana kwa mipango ya kulipia.' });
+  if (u.video_expires <= Date.now() || !(u.video_credits > 0)) return res.status(403).json({ error: 'Huna salio la video. Nunua kifurushi cha Video kwanza.' });
   if (!PK) return res.status(500).json({ error: 'Huduma ya video haijawekwa bado.' });
   const raw = String(req.body?.prompt || '').trim().slice(0, 400);
   if (raw.length < 3) return res.status(400).json({ error: 'Eleza video unayotaka.' });
   if (BAD.test(raw)) return res.status(400).json({ error: 'Maelezo haya hayaruhusiwi.' });
-  if (u.credit_used + VIDEO_COST > plan.price) return res.status(402).json({ error: 'Mkopo wako hautoshi kwa video.' });
   if ([...jobs.values()].some(j => j.uid === u.id && j.status === 'working')) return res.status(429).json({ error: 'Subiri video ya kwanza imalizike.' });
   const k = 'vid:u' + u.id;
   if (used(k) >= VIDEO_DAILY) return res.status(429).json({ error: 'Video za leo zimeisha. Rudi kesho.' });
@@ -348,11 +358,11 @@ app.post('/api/video', need, (req, res) => {
       if (!r.ok || !ct.startsWith('video/')) throw new Error('video imeshindwa ' + r.status);
       job.buf = Buffer.from(await r.arrayBuffer()); job.ct = ct;
       if (job.buf.length > 30e6) throw new Error('video kubwa mno');
-      db.prepare('update users set credit_used=credit_used+? where id=?').run(VIDEO_COST, u.id);
+      db.prepare('update users set video_credits=case when video_credits>0 then video_credits-1 else 0 end where id=?').run(u.id);
       job.status = 'done';
     } catch (e) { job.status = 'error'; bump(k, -1); console.error('video error:', e.message); }
   })();
-  res.json({ id });
+  res.json({ id, videoCredits: Math.max(0, (u.video_credits || 0) - 1) });
 });
 app.get('/api/video/:id', need, (req, res) => {
   const j = jobs.get(req.params.id);
