@@ -647,6 +647,56 @@ app.post('/v1/chat', async (req, res) => {
   } catch (e) { console.error('api error:', e.message); apiErr(res, e.code === 'INSUFFICIENT_WALLET' ? 402 : 502, e.code === 'INSUFFICIENT_WALLET' ? 'Salio la Chat Wallet halitoshi.' : 'Huduma ina shida kwa sasa. Jaribu tena baadaye.'); }
 });
 
+// ---------- MLIMANI STUDIO: MUSIC GENERATION (separate Studio billing) ----------
+app.post('/api/studio/music', need, async (req, res) => {
+  const prompt = String(req.body?.prompt || '').trim().slice(0, 4000);
+  const durationSeconds = Math.max(15, Math.min(180, Math.round(Number(req.body?.durationSeconds) || 60)));
+  const instrumental = req.body?.instrumental === true;
+  if (prompt.length < 10) return res.status(400).json({ error: 'Andika maelezo ya muziki angalau herufi 10.' });
+  if (BAD.test(prompt)) return res.status(400).json({ error: 'Maelezo haya hayaruhusiwi.' });
+  if (!env.ELEVENLABS_API_KEY) return res.status(503).json({ error: 'Music Generator haijaunganishwa bado. Admin anahitaji kuweka ELEVENLABS_API_KEY kwenye Render.' });
+  const rate = Number(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='studio_music_minute_tzs'").get()?.customer_price || 0);
+  if (!Number.isFinite(rate) || rate <= 0) return res.status(503).json({ error: 'Bei ya Mlimani Studio Music bado haijaidhinishwa na Admin.' });
+  const charge = Math.ceil(durationSeconds / 60) * rate;
+  if (cashWalletBalance(db, req.user.id) < charge) return res.status(402).json({ error: 'Salio la Wallet halitoshi. Unahitaji TZS ' + charge.toLocaleString('en-US') + ' kwa muziki huu.' });
+  const k = 'studio_music:u' + req.user.id;
+  if (used(k) >= Math.max(1, Number(env.STUDIO_MUSIC_DAILY || 5))) return res.status(429).json({ error: 'Umefikia kikomo cha Music Generator cha leo. Jaribu kesho.' });
+  bump(k);
+  try {
+    const response = await fetch('https://api.elevenlabs.io/v1/music?output_format=mp3_44100_128', {
+      method: 'POST',
+      headers: { 'xi-api-key': env.ELEVENLABS_API_KEY, 'Content-Type': 'application/json', 'Accept': 'audio/mpeg' },
+      body: JSON.stringify({ prompt, music_length_ms: durationSeconds * 1000, model_id: 'music_v2_5', force_instrumental: instrumental }),
+      signal: AbortSignal.timeout(240000)
+    });
+    const contentType = response.headers.get('content-type') || '';
+    if (!response.ok || !contentType.toLowerCase().includes('audio')) {
+      const detail = (await response.text().catch(() => '')).replace(/\\s+/g, ' ').slice(0, 400);
+      throw new Error('Music provider error ' + response.status + (detail ? ': ' + detail : ''));
+    }
+    const audio = Buffer.from(await response.arrayBuffer());
+    if (!audio.length || audio.length > 35 * 1024 * 1024) throw new Error('Faili ya muziki si sahihi au ni kubwa mno.');
+    try {
+      consumeWalletCredits(db, req.user.id, 'cash', charge, 'Mlimani Studio Music (' + durationSeconds + ' sekunde)');
+    } catch (billingError) {
+      console.error('Studio music billing:', billingError.message);
+      return res.status(402).json({ error: 'Muziki umetengenezwa lakini salio limebadilika kabla ya malipo. Wasiliana na Admin kabla ya kuomba tena.' });
+    }
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Length': String(audio.length),
+      'Content-Disposition': 'attachment; filename="mlimani-studio-music.mp3"',
+      'Cache-Control': 'private, no-store',
+      'X-Studio-Charged-Tzs': String(charge)
+    });
+    return res.send(audio);
+  } catch (error) {
+    bump(k, -1);
+    console.error('Mlimani Studio Music:', error.message);
+    return res.status(502).json({ error: 'Imeshindikana kutengeneza muziki kwa sasa. Hakuna salio lililokatwa. ' + error.message.slice(0, 250) });
+  }
+});
+
 // ---------- video (kulipia, inakata mkopo) ----------
 const jobs = new Map();
 const videoReferenceImages = new Map();
