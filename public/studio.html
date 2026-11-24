@@ -73,6 +73,14 @@ input,textarea,select{border-radius:13px}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
 
 /* Compact step-by-step Studio layout */
+#marketingFields .wizard-step,#newsFields .wizard-step{display:none;animation:wizardIn .18s ease}
+#marketingFields .wizard-step.active,#newsFields .wizard-step.active{display:block}
+.wizard-progress{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0 16px;color:var(--muted,#68756b);font-size:13px}
+.wizard-progress strong{color:var(--text,#17251b)}
+.wizard-nav{display:flex;gap:10px;margin:14px 0}
+.wizard-nav button{flex:1;min-height:44px;border-radius:12px}
+@keyframes wizardIn{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:none}}
+
 .primary-action-wrap{margin:18px 0 4px;text-align:center}
 #continueStudio{width:100%;min-height:58px;font-size:1.05rem;border-radius:16px}
 #selectionHint{margin:9px auto 0;max-width:520px;text-align:center}
@@ -445,6 +453,24 @@ $('#sendLiveText').addEventListener('click',()=>{
 $('#liveTextInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#sendLiveText').click();});
 
 
+function setupStudioWizard(containerId){
+ const root=$('#'+containerId);if(!root||root.dataset.wizardReady)return;root.dataset.wizardReady='1';
+ const original=[...root.children],groups=[];let i=0;
+ while(i<original.length){
+  const node=original[i],group=[node];i++;
+  if(node.tagName==='LABEL'&&i<original.length){group.push(original[i]);i++;if(group[1]?.id==='productImage'&&original[i]?.id==='productPreview'){group.push(original[i]);i++;}}
+  groups.push(group);
+ }
+ const progress=document.createElement('div');progress.className='wizard-progress';progress.setAttribute('aria-live','polite');
+ const steps=groups.map((nodes,index)=>{const step=document.createElement('div');step.className='wizard-step';step.dataset.step=String(index);nodes.forEach(n=>step.appendChild(n));root.appendChild(step);return step;});
+ const nav=document.createElement('div');nav.className='wizard-nav';
+ const back=document.createElement('button');back.type='button';back.className='light';back.textContent='Rudi';
+ const next=document.createElement('button');next.type='button';next.className='primary';next.textContent='Endelea';
+ nav.append(back,next);root.append(progress,nav);let current=0;
+ function show(n){current=Math.max(0,Math.min(steps.length-1,n));steps.forEach((s,j)=>s.classList.toggle('active',j===current));progress.innerHTML='<span>Hatua '+(current+1)+' kati ya '+steps.length+'</span><strong>'+Math.round((current+1)/steps.length*100)+'%</strong>';back.disabled=current===0;next.textContent=current===steps.length-1?'Imekamilika':'Endelea';}
+ back.addEventListener('click',()=>show(current-1));next.addEventListener('click',()=>{if(current<steps.length-1)show(current+1);else root.dispatchEvent(new CustomEvent('wizard-complete',{bubbles:true}));});show(0);
+}
+setupStudioWizard('marketingFields');setupStudioWizard('newsFields');
 function currentStudioScript(){return videoType==='marketing'?$('#adScript').value.trim():$('#newsScript').value.trim();}
 $('#draftAdScript').addEventListener('click',async()=>{
  const token=localStorage.getItem('t')||'',name=$('#productName').value.trim(),benefit=$('#productBenefit').value.trim(),price=$('#productPrice').value.trim(),language=$('#adLanguage').value,cta=$('#productCTA').value.trim(),duration=Number($('#videoDuration').value);
