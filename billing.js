@@ -7,7 +7,9 @@ const DEFAULT_PRICING = [
   ['live_talk', 'Live Talk', 'live_talk', 'per_minute', 0, 0, 'TZS', 'Gharama na bei bado hazijathibitishwa'],
   ['advertisement_15', 'Advertisement 15s', 'advertisement', 'per_ad', 0, 150, 'credits', 'Bei ya majaribio; si bei rasmi'],
   ['advertisement_30', 'Advertisement 30s', 'advertisement', 'per_ad', 0, 250, 'credits', 'Bei ya majaribio; si bei rasmi'],
-  ['image', 'Image', 'image', 'per_image', 0, 0, 'TZS', 'Gharama na bei bado hazijathibitishwa']
+  ['image', 'Image', 'image', 'per_image', 0, 0, 'TZS', 'Gharama na bei bado hazijathibitishwa'],
+  ['markup_multiplier', 'Chat markup multiplier', 'billing', 'multiplier', 0, 4, 'x', 'Minimum x4; badili baada ya kuthibitisha gharama'],
+  ['usd_tzs', 'USD/TZS exchange rate', 'billing', 'exchange_rate', 0, 2600, 'TZS/USD', 'Weka kiwango cha sasa cha kubadilisha USD kwenda TZS']
 ];
 
 const DEFAULT_PLANS = [
