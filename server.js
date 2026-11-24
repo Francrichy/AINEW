@@ -872,9 +872,7 @@ async function activeTools(u) {
 app.get('/api/plugins', need, (req, res) => {
   const u = req.user, conns = new Map(db.prepare('select provider,meta from connections where user_id=?').all(u.id).map(r => [r.provider, JSON.parse(r.meta || '{}')]));
   const on = new Set(db.prepare('select plugin_id from plugin_prefs where user_id=? and enabled=1').all(u.id).map(r => r.plugin_id));
-  const freeMonth = new Date().toISOString().slice(0, 7);
-  const freeUsed = db.prepare('select calls from composio_usage where user_id=? and month=?').get(u.id, freeMonth)?.calls || 0;
-  res.json({ freeComposioLimit: CX_FREE_USER_MONTHLY, freeComposioUsed: freeUsed, freeComposioRemaining: Math.max(0, CX_FREE_USER_MONTHLY - freeUsed), categories: CATS, plugins: fullCatalog().map(p => {
+  res.json({ categories: CATS, plugins: fullCatalog().map(p => {
     const c = conns.get(p.kind === 'composio' ? 'cx:' + p.id : p.id);
     return { id: p.id, icon: p.icon, name: p.name, desc: p.desc, cats: p.cats, kind: p.kind, soon: !!p.soon,
       locked: p.kind === 'builtin' ? !BUILTIN_PLANS.includes(u.plan) : p.kind === 'composio' ? !(CX_PLANS.includes(u.plan) && (u.plan !== 'free' || CX_FREE_IDS.has(p.id))) : p.kind === 'fleet' ? false : !(PLUGIN_PLANS.includes(u.plan) || (u.plan === 'free' && cashWalletBalance(db, u.id) > 0)),
