@@ -112,9 +112,9 @@ Use a payment adapter, not a direct dependency between the studio and one provid
 
 ## Implemented Studio milestone — November 24, 2026
 - PR #58 merged the mobile-first Studio workspace to `main`: browser camera recording up to 30 minutes, local video preview, file selection/preview, and download.
-- The browser recording flow is device-local. It does **not** upload, back up, edit, or sync source media to Mlimani cloud. Long recordings use browser storage/memory; 720p is recommended on phones.
+- Browser recording starts on the device. Users can now explicitly upload recorded/selected files to their own private R2 project library when R2 is configured. Long recordings use browser memory until saved; 720p is recommended on phones.
 - AI Video still uses the existing provider endpoint and remains limited to 5s/15s. The old in-memory job map is not a durable film-rendering queue.
-- Added a server-side ElevenLabs Music API adapter at `POST /api/studio/music` on the follow-up branch. It uses model `music_v2_5`, MP3 output, and a separate Studio cash-wallet price setting `studio_music_minute_tzs`. The browser never receives the provider key. It is not enabled until an admin sets a positive customer price and Render has `ELEVENLABS_API_KEY`.
+- Added a server-side ElevenLabs Music API adapter at `POST /api/studio/music`. It uses model `music_v2_5`, MP3 output, and a separate Studio cash-wallet price setting `studio_music_minute_tzs`. The browser never receives the provider key. It is not enabled until an admin sets a positive customer price and Render has `ELEVENLABS_API_KEY`.
 - Music endpoint currently caps a single generation request at 180 seconds for the first release; the upstream API supports longer output, but long-running requests need durable jobs and storage before safely exposing longer tracks.
 - New Admin pricing keys are introduced with zero customer price by default: `studio_music_minute_tzs`, `studio_voice_minute_tzs`, and `studio_video_second_tzs`. Zero means disabled; no new Studio charge is silently activated.
 - Existing chat pricing and wallet are not reused as Studio product pricing. The Music adapter charges the cash wallet under the separate service description after successful provider response. A failed provider request does not debit the wallet.
@@ -127,7 +127,7 @@ Use a payment adapter, not a direct dependency between the studio and one provid
 - **Customer pricing**: Admin must set provider cost, retail price, FX rate, markup, generation limits and cancellation/refund rules after a successful provider test. No placeholder zero price may be bypassed.
 
 ## Remaining work before calling Mlimani Studio production-ready
-1. Provision and configure R2 or another S3-compatible object store, then implement authenticated resumable uploads, per-user project library, signed download URLs and deletion/retention.
+1. Configure and test R2 credentials/CORS in Render; authenticated per-user project library, signed downloads and deletion endpoints are implemented, but resumable uploads and retention automation remain.
 2. Add a durable relational project/job store and a queue/worker; the current AINEW app uses SQLite and an ephemeral Render filesystem by default. Do not reuse or alter Mlimani Fleet's PostgreSQL.
 3. Add FFmpeg-based video editing/export: trim, split, combine, overlays, title cards, transitions, audio mixing, subtitles and final MP4 render.
 4. Implement provider-neutral video adapters and durable polling/callbacks. Generate 5–30 second scenes, then assemble films up to 30 minutes only after the user approves a cost estimate.
