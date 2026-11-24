@@ -177,6 +177,42 @@ main{max-width:920px;padding:20px 24px 60px;text-align:center}
  #selectionHint{font-size:.78rem;line-height:1.4;padding:0 8px}
  #liveFields,#videoFields{margin-top:16px}
 }
+
+/* Full-screen Live Conversation stage inspired by the supplied reference */
+#liveFields:not(.hidden){position:fixed!important;inset:0!important;z-index:10000!important;display:block!important;overflow-y:auto!important;overscroll-behavior:contain;background:#f7f8fa!important;padding:clamp(10px,2vw,24px)!important;margin:0!important;text-align:left!important}
+#liveFields .live-config{display:none}
+#liveFields .preview{max-width:1180px;margin:0 auto;background:transparent!important;padding:0!important;box-shadow:none!important}
+#liveFields .call-stage{position:relative;max-width:1000px;margin:0 auto}
+#liveAvatarVideo{width:100%!important;height:min(72svh,820px)!important;min-height:260px!important;aspect-ratio:16/9;object-fit:cover!important;background:#777!important;border-radius:24px!important}
+#liveAvatarPlaceholder{height:min(72svh,820px);min-height:260px!important;border-radius:24px;background:#777!important}
+#localCameraTile{position:absolute!important;right:18px!important;bottom:76px!important;width:clamp(104px,16vw,190px)!important;max-width:35%!important;margin:0!important;z-index:3}
+#localCameraVideo{width:100%!important;aspect-ratio:4/3!important;border:2px solid white!important;border-radius:16px!important;object-fit:cover!important}
+#localCameraTile.camera-off:after{content:'Kamera imezimwa';display:block;background:#172b3b;color:#fff;text-align:center;padding:5px;border-radius:0 0 10px 10px;font-size:12px}
+#liveFields .call-stage>.actions{position:absolute;right:18px;top:18px;z-index:4;display:flex;flex-direction:column;align-items:stretch;width:190px}
+#liveFields .call-stage>.actions button{min-height:46px;border-radius:999px;background:#fff;color:#24394a;border:1px solid #d5dce2;box-shadow:0 2px 8px #172b3b12}
+#liveFields .call-stage>.actions #stopLive{background:#f5e8e5;color:#a33f2c;border:0}
+#liveFields #liveSpeakingStatus{position:absolute;left:16px;bottom:14px;color:#fff;background:#15202bcc;border-radius:999px;padding:8px 12px;margin:0;max-width:70%;font-size:.85rem}
+#liveFields #liveStatus{max-width:1000px;margin:10px auto;background:#fff;border:1px solid #e0e5e9;color:#526273}
+#liveEndActions{max-width:1000px;margin:16px auto;padding:20px;background:#fff;border:1px solid #e0e5e9;border-radius:18px}
+#liveFields #voiceLog,#liveFields .live-text-row{max-width:1000px;margin:12px auto}
+#liveFields .live-text-row{display:grid;grid-template-columns:1fr auto}
+@media(max-width:700px){
+ #liveFields:not(.hidden){padding:8px 8px calc(12px + env(safe-area-inset-bottom))!important}
+ #liveFields .call-stage{width:100%}
+ #liveAvatarVideo{height:68svh!important;min-height:300px!important;max-height:760px!important;aspect-ratio:3/4!important;object-fit:cover!important;border-radius:18px!important}
+ #liveAvatarPlaceholder{height:68svh;min-height:300px!important;border-radius:18px}
+ #localCameraTile{right:12px!important;bottom:68px!important;width:112px!important}
+ #liveFields .call-stage>.actions{position:static;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:7px;margin:10px 0}
+ #liveFields .call-stage>.actions button{min-width:0;min-height:44px;padding:8px 5px;font-size:.78rem}
+ #liveFields #liveSpeakingStatus{bottom:66px;left:10px;font-size:.72rem;max-width:64%;padding:6px 9px}
+ #liveFields #liveStatus{font-size:.8rem;padding:9px}
+ #liveFields #voiceLog{min-height:110px;max-height:22svh}
+ #liveFields .live-text-row{grid-template-columns:1fr;gap:7px}
+ #liveFields .live-text-row button{min-height:44px}
+ #liveEndActions{padding:14px}
+ #liveEndActions .actions{display:grid;grid-template-columns:1fr}
+}
+
 </style></head><body><header><strong>MLIMANI STUDIO LABS</strong><a href="/">← Rudi Mlimani Labs</a></header><main>
 <h1 id="studioHeading">Karibu Mlimani Labs</h1><p class="lead">Zungumza moja kwa moja na msaidizi wako wa AI au tengeneza tangazo la video kwa hatua chache.</p>
 <section class="panel"><h2 style="margin-top:4px">Ungependa kufanya nini leo?</h2><div class="modes"><button type="button" data-mode="live" aria-pressed="true">🎥 Video ya moja kwa moja</button><button type="button" data-mode="video" aria-pressed="false">📣 Matangazo</button></div>
@@ -199,10 +235,17 @@ main{max-width:920px;padding:20px 24px 60px;text-align:center}
 <p id="liveSpeakingStatus">Hujajiunga na mazungumzo bado.</p>
 <div class="actions" style="justify-content:center">
 
-<button class="light" id="stopLive" disabled>Maliza mazungumzo</button>
+<button class="light" id="muteLive" type="button" disabled>🎙 Zima sauti</button>
+<button class="light" id="cameraLive" type="button" disabled>📷 Zima kamera</button>
+<button class="light" id="stopLive" disabled>End Conversation</button>
 </div>
 <p class="note" id="liveStatus">Chagua Ethan au Ngina, kisha bonyeza Anza kuzungumza. Ruhusu kamera na microphone unapoombwa.</p>
 </div>
+</div>
+<div id="liveEndActions" class="live-end-actions hidden">
+<strong>Mazungumzo yameisha</strong>
+<p class="note">Unaweza kupakua rekodi ya video ikiwa kifaa chako kinaruhusu kurekodi, au kupakua maandishi ya mazungumzo.</p>
+<div class="actions"><button class="primary" id="downloadLiveVideo" type="button" disabled>Pakua video</button><button class="light" id="downloadLiveTranscript" type="button">Pakua mazungumzo</button><button class="light" id="closeLiveResults" type="button">Rudi kwenye Studio</button></div>
 </div>
 <div class="chatlog" id="voiceLog" aria-live="polite"><div class="bubble assistant">Karibu! Bonyeza Anza kuzungumza ili kuongea na avatar wa Mlimani.</div></div>
 <div class="live-text-row"><input id="liveTextInput" placeholder="Au andika ujumbe kwa Ethan / Ngina"><button class="secondary" id="sendLiveText" disabled>Tuma</button></div>
@@ -227,12 +270,26 @@ main{max-width:920px;padding:20px 24px 60px;text-align:center}
 <p class="note">Ngina na Ethan ni wahusika wa AI. Kamera/microphone zitaombwa ruhusa tu Live Talk itakapowashwa. Mazungumzo hayatapakuliwa mpaka uchague kitufe cha kupakua.</p>
 </section></main>
 <script>
-let avatar='Ngina',mode='live',localCameraStream=null,age='young',durationTier='normal',videoType='marketing',history=[],sessionEndsAt=0,sessionTimer=null,studioSessionId=null,liveAvatarSession=null,liveAvatarCatalogData=null,videoObjectUrl=null;
+let avatar='Ngina',mode='live',localCameraStream=null,age='young',durationTier='normal',videoType='marketing',history=[],sessionEndsAt=0,sessionTimer=null,studioSessionId=null,liveAvatarSession=null,liveAvatarCatalogData=null,videoObjectUrl=null,liveRecorder=null,liveRecordingChunks=[];
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 function addBubble(role,text){const d=document.createElement('div');d.className='bubble '+role;d.textContent=text;$('#chatlog').append(d);$('#chatlog').scrollTop=$('#chatlog').scrollHeight}
 function transcript(){return history.map(m=>(m.role==='user'?'WEWE':'MLIMANI LABS')+':\n'+m.content).join('\n\n')}
-$$('[data-avatar]').forEach(b=>b.addEventListener('click',async()=>{if(liveAvatarSession||liveAvatarStarting){try{await liveAvatarSession?.stop();}catch{}resetLiveControls('Tunabadilisha msaidizi...');}avatar=b.dataset.avatar;$$('[data-avatar]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#liveTitle').textContent=avatar+' yuko tayari kuzungumza nawe';$('#studioHeading').textContent='Karibu Mlimani Labs';$('#sendChat').textContent='Ongea na '+avatar;
-$('#continueStudio').textContent=mode==='live'?'Anza kuzungumza':'Endelea na tangazo';$('#liveStatus').textContent=avatar+' amechaguliwa. Bonyeza Anza kuzungumza ili tuanze mazungumzo.';$('#selectionHint').textContent=avatar+' amechaguliwa. '+(mode==='live'?'Bonyeza Anza kuzungumza.':'Bonyeza Endelea na tangazo.');}));
+$('[data-avatar]').forEach(b=>b.addEventListener('click',async()=>{
+ if(mode==='live'){
+  if(liveAvatarSession||liveAvatarStarting){liveAvatarCancelRequested=true;try{await liveAvatarSession?.stop();}catch{}resetLiveControls('Tunabadilisha msaidizi...');}
+  avatar=b.dataset.avatar;$('[data-avatar]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+  $('#liveTitle').textContent=avatar+' yuko tayari kuzungumza nawe';
+  $('#liveStatus').textContent='Tunaandaa mazungumzo na '+avatar+'...';
+  $('#liveEndActions').classList.add('hidden');$('#liveFields').classList.remove('hidden');document.body.style.overflow='hidden';
+  startLiveAvatar();
+  return;
+ }
+ avatar=b.dataset.avatar;$('[data-avatar]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+ $('#liveTitle').textContent=avatar+' yuko tayari kuzungumza nawe';
+ $('#sendChat').textContent='Ongea na '+avatar;
+ $('#continueStudio').textContent='Endelea na tangazo';
+ $('#selectionHint').textContent=avatar+' amechaguliwa. Bonyeza Endelea na tangazo.';
+}));
 $('#sendChat').textContent='Ongea na '+avatar;
 $$('[data-age]').forEach(b=>b.addEventListener('click',()=>{age=b.dataset.age;$$('[data-age]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));}));
 $$('[data-duration]').forEach(b=>b.addEventListener('click',()=>{durationTier=b.dataset.duration;$$('[data-duration]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#durationNote').textContent=durationTier==='extended'?'Muda mrefu wa mazungumzo umechaguliwa.':'Muda wa kawaida wa mazungumzo.';}));
@@ -288,6 +345,17 @@ async function startLiveAvatar(){
     video.autoplay=true;video.playsInline=true;video.setAttribute('playsinline','');video.muted=false;video.controls=true;
     session.attach(video);
     video.classList.remove('hidden');$('#liveAvatarPlaceholder').classList.add('hidden');
+    const remoteStream=video.srcObject;
+    if(remoteStream && window.MediaRecorder){
+     try{
+      liveRecordingChunks=[];
+      const mimeType=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(t=>MediaRecorder.isTypeSupported(t));
+      liveRecorder=new MediaRecorder(remoteStream,mimeType?{mimeType}:undefined);
+      liveRecorder.ondataavailable=e=>{if(e.data&&e.data.size)liveRecordingChunks.push(e.data);};
+      liveRecorder.onstop=()=>{const type=liveRecorder?.mimeType||'video/webm';const blob=new Blob(liveRecordingChunks,{type});window.mlimaniLiveRecording=blob;$('#downloadLiveVideo').disabled=!blob.size;};
+      liveRecorder.start(1000);
+     }catch(recordError){liveRecorder=null;$('#liveStatus').textContent='Video imeunganishwa. Rekodi ya kupakua haitumiki kwenye browser hii.';}
+    }
     await video.play().catch(()=>{video.controls=true;$('#liveStatus').textContent='Video imeunganishwa. Bonyeza Play ikiwa haijaanza yenyewe.';});
     $('#liveSpeakingStatus').textContent=avatar+' yuko hewani. Sauti na video vimeunganishwa.';
     $('#liveStatus').textContent='Video ya '+avatar+' imeunganishwa. Zungumza sasa au andika ujumbe.';
@@ -321,12 +389,14 @@ async function startLiveAvatar(){
  }
 }
 function addVoiceLine(role,text){const log=$('#voiceLog');const d=document.createElement('div');d.className='bubble '+role;d.textContent=text;log.append(d);log.scrollTop=log.scrollHeight;}
-$('#continueStudio').addEventListener('click',()=>{if(mode==='video'){ $('#videoFields').classList.remove('hidden');$('#continueStudio').classList.add('hidden');refreshVideoWallet();$('#videoFields').scrollIntoView({behavior:'smooth',block:'start'});return;}$('#liveFields').classList.remove('hidden');startLiveAvatar();});
+$('#continueStudio').addEventListener('click',()=>{if(mode==='video'){ $('#videoFields').classList.remove('hidden');$('#continueStudio').classList.add('hidden');refreshVideoWallet();$('#videoFields').scrollIntoView({behavior:'smooth',block:'start'});return;}$('#liveFields').classList.remove('hidden');document.body.style.overflow='hidden';startLiveAvatar();});
 $('#stopLive').addEventListener('click',async()=>{
  if(liveAvatarStarting){liveAvatarCancelRequested=true;$('#stopLive').disabled=true;$('#liveStatus').textContent='Tunafunga kikao kinachoendelea kuunganishwa...';return;}
  const session=liveAvatarSession;$('#stopLive').disabled=true;$('#liveStatus').textContent='Tunafunga mazungumzo...';
  try{await session?.stop();}catch(e){$('#liveStatus').textContent='Kikao kimefungwa. '+(e.message||'');}
- resetLiveControls('Mazungumzo yameisha. Unaweza kuanza tena.');
+ if(liveRecorder&&liveRecorder.state!=='inactive'){try{liveRecorder.stop();}catch{}}
+ resetLiveControls('Mazungumzo yameisha. Pakua rekodi au nakala ya mazungumzo.');
+ $('#liveEndActions').classList.remove('hidden');
 });
 $('#sendLiveText').addEventListener('click',()=>{
  const text=$('#liveTextInput').value.trim();if(!text||!liveAvatarSession)return;
@@ -344,6 +414,40 @@ $('#downloadChat').addEventListener('click',()=>{if(!history.length){$('#status'
 $('#clearChat').addEventListener('click',()=>{history=[];sessionEndsAt=0;studioSessionId=null;$$('[data-duration]').forEach(b=>b.disabled=false);if(sessionTimer)clearInterval(sessionTimer);$('#sendChat').disabled=false;$('#chatlog').innerHTML='';addBubble('assistant','Mazungumzo mapya yameanza. Niulize swali lolote.');$('#status').textContent='Mazungumzo mapya yako tayari. Muda utaanza unapotuma ujumbe wa kwanza.';});
 $('#motionSpeed')?.addEventListener('change',e=>{const v=Number(e.target.value);$('#motionHelp').textContent='Umechagua mwendo '+v+'×. Mpangilio huu ni wa maandalizi tu; slow motion halisi itafanya kazi baada ya kuunganisha API ya video.';});$('#continue')?.addEventListener('click',()=>{});$('#back').addEventListener('click',()=>location.href='/');
 async function refreshVideoWallet(){const token=localStorage.getItem('t')||'';if(!token){$('#videoWallet').textContent='Ingia kwenye akaunti ili kuona salio la Video na kununua kifurushi.';return;}try{const r=await fetch('/api/me',{headers:{Authorization:'Bearer '+token}}),d=await r.json();$('#videoWallet').textContent='Salio la Video: '+(d.videoCredits||0)+' video'+(d.videoExpires?' · Inaisha: '+new Date(d.videoExpires).toLocaleDateString():'');}catch{$('#videoWallet').textContent='Imeshindikana kupata salio la Video.';}}
-$$$('[data-mode]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.mode==='video')refreshVideoWallet();}));
+$('[data-mode]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.mode==='video')refreshVideoWallet();}));
 refreshVideoWallet();
+
+// Live call controls and downloadable conversation results
+let liveMicMuted=false,liveCameraOff=false;
+$('#muteLive').addEventListener('click',()=>{
+ const session=liveAvatarSession;
+ const voice=session?.voiceChat;
+ const muteFn=voice?.mute||session?.muteMicrophone||session?.mute;
+ const unmuteFn=voice?.unmute||session?.unmuteMicrophone||session?.unmute;
+ if(!muteFn||!unmuteFn){$('#liveStatus').textContent='Udhibiti wa microphone haujatolewa na toleo hili la SDK. Unaweza kutumia mute ya kifaa chako.';return;}
+ liveMicMuted=!liveMicMuted;
+ try{(liveMicMuted?muteFn:unmuteFn).call(voice||session);$('#muteLive').textContent=liveMicMuted?'🎙 Washa sauti':'🎙 Zima sauti';}
+ catch(e){liveMicMuted=!liveMicMuted;$('#liveStatus').textContent='Imeshindikana kubadilisha microphone: '+e.message;}
+});
+$('#cameraLive').addEventListener('click',()=>{
+ if(!localCameraStream)return;
+ liveCameraOff=!liveCameraOff;
+ localCameraStream.getVideoTracks().forEach(t=>t.enabled=!liveCameraOff);
+ $('#cameraLive').textContent=liveCameraOff?'📷 Washa kamera':'📷 Zima kamera';
+ $('#localCameraTile').classList.toggle('camera-off',liveCameraOff);
+});
+$('#downloadLiveVideo').addEventListener('click',()=>{
+ const blob=window.mlimaniLiveRecording;if(!blob)return;
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='mlimani-studio-'+avatar.toLowerCase()+'-conversation.webm';a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);
+});
+$('#downloadLiveTranscript').addEventListener('click',()=>{
+ const lines=$('#voiceLog .bubble').map(n=>n.textContent).filter(Boolean);
+ const content='MLIMANI STUDIO LABS — NAKALA YA MAZUNGUMZO\\nMsaidizi: '+avatar+'\\nTarehe: '+new Date().toLocaleString()+'\\n\\n'+(lines.join('\\n\\n')||'Hakuna maandishi yaliyorekodiwa.');
+ const blob=new Blob([content],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='mlimani-studio-mazungumzo.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);
+});
+$('#closeLiveResults').addEventListener('click',()=>{
+ $('#liveFields').classList.add('hidden');$('#liveEndActions').classList.add('hidden');document.body.style.overflow='';
+ $('#continueStudio').classList.remove('hidden');$('#continueStudio').disabled=false;
+});
+
 </script></body></html>
