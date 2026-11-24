@@ -322,8 +322,18 @@ async function loadBots(){const l=$('#botlist');if(!me.loggedIn){l.innerHTML='<d
 $('#bcreate').onclick=async()=>{try{const editing=editingBotId!==null;await api(editing?'bots/'+editingBotId:'bots',{method:editing?'PUT':'POST',body:{name:$('#bn').value,prompt:$('#bp').value}});editingBotId=null;$('#bn').value=$('#bp').value='';$('#bcreate').textContent='Unda Boti';$('#berr').textContent=editing?'Mabadiliko yamehifadhiwa.':'';loadBots()}catch(e){$('#berr').textContent=e.message}};
 async function loadPlans(){
  const d=await api('plans');cfg=d;const g=$('#plangrid'),pi=$('#payinfo');g.innerHTML='';
+ const rates=d.rates||{},fmt=v=>Number(v)>0?'TZS '+Number(v).toLocaleString('sw-TZ'):'Bei bado inaandaliwa';
  const card=el('div','card plan');card.append(el('h3','','Pay As You Go'),el('div','p','Hakuna ada ya mwezi'));
- const list=el('ul');['Ongeza salio la TZS Wallet unapohitaji','AI Chat hukatwa kulingana na matumizi halisi ya tokens','Video hulipiwa kwa sekunde 5 au 15','Live Talk hulipiwa kwa dakika','Salio halina tarehe ya kuisha'].forEach(x=>list.appendChild(el('li','',x)));
+ const list=el('ul');
+ [
+  'Ongeza salio la TZS Wallet unapohitaji',
+  'AI Chat: '+(rates.chat||'Matumizi halisi ya tokens'),
+  'Video sekunde 5: '+fmt(rates.video5sTzs),
+  'Video sekunde 15: '+fmt(rates.video15sTzs),
+  'Tangazo sekunde 15: '+fmt(rates.advertisement15sTzs),
+  'Live Talk kwa dakika: '+fmt(rates.liveTalkMinuteTzs),
+  'Salio halina tarehe ya kuisha'
+ ].forEach(x=>list.appendChild(el('li','',x)));
  card.appendChild(list);
  const btn=el('button','btn','Ongeza salio');btn.onclick=()=>{
   if(!me.loggedIn){$('#authBtn').click();return}
