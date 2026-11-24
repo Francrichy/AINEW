@@ -244,7 +244,7 @@ function renderPlugins(categories){
   const c=el('div','pluginCard'),head=el('div','','');
   head.style.fontSize='1.7rem';head.textContent=p.icon||'🔌';
   c.appendChild(head);c.appendChild(el('h3','',p.name));c.appendChild(el('div','desc',p.desc||''));if(p.freeEligible)c.appendChild(el('div','pluginMeta','BURE kwa Free · hadi 100 matumizi kwa mwezi'));
-  let status=p.soon?'Inatayarishwa':p.enabled?'Imeunganishwa / imewashwa':p.locked?'Inahitaji mpango wa kulipia':'Haijaunganishwa';
+  let status=p.soon?'Inatayarishwa':(p.kind==='fleet'&&p.meta?.expiresAt&&Number(p.meta.expiresAt)<=Date.now())?'Token imeisha · Unganisha tena':p.enabled?'Imeunganishwa / imewashwa':p.locked?'Inahitaji mpango wa kulipia':'Haijaunganishwa';
   c.appendChild(el('div','pluginMeta',status));
   const b=el('button','btn',p.soon?'Inatayarishwa':p.locked?'Angalia mipango':p.enabled?'Simamia':'Washa / Unganisha');
   if(p.soon){b.disabled=true;b.title='Muunganisho utawezeshwa baada ya kukamilisha API salama.'}
@@ -260,6 +260,18 @@ function renderPlugins(categories){
      const defaultValue=prompt(p.id==='github'?'Repo ya kawaida (mf. Francrichy/AINEW), au acha wazi:':'Jina la huduma ya Render (mf. AINEW), au acha wazi:')||'';
      await api('connections/'+p.id,{method:'POST',body:{token:tokenValue,default:defaultValue}});
      alert(p.name+' imeunganishwa. Token imehifadhiwa ikiwa imesimbwa kwa njia fiche.');
+     await loadPlugins();
+    }else if(p.kind==='fleet'){
+     if(p.enabled){
+      await api('plugins/mlimanifleet',{method:'DELETE'});
+      alert('Mlimani Fleet imetenganishwa na akaunti hii ya Mlimani AI.');
+     }else{
+      window.open('https://app.mlimani.net/ai-connect.html','_blank','noopener');
+      const tokenValue=prompt('Fungua ukurasa wa Fleet uliofunguka, tengeneza token ya Mlimani AI, kisha ibandike hapa:');
+      if(!tokenValue)return;
+      const result=await api('plugins/mlimanifleet/connect',{method:'POST',body:{token:tokenValue}});
+      alert(result.message||'Mlimani Fleet imeunganishwa.');
+     }
      await loadPlugins();
     }else if(p.kind==='composio'){
      const result=await api('plugins/'+p.id+'/connect',{method:'POST',body:{}});
