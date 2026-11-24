@@ -655,7 +655,7 @@ app.post('/api/video', need, (req, res) => {
   const referenceImage = referenceId ? videoReferenceImages.get(referenceId) : null;
   if (referenceId && (!referenceImage || referenceImage.userId !== u.id || referenceImage.expiresAt <= Date.now())) return res.status(400).json({ error: 'Picha ya bidhaa imeisha muda. Chagua picha tena.' });
   if (referenceId && (duration !== 15 || purpose !== 'advertisement')) return res.status(400).json({ error: 'Picha ya bidhaa inatumika kwenye tangazo la sekunde 15 pekee.' });
-  const referenceBase = String(env.PUBLIC_BASE_URL || env.RENDER_EXTERNAL_URL || 'https://ainew-jju3.onrender.com').replace(/\\/+$/, '');
+  const referenceBase = String(env.PUBLIC_BASE_URL || env.RENDER_EXTERNAL_URL || 'https://ainew-jju3.onrender.com').replace(/\/+$/, '');
   const referenceUrl = referenceImage ? referenceBase + '/api/video/reference/' + referenceId : null;
   const raw = String(req.body?.prompt || '').trim().slice(0, 1600);
   if (raw.length < 3) return res.status(400).json({ error: 'Eleza video unayotaka.' });
