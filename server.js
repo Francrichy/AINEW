@@ -688,7 +688,7 @@ app.post('/api/studio/uploads/presign', need, async (req, res) => {
   const projectId = randomUUID();
   const storageKey = studioPrefix(req.user.id) + 'assets/' + projectId + '/' + filename;
   try {
-    const uploadUrl = await getSignedUrl(studioS3, new PutObjectCommand({ Bucket: R2_BUCKET, Key: storageKey, ContentType: contentType, Metadata: { owner: String(req.user.id), project: projectId } }), { expiresIn: 900 });
+    const uploadUrl = await getSignedUrl(studioS3, new PutObjectCommand({ Bucket: R2_BUCKET, Key: storageKey, ContentType: contentType, ContentLength: sizeBytes, Metadata: { owner: String(req.user.id), project: projectId } }), { expiresIn: 900 });
     res.json({ projectId, storageKey, uploadUrl, headers: { 'Content-Type': contentType }, expiresIn: 900 });
   } catch (error) { console.error('Studio upload presign:', error.message); res.status(502).json({ error: 'Imeshindikana kuandaa upload salama.' }); }
 });
