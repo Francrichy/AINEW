@@ -260,7 +260,9 @@ main{max-width:920px;padding:20px 24px 60px;text-align:center}
 <img id="productPreview" class="hidden" alt="Picha ya bidhaa" style="width:100%;max-height:260px;object-fit:contain;border-radius:14px;background:#fff">
 <label for="productName">Jina la bidhaa</label><input id="productName" placeholder="Mfano: Mlimani Coffee">
 <label for="productBenefit">Faida kuu ya bidhaa</label><input id="productBenefit" placeholder="Mfano: Kahawa halisi, ladha ya kipekee">
-<label for="productCTA">Wateja wafanye nini?</label><input id="productCTA" placeholder="Mfano: Piga simu 07... kuagiza">
+<label for="productPrice">Bei ya bidhaa (hiari)</label><input id="productPrice" placeholder="Mfano: TZS 25,000">
+<label for="adLanguage">Lugha ya tangazo</label><select id="adLanguage"><option value="sw">Kiswahili</option><option value="en">English</option></select>
+<label for="productCTA">Mawasiliano / wito wa kuchukua hatua</label><input id="productCTA" placeholder="Mfano: Piga simu 07... kuagiza">
 <label for="adScript">Script ya tangazo</label><textarea id="adScript" placeholder="Bonyeza Andaa script kwa AI, ipitie na urekebishe hapa..."></textarea>
 <div class="actions"><button type="button" class="light" id="draftAdScript">Andaa script kwa AI</button></div>
 </div>
@@ -301,7 +303,7 @@ $$('[data-duration]').forEach(b=>b.addEventListener('click',()=>{durationTier=b.
 $$('[data-mode]').forEach(b=>b.addEventListener('click',async()=>{const next=b.dataset.mode;if(next===mode)return;if(liveAvatarStarting){liveAvatarCancelRequested=true;}else if(liveAvatarSession){try{await liveAvatarSession.stop();}catch{}resetLiveControls('Umebadilisha huduma.');}mode=next;$$('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#chatFields').classList.add('hidden');$('#liveFields').classList.add('hidden');$('#videoFields').classList.add('hidden');$('#continueStudio').classList.remove('hidden');$('#continueStudio').disabled=false;$('#continueStudio').textContent=mode==='live'?'Anza kuzungumza':'Endelea na tangazo';$('#selectionHint').textContent=mode==='live'?'Chagua Ethan au Ngina, kisha anza mazungumzo ya video.':'Chagua Ethan au Ngina, kisha endelea kuweka maelezo ya tangazo.';if(mode==='video')refreshVideoWallet();}));
 $('[data-vtype]').forEach(b=>b.addEventListener('click',()=>{videoType=b.dataset.vtype;adScriptApproved=false;$('[data-vtype]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#marketingFields').classList.toggle('hidden',videoType!=='marketing');$('#newsFields').classList.toggle('hidden',videoType!=='news');$('#approveAdScript').disabled=!currentStudioScript();}));
 $('#productImage').addEventListener('change',e=>{const file=e.target.files?.[0];if(!file)return;const url=URL.createObjectURL(file);$('#productPreview').src=url;$('#productPreview').classList.remove('hidden');});
-['#productName','#productBenefit','#productCTA'].forEach(selector=>$(selector).addEventListener('input',()=>{adScriptApproved=false;$('#approveAdScript').disabled=!currentStudioScript();}));
+['#productName','#productBenefit','#productPrice','#productCTA','#adLanguage'].forEach(selector=>$(selector).addEventListener('input',()=>{adScriptApproved=false;$('#approveAdScript').disabled=!currentStudioScript();}));
 $('#liveCatalogStatus').textContent='Chagua Ethan au Ngina. Bonyeza Anza kuzungumza ukitaka kuanza kikao cha video na sauti.';
 
 function resetLiveControls(message){
@@ -438,12 +440,13 @@ $('#liveTextInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#sendLi
 
 function currentStudioScript(){return videoType==='marketing'?$('#adScript').value.trim():$('#newsScript').value.trim();}
 $('#draftAdScript').addEventListener('click',async()=>{
- const token=localStorage.getItem('t')||'',name=$('#productName').value.trim(),benefit=$('#productBenefit').value.trim(),cta=$('#productCTA').value.trim();
+ const token=localStorage.getItem('t')||'',name=$('#productName').value.trim(),benefit=$('#productBenefit').value.trim(),price=$('#productPrice').value.trim(),language=$('#adLanguage').value,cta=$('#productCTA').value.trim();
  if(!token){$('#videoProviderStatus').textContent='Tafadhali ingia kwenye akaunti kwanza.';return;}
  if(!name||!benefit){$('#videoProviderStatus').textContent='Jaza jina la bidhaa na faida kuu kwanza.';return;}
  const button=$('#draftAdScript');button.disabled=true;$('#videoProviderStatus').textContent='AI inaandaa script ya tangazo...';
  try{
-  const request='Andaa script fupi ya tangazo la sekunde 15 kwa Kiswahili sanifu. Bidhaa: '+name+'. Faida kuu: '+benefit+'. Wito wa kuchukua hatua: '+(cta||'Wasiliana nasi kuagiza')+'. Mhusika wa kuwasilisha: '+avatar+'. Toa script inayozungumzika kwa kawaida, yenye mwanzo wa kuvutia, faida na mwito wa kuchukua hatua. Usieleze hatua za kutengeneza video; toa maneno ya tangazo tu.';
+  const targetLanguage=language==='en'?'natural English':'Kiswahili sanifu';
+  const request='Andaa script fupi ya tangazo la sekunde 15 kwa '+targetLanguage+'. Bidhaa: '+name+'. Faida kuu: '+benefit+'. Bei: '+(price||'Haikutajwa')+'. Wito wa kuchukua hatua: '+(cta||'Wasiliana nasi kuagiza')+'. Mhusika wa kuwasilisha: '+avatar+'. Toa script inayozungumzika kwa kawaida, yenye mwanzo wa kuvutia, faida, bei kama imetolewa, na mwito wa kuchukua hatua. Usieleze hatua za kutengeneza video; toa maneno ya tangazo tu.';
   const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({messages:[{role:'user',content:request}]})});
   const data=await response.json();if(!response.ok)throw new Error(data.error||'Imeshindikana kuandaa script.');
   $('#adScript').value=data.reply||'';adScriptApproved=false;$('#approveAdScript').disabled=!$('#adScript').value.trim();
@@ -465,8 +468,8 @@ $('#createVideo').addEventListener('click',async()=>{
  if(!adScriptApproved){$('#videoProviderStatus').textContent='Tafadhali pitia na uidhinishe script kabla ya kutengeneza video.';return;}
  let prompt='';
  if(videoType==='marketing'){
-  const name=$('#productName').value.trim(),benefit=$('#productBenefit').value.trim(),cta=$('#productCTA').value.trim();
-  prompt='Create a '+duration+'-second '+$('#format').value+' product advertisement for '+name+'. Main benefit: '+benefit+'. Call to action: '+cta+'. Presenter guidance: '+avatar+'. Use this approved spoken script: '+script+'. Professional East African commercial, clear product focus, natural presenter delivery.';
+  const name=$('#productName').value.trim(),benefit=$('#productBenefit').value.trim(),price=$('#productPrice').value.trim(),cta=$('#productCTA').value.trim(),language=$('#adLanguage').value;
+  prompt='Create a '+duration+'-second '+$('#format').value+' product advertisement in '+(language==='en'?'English':'Swahili')+' for '+name+'. Main benefit: '+benefit+'. Price: '+(price||'not provided')+'. Call to action: '+cta+'. Presenter guidance: '+avatar+'. Use this approved spoken script: '+script+'. Professional East African commercial, clear product focus, natural presenter delivery.';
  }else{
   prompt='Create a '+duration+'-second '+$('#format').value+' news bulletin video. Presenter guidance: '+avatar+'. Use this approved news script: '+script+'. Professional East African news presentation.';
  }
