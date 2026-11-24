@@ -316,8 +316,8 @@ let liveBillingSessionId=null,liveBillingFinished=false;
 async function markLiveBillingConnected(){
  if(!liveBillingSessionId||liveBillingFinished)return;
  const token=localStorage.getItem('t')||'';
- try{await fetch('/api/liveavatar/connected',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({billingSessionId:liveBillingSessionId})});}
- catch(e){console.warn('Live Talk connection metering:',e.message);}
+ const response=await fetch('/api/liveavatar/connected',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({billingSessionId:liveBillingSessionId})});
+ if(!response.ok){const detail=await response.json().catch(()=>({}));throw new Error(detail.error||'Imeshindikana kuanza kipimo cha dakika za Live Talk.');}
 }
 async function finishLiveBilling(){
  if(!liveBillingSessionId||liveBillingFinished)return;
