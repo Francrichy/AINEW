@@ -12,9 +12,9 @@ const DEFAULT_PRICING = [
 
 const DEFAULT_PLANS = [
   ['free', 'Bure', 0, 0, 30, 0, 0, 0, 0, 0, 'active'],
-  ['kawaida', 'Kawaida', 10000, 0, 30, 1, 0, 0, 0, 0, 'active'],
-  ['biashara', 'Biashara', 30000, 0, 30, 10, 0, 0, 0, 0, 'active'],
-  ['kampuni', 'Kampuni', 100000, 0, 30, 50, 0, 0, 0, 0, 'active']
+  ['kawaida', 'Kawaida', 10000, 10000, 30, 1, 10000, 0, 0, 0, 'active'],
+  ['biashara', 'Biashara', 30000, 30000, 30, 10, 30000, 0, 0, 0, 'active'],
+  ['kampuni', 'Kampuni', 100000, 100000, 30, 50, 100000, 0, 0, 0, 'active']
 ];
 
 export function initializeBilling(db) {
@@ -101,7 +101,7 @@ export function initializeBilling(db) {
     VALUES ('usd_tzs','USD/TZS exchange rate','all','exchange_rate',2600,2600,'TZS','Weka kiwango cha ubadilishaji kinachotumika.',?)`).run(now);
 }
 
-export function registerBillingRoutes(app, { db, need, admin }) {
+export function syncBillingPlans(db, plans) {\n  const rows = db.prepare('SELECT plan_key,name,monthly_price_tzs,bots FROM subscription_plans').all();\n  for (const row of rows) if (plans[row.plan_key]) Object.assign(plans[row.plan_key], { name: row.name, price: row.monthly_price_tzs, bots: row.bots });\n}\n\nexport function registerBillingRoutes(app, { db, need, admin, plans: runtimePlans }) {
   const router = express.Router();
   router.get('/wallet', need, (req, res) => {
     const balances = db.prepare('SELECT service,bucket,balance,expires_at,updated_at FROM wallet_balances WHERE user_id=? ORDER BY service,bucket').all(req.user.id);
@@ -141,7 +141,7 @@ export function registerBillingRoutes(app, { db, need, admin }) {
     db.prepare('UPDATE admin_pricing SET provider_cost=?,customer_price=?,notes=?,updated_at=? WHERE config_key=?').run(providerCost, customerPrice, notes, Date.now(), key);
     res.json({ ok: true, pricing: db.prepare('SELECT * FROM admin_pricing WHERE config_key=?').get(key) });
   });
-  router.get('/admin/billing/plans', admin, (_req, res) => {
+  router.get('/admin/billing/subscriptions', admin, (req, res) => {\n    const limit=Math.min(200,Math.max(1,Number(req.query.limit)||50));\n    res.json({subscriptions:db.prepare('SELECT s.*,u.email,u.phone,u.name,p.name AS plan_name FROM user_subscriptions s JOIN users u ON u.id=s.user_id LEFT JOIN subscription_plans p ON p.plan_key=s.plan_key ORDER BY s.id DESC LIMIT ?').all(limit)});\n  });\n  router.get('/admin/billing/plans', admin, (_req, res) => {
     res.json({ plans: db.prepare('SELECT * FROM subscription_plans ORDER BY monthly_price_tzs').all() });
   });
   router.post('/admin/billing/plans', admin, (req, res) => {
@@ -155,7 +155,7 @@ export function registerBillingRoutes(app, { db, need, admin }) {
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
       ON CONFLICT(plan_key) DO UPDATE SET name=excluded.name,monthly_price_tzs=excluded.monthly_price_tzs,monthly_credits=excluded.monthly_credits,duration_days=excluded.duration_days,bots=excluded.bots,chat_credits=excluded.chat_credits,video_credits=excluded.video_credits,live_talk_credits=excluded.live_talk_credits,advertisement_credits=excluded.advertisement_credits,status=excluded.status,updated_at=excluded.updated_at`)
       .run(key,name,...vals,String(b.status||'active')==='inactive'?'inactive':'active',Date.now());
-    res.json({ ok:true, plan:db.prepare('SELECT * FROM subscription_plans WHERE plan_key=?').get(key) });
+    if (runtimePlans?.[key]) Object.assign(runtimePlans[key], { name, price: vals[0], bots: vals[3] });\n    res.json({ ok:true, plan:db.prepare('SELECT * FROM subscription_plans WHERE plan_key=?').get(key) });
   });
   router.post('/admin/billing/adjust', admin, (req, res) => {
     const b=req.body||{}, userId=Number(b.user_id), service=String(b.service||'').trim(), bucket=b.bucket==='purchased'?'purchased':'subscription', amount=Number(b.amount);
