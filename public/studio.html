@@ -274,17 +274,17 @@ let avatar='Ngina',mode='live',localCameraStream=null,age='young',durationTier='
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 function addBubble(role,text){const d=document.createElement('div');d.className='bubble '+role;d.textContent=text;$('#chatlog').append(d);$('#chatlog').scrollTop=$('#chatlog').scrollHeight}
 function transcript(){return history.map(m=>(m.role==='user'?'WEWE':'MLIMANI LABS')+':\n'+m.content).join('\n\n')}
-$('[data-avatar]').forEach(b=>b.addEventListener('click',async()=>{
+$$('[data-avatar]').forEach(b=>b.addEventListener('click',async()=>{
  if(mode==='live'){
   if(liveAvatarSession||liveAvatarStarting){liveAvatarCancelRequested=true;try{await liveAvatarSession?.stop();}catch{}resetLiveControls('Tunabadilisha msaidizi...');}
-  avatar=b.dataset.avatar;$('[data-avatar]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+  avatar=b.dataset.avatar;$$('[data-avatar]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
   $('#liveTitle').textContent=avatar+' yuko tayari kuzungumza nawe';
   $('#liveStatus').textContent='Tunaandaa mazungumzo na '+avatar+'...';
   $('#liveEndActions').classList.add('hidden');$('#liveFields').classList.remove('hidden');document.body.style.overflow='hidden';
   startLiveAvatar();
   return;
  }
- avatar=b.dataset.avatar;$('[data-avatar]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+ avatar=b.dataset.avatar;$$('[data-avatar]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
  $('#liveTitle').textContent=avatar+' yuko tayari kuzungumza nawe';
  $('#sendChat').textContent='Ongea na '+avatar;
  $('#continueStudio').textContent='Endelea na tangazo';
