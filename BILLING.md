@@ -9,8 +9,8 @@
 
 ## Credit units
 - **Chat:** Wallet amount is denominated in TZS-equivalent usage. Runtime Chat pricing uses the configured markup multiplier and USD/TZS rate.
-- **Video:** One credit represents one 5-second generation. A 15-second generation uses three Video credits.
-- **Live Talk:** One Mlimani Wallet credit represents one minute. Production avatar sessions are limited to the number of available whole minutes and charged by rounded-up elapsed minutes. Sandbox sessions are not charged. LiveAvatar FULL mode itself uses one provider credit per 30 seconds, so Admin must use the provider's current plan rate when setting the Mlimani price.
+- **Video:** One credit represents one 5-second generation. A 15-second generation uses three Video credits. The Video price row is for cost planning; the actual debit is the number of plan credits.
+- **Live Talk:** One Mlimani Wallet credit represents one minute. Production avatar sessions are limited to the number of available whole minutes and charged by rounded-up elapsed minutes. Sandbox sessions are not charged. LiveAvatar FULL mode itself uses one provider credit per 30 seconds, so Admin must use the provider's current plan rate when setting the Mlimani price. The Live Talk price row is for cost planning; the actual debit is the number of plan minutes.
 - **Advertisement:** 15-second product advertisements use the configured `advertisement_15` price when the account has an Advertisement Wallet grant. Accounts without that grant fall back to three Video credits. The 30-second option remains disabled.
 
 ## Admin configuration
