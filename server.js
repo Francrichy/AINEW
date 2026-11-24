@@ -743,7 +743,7 @@ const must = async r => { if (!r.ok) throw new Error('HTTP ' + r.status); return
 app.get('/api/connections', need, (req, res) => res.json(db.prepare('select provider,meta,created from connections where user_id=?').all(req.user.id).map(r => ({ provider: r.provider, meta: JSON.parse(r.meta || '{}'), created: r.created }))));
 app.post('/api/connections/:provider', need, async (req, res) => {
   const prov = req.params.provider, tok = String(req.body?.token || '').trim(), def = String(req.body?.default || '').trim().slice(0, 100);
-  if (!CX_PLANS.includes(req.user.plan)) return res.status(403).json({ error: 'Plugins zinazotumia huduma za nje zinahitaji mpango wa kulipia.' });
+  if (!PLUGIN_PLANS.includes(req.user.plan) && !(req.user.plan === 'free' && cashWalletBalance(db, req.user.id) > 0)) return res.status(402).json({ error: 'Ongeza salio la Wallet ili kutumia miunganisho ya nje.' });
   if (!['github', 'render'].includes(prov) || tok.length < 10) return res.status(400).json({ error: 'Weka token au API key sahihi.' });
   try {
     let meta = {};
@@ -852,7 +852,7 @@ async function activeTools(u) {
   const specs = [], notes = [], seen = new Set(); const add = (n, t) => { if (!seen.has(n)) { seen.add(n); specs.push(specOf(n, t)); } };
   for (const r of db.prepare('select provider,meta from connections where user_id=?').all(u.id)) {
     const m = JSON.parse(r.meta || '{}');
-    if ((r.provider === 'github' || r.provider === 'render') && PLUGIN_PLANS.includes(u.plan)) { for (const [n, t] of Object.entries(TOOLS)) if (t.p === r.provider) add(n, t); notes.push(r.provider === 'github' ? `GitHub repo ya kawaida: ${m.defaultRepo || 'haijawekwa'}.` : `Render huduma ya kawaida: ${m.defaultService || 'haijawekwa'}.`); }
+    if ((r.provider === 'github' || r.provider === 'render') && (PLUGIN_PLANS.includes(u.plan) || (u.plan === 'free' && cashWalletBalance(db, u.id) > 0))) { for (const [n, t] of Object.entries(TOOLS)) if (t.p === r.provider) add(n, t); notes.push(r.provider === 'github' ? `GitHub repo ya kawaida: ${m.defaultRepo || 'haijawekwa'}.` : `Render huduma ya kawaida: ${m.defaultService || 'haijawekwa'}.`); }
     else if (r.provider === 'mlimanifleet' && m.status === 'active' && Number(m.expiresAt) > Date.now()) { for (const item of (m.tools || [])) { const t = { p:'mlimanifleet', name:item.name, d:item.description, schema:item.inputSchema, w:item.name === 'mlimani_request_write_approval' }; dyn.set(item.name,t); add(item.name,t); } notes.push('Mlimani Fleet imeunganishwa kwa taarifa za kampuni hii tu. Vitendo vya kuandika vinahitaji idhini tofauti ya mmiliki ndani ya Fleet.'); }
     else if (r.provider.startsWith('cx:') && CX_PLANS.includes(u.plan) && m.status === 'active') { const cfg = cxConfig(r.provider.slice(3)); if (cfg) for (const slug of cfg.tools) { const t = await cxTool(cfg, slug); if (t) add(t.name, t); } }
   }
@@ -869,7 +869,7 @@ app.get('/api/plugins', need, (req, res) => {
   res.json({ freeComposioLimit: CX_FREE_USER_MONTHLY, freeComposioUsed: freeUsed, freeComposioRemaining: Math.max(0, CX_FREE_USER_MONTHLY - freeUsed), categories: CATS, plugins: fullCatalog().map(p => {
     const c = conns.get(p.kind === 'composio' ? 'cx:' + p.id : p.id);
     return { id: p.id, icon: p.icon, name: p.name, desc: p.desc, cats: p.cats, kind: p.kind, soon: !!p.soon,
-      locked: p.kind === 'builtin' ? !BUILTIN_PLANS.includes(u.plan) : p.kind === 'composio' ? !(CX_PLANS.includes(u.plan) && (u.plan !== 'free' || CX_FREE_IDS.has(p.id))) : p.kind === 'fleet' ? false : !PLUGIN_PLANS.includes(u.plan),
+      locked: p.kind === 'builtin' ? !BUILTIN_PLANS.includes(u.plan) : p.kind === 'composio' ? !(CX_PLANS.includes(u.plan) && (u.plan !== 'free' || CX_FREE_IDS.has(p.id))) : p.kind === 'fleet' ? false : !(PLUGIN_PLANS.includes(u.plan) || (u.plan === 'free' && cashWalletBalance(db, u.id) > 0)),
       freeEligible: p.kind === 'composio' && CX_FREE_IDS.has(p.id),
       enabled: p.kind === 'builtin' ? on.has(p.id) : p.kind === 'fleet' ? !!c && c.status === 'active' && Number(c.expiresAt) > Date.now() : !!c && (c.status ? c.status === 'active' : true), pending: p.kind === 'composio' && c?.status === 'pending', meta: c || null };
   }) });
