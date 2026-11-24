@@ -151,7 +151,7 @@ export function syncBillingPlans(db, plans) {
   for (const row of rows) if (plans[row.plan_key]) Object.assign(plans[row.plan_key], { name: row.name, price: row.monthly_price_tzs, bots: row.bots });
 }
 
-export function registerBillingRoutes(app, { db, need, admin, plans: runtimePlans }) {
+export function registerBillingRoutes(app, { db, need, admin, plans: runtimePlans, onPricingChange }) {
   const router = express.Router();
   router.get('/wallet', need, (req, res) => {
     const balances = db.prepare('SELECT service,bucket,balance,expires_at,updated_at FROM wallet_balances WHERE user_id=? ORDER BY service,bucket').all(req.user.id);
@@ -189,6 +189,7 @@ export function registerBillingRoutes(app, { db, need, admin, plans: runtimePlan
     if (!Number.isFinite(providerCost) || providerCost < 0 || !Number.isFinite(customerPrice) || customerPrice < 0) return res.status(400).json({ error: 'Gharama na bei lazima ziwe namba zisizo hasi.' });
     const notes = String(b.notes ?? existing.notes).slice(0,500);
     db.prepare('UPDATE admin_pricing SET provider_cost=?,customer_price=?,notes=?,updated_at=? WHERE config_key=?').run(providerCost, customerPrice, notes, Date.now(), key);
+    if (typeof onPricingChange === 'function') onPricingChange(key, customerPrice);
     res.json({ ok: true, pricing: db.prepare('SELECT * FROM admin_pricing WHERE config_key=?').get(key) });
   });
   router.get('/admin/billing/subscriptions', admin, (req, res) => {
