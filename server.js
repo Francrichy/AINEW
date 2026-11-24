@@ -176,7 +176,10 @@ function finishLiveTalkSession(userId, sessionId) {
       const endAt = Math.min(Date.now(), row.expires_at);
       const elapsedMs = Math.max(0, endAt - row.connected_at);
       minutes = Math.min(Math.ceil(elapsedMs / 60000), Math.max(1, Math.ceil(row.max_duration_seconds / 60)));
-      if (minutes > 0) consumeWalletCredits(db, userId, 'live_talk', minutes, 'Matumizi ya Live Talk (' + minutes + ' dakika)');
+      if (minutes > 0) {
+        if (row.billing_mode === 'cash') consumeWalletCredits(db, userId, 'cash', minutes * Number(row.unit_price_tzs || 0), 'Live Talk (' + minutes + ' dakika)');
+        else consumeWalletCredits(db, userId, 'live_talk', minutes, 'Matumizi ya Live Talk (' + minutes + ' dakika)');
+      }
     }
     db.prepare("UPDATE live_talk_sessions SET status=?,billed_minutes=?,ended_at=? WHERE session_id=? AND user_id=?")
       .run(row.connected_at ? 'closed' : 'cancelled', minutes, Date.now(), sessionId, userId);
@@ -206,7 +209,9 @@ app.post('/api/liveavatar/end', need, (req, res) => {
   if (!/^[a-f0-9-]{36}$/i.test(id)) return res.status(400).json({ error: 'Kikao cha Live Talk si sahihi.' });
   try {
     const result = finishLiveTalkSession(req.user.id, id);
-    res.json({ ok: true, ...result, remainingMinutes: walletAvailable(db, req.user.id, 'live_talk') });
+    const session = db.prepare('SELECT billing_mode,unit_price_tzs FROM live_talk_sessions WHERE session_id=? AND user_id=?').get(id, req.user.id);
+    const remainingMinutes = session?.billing_mode === 'cash' && Number(session.unit_price_tzs) > 0 ? Math.floor(cashWalletBalance(db, req.user.id) / Number(session.unit_price_tzs)) : walletAvailable(db, req.user.id, 'live_talk');
+    res.json({ ok: true, ...result, remainingMinutes, walletBalanceTzs: cashWalletBalance(db, req.user.id) });
   } catch (error) {
     res.status(error.code === 'INSUFFICIENT_WALLET' ? 402 : 500).json({ error: error.message || 'Imeshindikana kufunga kikao cha Live Talk.' });
   }
@@ -234,14 +239,15 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
     const configuredAvatarId = env['LIVEAVATAR_' + character.toUpperCase() + '_AVATAR_ID'] || '';
     const production = Boolean(configuredAvatarId);
     let maxSessionDuration = production ? 180 : 60;
-    const walletAccountEnabled = ['chat','video','live_talk','advertisement'].some(service => walletModeEnabled(db, req.user.id, service));
-    const billLiveTalk = production && walletAccountEnabled;
-    if (billLiveTalk && !walletModeEnabled(db, req.user.id, 'live_talk')) {
-      return res.status(402).json({ error: 'Live Talk haijawekewa dakika za credits kwenye mpango wako. Wasiliana na Admin kabla ya kuanza kikao cha avatar.' });
-    }
+    const legacyMinutes = walletAvailable(db, req.user.id, 'live_talk');
+    const legacyLive = walletModeEnabled(db, req.user.id, 'live_talk') && legacyMinutes >= 1;
+    const liveMinutePrice = Number(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='live_talk_minute_tzs'").get()?.customer_price || 0);
+    const cashLive = production && !legacyLive && liveMinutePrice > 0 && cashWalletBalance(db, req.user.id) >= liveMinutePrice;
+    const billLiveTalk = production && (legacyLive || cashLive);
+    if (production && !legacyLive && liveMinutePrice <= 0) return res.status(503).json({ error: 'Bei ya Live Talk bado haijawekwa na Admin.' });
+    if (production && !legacyLive && !cashLive) return res.status(402).json({ error: 'Salio la Wallet halitoshi kuanza Live Talk. Ongeza salio kuendelea.' });
     if (billLiveTalk) {
-      const availableMinutes = Math.floor(walletAvailable(db, req.user.id, 'live_talk'));
-      if (availableMinutes < 1) return res.status(402).json({ error: 'Salio la Live Talk Wallet limeisha. Ongeza angalau dakika moja ya credits.' });
+      const availableMinutes = cashLive ? Math.floor(cashWalletBalance(db, req.user.id) / liveMinutePrice) : Math.floor(legacyMinutes);
       const active = db.prepare("SELECT 1 FROM live_talk_sessions WHERE user_id=? AND status IN ('pending','active') AND expires_at>? LIMIT 1").get(req.user.id, Date.now());
       if (active) return res.status(409).json({ error: 'Una kikao cha Live Talk kinachoendelea. Maliza kwanza kabla ya kuanza kingine.' });
       maxSessionDuration = Math.min(180, availableMinutes * 60);
@@ -294,8 +300,8 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
     if (billLiveTalk) {
       billingSessionId = randomUUID();
       const startedAt = Date.now();
-      db.prepare("INSERT INTO live_talk_sessions(session_id,user_id,started_at,expires_at,max_duration_seconds,status) VALUES(?,?,?,?,?,'pending')")
-        .run(billingSessionId, req.user.id, startedAt, startedAt + maxSessionDuration * 1000, maxSessionDuration);
+      db.prepare("INSERT INTO live_talk_sessions(session_id,user_id,started_at,expires_at,max_duration_seconds,status,billing_mode,unit_price_tzs) VALUES(?,?,?,?,?,'pending',?,?)")
+        .run(billingSessionId, req.user.id, startedAt, startedAt + maxSessionDuration * 1000, maxSessionDuration, cashLive ? 'cash' : 'legacy', cashLive ? liveMinutePrice : 0);
     }
     res.json({
       sessionToken: result.data.session_token,
