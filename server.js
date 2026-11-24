@@ -907,7 +907,8 @@ app.post('/api/plugins/mlimanifleet/connect', need, async (req, res) => {
     const tools = listed.result?.tools;
     if (!toolsResponse.ok || !Array.isArray(tools) || !tools.some(t => t.name === 'mlimani_list_vehicles')) throw new Error('Akaunti hii haina ruhusa au MCP ya Mlimani Fleet haipatikani.');
     const safeTools = tools.filter(t => /^mlimani_[a-z0-9_]+$/.test(t.name)).map(t => ({ name:t.name, description:String(t.description || t.name).slice(0,300), inputSchema:t.inputSchema || {type:'object',properties:{},additionalProperties:false} }));
-    const expiresAt = Date.now() + 7 * 86400000;
+    let expiresAt = Date.now() + 7 * 86400000;
+    try { const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')); if (Number(claims.exp) > Date.now()) expiresAt = Number(claims.exp); } catch {}
     db.prepare('insert into connections(user_id,provider,secret,meta,created) values(?,?,?,?,?) on conflict(user_id,provider) do update set secret=excluded.secret,meta=excluded.meta,created=excluded.created')
       .run(req.user.id, 'mlimanifleet', enc(token), JSON.stringify({ status:'active', endpoint:FLEET_API_URL, expiresAt, tools:safeTools, tenantScoped:true }), Date.now());
     res.json({ ok:true, status:'active', expiresAt, toolCount:safeTools.length, message:'Mlimani Fleet imeunganishwa. Token itaisha baada ya siku 7.' });
