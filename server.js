@@ -240,9 +240,9 @@ function meInfo(req) {
   return {
     loggedIn: !!u, email: u?.email, name: u?.name, plan: u?.plan || 'free', planName: p.name,
     dailyLeft: lim === null ? null : Math.max(0, lim - used(k)), dailyLimit: lim, imgLeft: Math.max(0, IMG_LIM(u) - used('img:' + k)),
-    creditLeft: u && u.plan !== 'free' ? Math.max(0, Math.round(p.price - u.credit_used)) : null,
+    creditLeft: u && u.plan !== 'free' ? (walletModeEnabled(db, u.id, 'chat') ? Math.max(0, Math.round(walletAvailable(db, u.id, 'chat'))) : Math.max(0, Math.round(p.price - u.credit_used))) : null,
     botsMax: p.bots, expires: u?.expires || null, phone: u?.phone || null,
-    videoCredits: u ? (u.video_expires > Date.now() ? (u.video_credits || 0) : 0) : 0,
+    videoCredits: u ? (walletModeEnabled(db, u.id, 'video') ? walletAvailable(db, u.id, 'video') : (u.video_expires > Date.now() ? (u.video_credits || 0) : 0)) : 0,
     videoExpires: u?.video_expires > Date.now() ? u.video_expires : null,
     walletCredits: u ? Object.fromEntries(['chat','video','live_talk','advertisement'].map(service => [service, walletAvailable(db, u.id, service)])) : {},
     pending: u ? db.prepare("select plan,ref,created from payments where user_id=? and status='pending'").all(u.id) : [],
@@ -299,7 +299,9 @@ app.get('/api/me', (req, res) => res.json(meInfo(req)));
 app.get('/api/plans', (_req, res) => res.json({ plans: PLANS, videoPackages: VIDEO_PACKAGES, payInfo: env.PAY_INFO || 'Wasiliana nasi kulipia.' }));
 app.get('/api/usage', need, (req, res) => {
   const u = db.prepare('select plan,expires,credit_used from users where id=?').get(req.user.id), p = PLANS[u.plan];
-  res.json({plan:u.plan,monthlyLimitTzs:p.price,usedTzs:Math.round(u.credit_used*100)/100,remainingTzs:u.plan==='free'?0:Math.max(0,Math.round((p.price-u.credit_used)*100)/100),expires:u.expires,currency:'TZS'});
+  const walletChat = u.plan !== 'free' && walletModeEnabled(db, u.id, 'chat');
+  const remaining = u.plan === 'free' ? 0 : (walletChat ? walletAvailable(db, u.id, 'chat') : Math.max(0, p.price - u.credit_used));
+  res.json({plan:u.plan,monthlyLimitTzs:p.price,usedTzs:Math.round((p.price-remaining)*100)/100,remainingTzs:Math.round(remaining*100)/100,expires:u.expires,currency:'TZS',wallet:walletChat});
 });
 app.get('/api/developer', need, (req, res) => {
   if (req.user.plan === 'free') return res.status(403).json({error:'API inapatikana kwa wateja wa kulipia.'});
@@ -503,7 +505,7 @@ app.post('/v1/chat', async (req, res) => {
     db.prepare('update api_keys set last_used=? where id=?').run(now, row.id);
     const pt = d.usage?.prompt_tokens || 0, ct = d.usage?.completion_tokens || 0;
     res.json(shape(d.choices[0].message.content, { prompt_tokens: pt, completion_tokens: ct, total_tokens: pt + ct, cost_tzs: Math.round(tzs * 100) / 100 }));
-  } catch (e) { console.error('api error:', e.message); apiErr(res, 502, 'Huduma ina shida kwa sasa. Jaribu tena baadaye.'); }
+  } catch (e) { console.error('api error:', e.message); apiErr(res, e.code === 'INSUFFICIENT_WALLET' ? 402 : 502, e.code === 'INSUFFICIENT_WALLET' ? 'Salio la Chat Wallet halitoshi.' : 'Huduma ina shida kwa sasa. Jaribu tena baadaye.'); }
 });
 
 // ---------- video (kulipia, inakata mkopo) ----------
