@@ -307,7 +307,7 @@ function resetLiveControls(message){
  $('#localCameraTile').classList.add('hidden');
  $('#liveAvatarPlaceholder').classList.remove('hidden');
  $('#continueStudio').disabled=false;$('#continueStudio').textContent='Anza kuzungumza';
- $('#stopLive').disabled=true;$('#stopLive').textContent='Maliza mazungumzo';
+ $('#stopLive').disabled=true;$('#stopLive').textContent='Maliza mazungumzo';$('#muteLive').disabled=true;$('#cameraLive').disabled=true;
  $('#sendLiveText').disabled=true;
  if(message)$('#liveStatus').textContent=message;
 }
@@ -357,7 +357,7 @@ async function startLiveAvatar(){
      }catch(recordError){liveRecorder=null;$('#liveStatus').textContent='Video imeunganishwa. Rekodi ya kupakua haitumiki kwenye browser hii.';}
     }
     await video.play().catch(()=>{video.controls=true;$('#liveStatus').textContent='Video imeunganishwa. Bonyeza Play ikiwa haijaanza yenyewe.';});
-    $('#liveSpeakingStatus').textContent=avatar+' yuko hewani. Sauti na video vimeunganishwa.';
+    $('#liveSpeakingStatus').textContent=avatar+' yuko hewani. Sauti na video vimeunganishwa.';$('#muteLive').disabled=false;$('#cameraLive').disabled=false;
     $('#liveStatus').textContent='Video ya '+avatar+' imeunganishwa. Zungumza sasa au andika ujumbe.';
     resolveStreamReady(true);
    }catch(e){resolveStreamReady(false);$('#liveStatus').textContent='Stream imefika lakini video haijacheza: '+e.message;}
