@@ -391,7 +391,7 @@ function renderPlugins(categories){
   c.appendChild(head);c.appendChild(el('h3','',p.name));c.appendChild(el('div','desc',p.desc||''));if(p.freeEligible)c.appendChild(el('div','pluginMeta','BURE kwa Free · hadi 100 matumizi kwa mwezi'));
   let status=p.soon?'Inatayarishwa':(p.kind==='fleet'&&p.meta?.expiresAt&&Number(p.meta.expiresAt)<=Date.now())?'Token imeisha · Unganisha tena':p.enabled?'Imeunganishwa / imewashwa':p.locked?'Inahitaji mpango wa kulipia':'Haijaunganishwa';
   c.appendChild(el('div','pluginMeta',status));
-  const b=el('button','btn',p.soon?'Inatayarishwa':p.locked?'Angalia mipango':p.enabled?'Simamia':'Washa / Unganisha');
+  const b=el('button','btn',p.soon?'Inatayarishwa':p.locked?'Angalia mipango':p.kind==='fleet'&&p.enabled?'Tenganisha':p.enabled?'Simamia':p.kind==='fleet'?'Unganisha Fleet':'Washa / Unganisha');
   if(p.soon){b.disabled=true;b.title='Muunganisho utawezeshwa baada ya kukamilisha API salama.'}
   else b.onclick=async()=>{
    if(p.locked){tab('plans');return}
