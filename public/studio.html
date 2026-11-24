@@ -266,7 +266,7 @@ main{max-width:920px;padding:20px 24px 60px;text-align:center}
 <label for="format">Muundo wa video</label><select id="format"><option value="9:16">9:16 — TikTok / Reels</option><option value="16:9">16:9 — YouTube / Presentation</option><option value="1:1">1:1 — Social media</option></select>
 <p class="note">Tengeneza video fupi ya sekunde 5 kwa kutumia huduma ya video iliyopo. Kifurushi cha Video na kuingia kwenye akaunti vinahitajika. Picha ya bidhaa hapa ni preview; haitatumwa kwenye injini ya video katika toleo hili.</p><div class="actions"><button class="primary" id="createVideo">Tengeneza video</button></div><div class="status" id="videoProviderStatus">Jaza taarifa kisha bonyeza Tengeneza video sasa.</div><video id="generatedVideo" class="hidden" controls playsinline style="width:100%;max-height:420px;border-radius:16px;background:#111;margin-top:12px"></video>
 </div>
-<div class="status" id="status">Live Talk inaruhusu kuuliza maswali kwa sauti na kusikia majibu. Create Video hutengeneza video fupi ya sekunde 5 kwa kutumia salio la Video. Avatar za video za moja kwa moja zinaunganishwa kupitia LiveAvatar.</div><div class="actions"><button class="secondary" id="back">Rudi Mlimani Labs</button></div>
+<div class="status" id="status">Live Talk inakuwezesha kuzungumza na msaidizi wa Mlimani kwa sauti na kusikia majibu. Tengeneza Video hukuwezesha kuunda video fupi ya sekunde 5 kwa kutumia salio lako la Video.</div><div class="actions"><button class="secondary" id="back">Rudi Mlimani Labs</button></div>
 <p class="note">Ngina na Ethan ni wahusika wa AI. Kamera/microphone zitaombwa ruhusa tu Live Talk itakapowashwa. Mazungumzo hayatapakuliwa mpaka uchague kitufe cha kupakua.</p>
 </section></main>
 <script>
@@ -331,10 +331,10 @@ async function startLiveAvatar(){
    const snippet=String(responseText||'').replace(/\\s+/g,' ').slice(0,220);
    throw new Error('Server imerudisha jibu lisilo JSON (HTTP '+response.status+'). '+(snippet||'Hakuna maelezo kutoka server.')+' Angalia kama umeingia upya kisha jaribu tena.');
   }
-  if(!response.ok)throw new Error(payload.error||('Ombi la LiveAvatar limeshindwa (HTTP '+response.status+').'));
+  if(!response.ok)throw new Error(payload.error||('Imeshindikana kuanzisha mazungumzo (HTTP '+response.status+').'));
   $('#liveStatus').textContent='Hatua 2/3: Tunafungua video na microphone...';
   const sdk=await import('https://esm.sh/@heygen/liveavatar-web-sdk@0.0.20?bundle');
-  if(typeof sdk.LiveAvatarSession!=='function')throw new Error('SDK ya LiveAvatar haikupakiwa vizuri. Refresh ukurasa ujaribu tena.');
+  if(typeof sdk.LiveAvatarSession!=='function')throw new Error('Huduma ya mazungumzo haikupakiwa vizuri. Tafadhali onyesha upya ukurasa ujaribu tena.');
   const session=new sdk.LiveAvatarSession(payload.sessionToken,{autoKeepAlive:true});
   liveAvatarSession=session;
   let resolveStreamReady;
