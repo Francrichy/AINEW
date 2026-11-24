@@ -471,7 +471,7 @@ $('#createVideo').addEventListener('click',async()=>{
   prompt='Create a '+duration+'-second '+$('#format').value+' news bulletin video. Presenter guidance: '+avatar+'. Use this approved news script: '+script+'. Professional East African news presentation.';
  }
  if(prompt.length>1500)prompt=prompt.slice(0,1500);
- $('#createVideo').disabled=true;$('#videoProviderStatus').textContent='Video inatengenezwa. Subiri kidogo...';
+ $('#createVideo').disabled=true;$('#downloadGeneratedVideo').classList.add('hidden');$('#videoProviderStatus').textContent='Video inatengenezwa. Subiri kidogo...';
  try{
   const purpose=videoType==='marketing'&&duration===15?'advertisement':'video';
   const r=await fetch('/api/video',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({prompt,duration,aspectRatio:$('#format').value,purpose})});
