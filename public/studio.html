@@ -312,6 +312,26 @@ function resetLiveControls(message){
  if(message)$('#liveStatus').textContent=message;
 }
 let liveAvatarStarting=false,liveAvatarCancelRequested=false;
+let liveBillingSessionId=null,liveBillingFinished=false;
+async function markLiveBillingConnected(){
+ if(!liveBillingSessionId||liveBillingFinished)return;
+ const token=localStorage.getItem('t')||'';
+ try{await fetch('/api/liveavatar/connected',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({billingSessionId:liveBillingSessionId})});}
+ catch(e){console.warn('Live Talk connection metering:',e.message);}
+}
+async function finishLiveBilling(){
+ if(!liveBillingSessionId||liveBillingFinished)return;
+ liveBillingFinished=true;
+ const id=liveBillingSessionId,token=localStorage.getItem('t')||'';
+ try{
+  const r=await fetch('/api/liveavatar/end',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({billingSessionId:id})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)console.warn('Live Talk billing:',d.error||r.status);
+  else if(d.billedMinutes>0)$('#liveStatus').textContent='Mazungumzo yameisha. Salio limetumika: dakika '+d.billedMinutes+'.';
+ }catch(e){console.warn('Live Talk billing end:',e.message);}
+ liveBillingSessionId=null;
+}
+
 async function startLiveAvatar(){
  if(liveAvatarSession||liveAvatarStarting){$('#liveStatus').textContent='Kikao kinaendelea au kinaunganishwa.';return;}
  const token=localStorage.getItem('t')||'';
@@ -332,6 +352,7 @@ async function startLiveAvatar(){
    throw new Error('Server imerudisha jibu lisilo JSON (HTTP '+response.status+'). '+(snippet||'Hakuna maelezo kutoka server.')+' Angalia kama umeingia upya kisha jaribu tena.');
   }
   if(!response.ok)throw new Error(payload.error||('Imeshindikana kuanzisha mazungumzo (HTTP '+response.status+').'));
+  liveBillingSessionId=payload.billingSessionId||null;liveBillingFinished=false;
   $('#liveStatus').textContent='Hatua 2/3: Tunafungua video na microphone...';
   const sdk=await import('https://esm.sh/@heygen/liveavatar-web-sdk@0.0.20?bundle');
   if(typeof sdk.LiveAvatarSession!=='function')throw new Error('Huduma ya mazungumzo haikupakiwa vizuri. Tafadhali onyesha upya ukurasa ujaribu tena.');
@@ -370,9 +391,10 @@ async function startLiveAvatar(){
   session.on('avatar.transcription',event=>{if(event?.text)addVoiceLine('assistant',avatar+': '+event.text);});
   session.on('avatar.speak_started',()=>{$('#liveSpeakingStatus').textContent=avatar+' anazungumza...';});
   session.on('avatar.speak_ended',()=>{$('#liveSpeakingStatus').textContent=avatar+' amemaliza kujibu. Unaweza kuzungumza tena.';});
-  session.on('session.disconnected',()=>{liveAvatarStarting=false;if(liveRecorder&&liveRecorder.state!=='inactive'){try{liveRecorder.stop();}catch{}}resetLiveControls('Kikao kimefungwa. Unaweza kupakua mazungumzo.');$('#liveEndActions').classList.remove('hidden');});
+  session.on('session.disconnected',()=>{liveAvatarStarting=false;finishLiveBilling();if(liveRecorder&&liveRecorder.state!=='inactive'){try{liveRecorder.stop();}catch{}}resetLiveControls('Kikao kimefungwa. Unaweza kupakua mazungumzo.');$('#liveEndActions').classList.remove('hidden');});
   await session.start();
-  if(liveAvatarCancelRequested){liveAvatarStarting=false;await session.stop();resetLiveControls('Umefunga kikao wakati kinaunganisha.');return;}
+  await markLiveBillingConnected();
+  if(liveAvatarCancelRequested){liveAvatarStarting=false;await session.stop();await finishLiveBilling();resetLiveControls('Umefunga kikao wakati kinaunganisha.');return;}
   $('#liveStatus').textContent='Kikao kimeunganishwa. Tunasubiri video ya avatar...';
   const ready=await Promise.race([streamReady,new Promise(resolve=>setTimeout(()=>resolve(false),25000))]);
   liveAvatarStarting=false;
@@ -385,6 +407,7 @@ async function startLiveAvatar(){
  }catch(e){
   const session=liveAvatarSession;liveAvatarStarting=false;
   try{await session?.stop();}catch{}
+  await finishLiveBilling();
   resetLiveControls('Imeshindikana kuanzisha video conference: '+(e.message||'Jaribu tena.'));
  }
 }
@@ -394,6 +417,7 @@ $('#stopLive').addEventListener('click',async()=>{
  if(liveAvatarStarting){liveAvatarCancelRequested=true;$('#stopLive').disabled=true;$('#liveStatus').textContent='Tunafunga kikao kinachoendelea kuunganishwa...';return;}
  const session=liveAvatarSession;$('#stopLive').disabled=true;$('#liveStatus').textContent='Tunafunga mazungumzo...';
  try{await session?.stop();}catch(e){$('#liveStatus').textContent='Kikao kimefungwa. '+(e.message||'');}
+ await finishLiveBilling();
  if(liveRecorder&&liveRecorder.state!=='inactive'){try{liveRecorder.stop();}catch{}}
  resetLiveControls('Mazungumzo yameisha. Pakua rekodi au nakala ya mazungumzo.');
  $('#liveEndActions').classList.remove('hidden');
