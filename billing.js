@@ -101,6 +101,51 @@ export function initializeBilling(db) {
     VALUES ('usd_tzs','USD/TZS exchange rate','all','exchange_rate',2600,2600,'TZS','Weka kiwango cha ubadilishaji kinachotumika.',?)`).run(now);
 }
 
+
+// Wallet helpers. Subscription credits are enabled per service only after an explicit grant;
+// older accounts keep their existing legacy balance until their next plan activation.
+export function walletModeEnabled(db, userId, service) {
+  return !!db.prepare("SELECT 1 FROM credits_ledger WHERE user_id=? AND service=? AND entry_type='subscription_credit' LIMIT 1").get(userId, service);
+}
+
+export function walletAvailable(db, userId, service) {
+  const now = Date.now();
+  const rows = db.prepare("SELECT bucket,balance,expires_at FROM wallet_balances WHERE user_id=? AND service=?").all(userId, service);
+  return rows.reduce((sum, row) => {
+    if (row.expires_at != null && row.expires_at <= now) return sum;
+    return sum + Math.max(0, Number(row.balance) || 0);
+  }, 0);
+}
+
+// Atomically consume subscription credits first, then purchased credits, and write one
+// immutable ledger entry for each bucket touched.
+export function consumeWalletCredits(db, userId, service, amount, description = 'Matumizi ya huduma') {
+  const charge = Number(amount);
+  if (!Number.isFinite(charge) || charge <= 0) return { consumed: 0, remaining: walletAvailable(db, userId, service) };
+  const tx = db.transaction(() => {
+    const now = Date.now();
+    const rows = db.prepare("SELECT bucket,balance,expires_at FROM wallet_balances WHERE user_id=? AND service=? ORDER BY CASE bucket WHEN 'subscription' THEN 0 ELSE 1 END").all(userId, service);
+    let remaining = charge;
+    const touched = [];
+    for (const row of rows) {
+      if (row.expires_at != null && row.expires_at <= now) continue;
+      const before = Math.max(0, Number(row.balance) || 0);
+      const take = Math.min(before, remaining);
+      if (take <= 0) continue;
+      const after = Math.max(0, before - take);
+      db.prepare('UPDATE wallet_balances SET balance=?,updated_at=? WHERE user_id=? AND service=? AND bucket=?')
+        .run(after, now, userId, service, row.bucket);
+      db.prepare('INSERT INTO credits_ledger(user_id,service,bucket,entry_type,amount,balance_after,reference,description,created_at) VALUES(?,?,?,?,?,?,?,?,?)')
+        .run(userId, service, row.bucket, 'usage_debit', -take, after, 'usage:' + randomUUID(), String(description).slice(0,300), now);
+      touched.push({ bucket: row.bucket, amount: take, balance: after });
+      remaining = Math.max(0, remaining - take);
+    }
+    if (remaining > 0.000001) throw Object.assign(new Error('Salio la Wallet halitoshi. Tafadhali ongeza credits au chagua mpango mwingine.'), { code: 'INSUFFICIENT_WALLET' });
+    return { consumed: charge, remaining: walletAvailable(db, userId, service), touched };
+  });
+  return tx();
+}
+
 export function syncBillingPlans(db, plans) {
   const rows = db.prepare('SELECT plan_key,name,monthly_price_tzs,bots FROM subscription_plans').all();
   for (const row of rows) if (plans[row.plan_key]) Object.assign(plans[row.plan_key], { name: row.name, price: row.monthly_price_tzs, bots: row.bots });
