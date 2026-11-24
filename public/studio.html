@@ -268,7 +268,7 @@ main{max-width:920px;padding:20px 24px 60px;text-align:center}
 </div>
 <div id="newsFields" class="hidden"><label for="newsScript">Andika taarifa au script ya habari</label><textarea id="newsScript" placeholder="Andika taarifa unayotaka msaidizi aisome..."></textarea></div>
 <div class="actions"><button type="button" class="secondary" id="approveAdScript" disabled>Nimeidhinisha script</button></div>
-<label for="videoDuration">Muda wa video</label><select id="videoDuration"><option value="5">Sekunde 5</option><option value="15">Sekunde 15 — Tangazo</option><option value="30" disabled>Sekunde 30 — bado inatayarishwa</option></select>
+<label for="videoDuration">Muda wa video</label><select id="videoDuration"><option value="15">Sekunde 15 — Tangazo</option><option value="5">Sekunde 5</option><option value="30" disabled>Sekunde 30 — bado inatayarishwa</option></select>
 <label for="format">Muundo wa video</label><select id="format"><option value="9:16">9:16 — TikTok / Reels</option><option value="16:9">16:9 — YouTube / Presentation</option><option value="1:1">1:1 — Social media</option></select>
 <p class="note">Script ya AI hutumia Chat credits. Video ya sekunde 15 hutumia Matangazo credits zilizowekwa na Admin; kama akaunti haina Matangazo Wallet, hutumia Video credits 3. Video ya sekunde 30 bado haijawezeshwa. Picha ya bidhaa ni preview tu; haijatumwa kwa mtoa huduma wa video. Ethan/Ngina ni maelekezo ya mhusika tu; mwonekano uleule haujahakikishwa.</p><div class="actions"><button class="primary" id="createVideo">Tengeneza video</button></div><div class="status" id="videoProviderStatus">Jaza taarifa kisha bonyeza Tengeneza video sasa.</div><video id="generatedVideo" class="hidden" controls playsinline style="width:100%;max-height:420px;border-radius:16px;background:#111;margin-top:12px"></video><div class="actions"><button type="button" class="secondary hidden" id="downloadGeneratedVideo">Pakua video</button></div>
 </div>
@@ -440,13 +440,13 @@ $('#liveTextInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#sendLi
 
 function currentStudioScript(){return videoType==='marketing'?$('#adScript').value.trim():$('#newsScript').value.trim();}
 $('#draftAdScript').addEventListener('click',async()=>{
- const token=localStorage.getItem('t')||'',name=$('#productName').value.trim(),benefit=$('#productBenefit').value.trim(),price=$('#productPrice').value.trim(),language=$('#adLanguage').value,cta=$('#productCTA').value.trim();
+ const token=localStorage.getItem('t')||'',name=$('#productName').value.trim(),benefit=$('#productBenefit').value.trim(),price=$('#productPrice').value.trim(),language=$('#adLanguage').value,cta=$('#productCTA').value.trim(),duration=Number($('#videoDuration').value);
  if(!token){$('#videoProviderStatus').textContent='Tafadhali ingia kwenye akaunti kwanza.';return;}
  if(!name||!benefit){$('#videoProviderStatus').textContent='Jaza jina la bidhaa na faida kuu kwanza.';return;}
  const button=$('#draftAdScript');button.disabled=true;$('#videoProviderStatus').textContent='AI inaandaa script ya tangazo...';
  try{
   const targetLanguage=language==='en'?'natural English':'Kiswahili sanifu';
-  const request='Andaa script fupi ya tangazo la sekunde 15 kwa '+targetLanguage+'. Bidhaa: '+name+'. Faida kuu: '+benefit+'. Bei: '+(price||'Haikutajwa')+'. Wito wa kuchukua hatua: '+(cta||'Wasiliana nasi kuagiza')+'. Mhusika wa kuwasilisha: '+avatar+'. Toa script inayozungumzika kwa kawaida, yenye mwanzo wa kuvutia, faida, bei kama imetolewa, na mwito wa kuchukua hatua. Usieleze hatua za kutengeneza video; toa maneno ya tangazo tu.';
+  const request='Andaa script fupi ya tangazo la sekunde '+duration+' kwa '+targetLanguage+'. Bidhaa: '+name+'. Faida kuu: '+benefit+'. Bei: '+(price||'Haikutajwa')+'. Wito wa kuchukua hatua: '+(cta||'Wasiliana nasi kuagiza')+'. Mhusika wa kuwasilisha: '+avatar+'. Toa script inayozungumzika kwa kawaida, yenye mwanzo wa kuvutia, faida, bei kama imetolewa, na mwito wa kuchukua hatua. Usieleze hatua za kutengeneza video; toa maneno ya tangazo tu.';
   const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({messages:[{role:'user',content:request}]})});
   const data=await response.json();if(!response.ok)throw new Error(data.error||'Imeshindikana kuandaa script.');
   $('#adScript').value=data.reply||'';adScriptApproved=false;$('#approveAdScript').disabled=!$('#adScript').value.trim();
@@ -456,6 +456,7 @@ $('#draftAdScript').addEventListener('click',async()=>{
 });
 $('#adScript').addEventListener('input',()=>{adScriptApproved=false;$('#approveAdScript').disabled=!$('#adScript').value.trim();});
 $('#newsScript').addEventListener('input',()=>{adScriptApproved=false;$('#approveAdScript').disabled=!$('#newsScript').value.trim();});
+$('#videoDuration').addEventListener('change',()=>{adScriptApproved=false;$('#approveAdScript').disabled=!currentStudioScript();});
 $('#approveAdScript').addEventListener('click',()=>{
  const script=currentStudioScript();if(!script){$('#videoProviderStatus').textContent='Andika au andaa script kwanza.';return;}
  adScriptApproved=true;$('#approveAdScript').disabled=false;$('#videoProviderStatus').textContent='Script imeidhinishwa. Sasa unaweza kutengeneza video.';
