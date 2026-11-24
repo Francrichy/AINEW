@@ -138,6 +138,120 @@ main{margin:0 0 0 224px;width:calc(100% - 224px);max-width:none;padding:18px 22p
  #bar{margin-left:202px}
  .compose{margin-left:190px;width:calc(100% - 190px)}
 }
+
+
+/* Mlimani Labs — clean notebook-inspired workspace */
+:root{
+ --forest:#174b32;--leaf:#2d7650;--lime:#dcebdd;--gold:#d9ad45;
+ --cream:#ffffff;--ink:#202b24;--muted:#6c786f;--line:#e5e9e5;
+ --workspace:#f7f8f7;
+}
+html,body{background:var(--workspace);color:var(--ink)}
+body{background:var(--workspace)}
+.scene,.kit,.zig{display:none!important}
+header{
+ position:relative;z-index:25;min-height:66px;height:66px;padding:10px 22px;
+ background:#fff;color:var(--ink);border-bottom:1px solid var(--line);
+ box-shadow:none;backdrop-filter:none;max-width:none;margin:0;
+}
+.logo{font-size:1.18rem;color:var(--forest);font-weight:750;letter-spacing:0}
+.logo svg{width:30px;height:30px}
+.logo small{color:var(--leaf);font-size:.58rem;letter-spacing:1.1px}
+.menu-toggle{border:1px solid var(--line)!important;background:#fff!important;color:var(--forest)!important}
+.sidebar{
+ top:66px;width:238px;padding:22px 13px;background:#fff;color:var(--ink);
+ border-right:1px solid var(--line);backdrop-filter:none;box-shadow:none;
+}
+.side-caption{color:#87938a;letter-spacing:1.1px;font-size:.68rem}
+.sidebar nav button,.sidebar nav a{
+ color:#39483e!important;border-radius:10px;background:transparent!important;
+ font-weight:600;min-height:42px;
+}
+.sidebar nav button:hover,.sidebar nav a:hover{background:#f2f5f2!important}
+.sidebar nav button.on{background:#e8f1e9!important;color:var(--forest)!important}
+.sidebar nav .side-auth{border-top:1px solid var(--line)}
+#bar{margin-left:254px;background:#edf3ed;color:var(--forest);text-shadow:none;box-shadow:none}
+main{
+ margin:0 0 0 238px;width:calc(100% - 238px);max-width:none;
+ padding:28px clamp(22px,4vw,64px) 110px;background:var(--workspace);
+}
+section{max-width:1040px;margin:0 auto}
+.card,.pluginCard,.tool{
+ background:#fff;border:1px solid var(--line);border-radius:14px;
+ box-shadow:none;color:var(--ink);
+}
+.card{padding:22px;margin-bottom:14px}
+.card::before{display:none}
+.hero{text-align:left;padding:22px 0;background:transparent;border:0}
+.hero h1,.hm{
+ color:var(--forest)!important;background:none!important;-webkit-text-fill-color:var(--forest);
+ font-size:clamp(1.75rem,3vw,2.25rem);font-weight:700;letter-spacing:-.045em;
+ animation:none!important;filter:none;
+}
+.hero .sub{color:#34483a;font-size:1.05rem;font-weight:600}
+.hero p,.info{color:var(--muted);text-shadow:none;font-weight:400}
+.hero .dots{display:none}
+.chips{justify-content:flex-start}
+.chip{
+ border:1px solid var(--line);background:#fff;color:#34483a;border-radius:10px;
+ font-weight:500;padding:10px 13px;transition:background .15s,border-color .15s;
+}
+.chip:hover{background:#f0f5f0;border-color:#cbd9cd;transform:none}
+#chatbox{min-height:48vh;max-width:850px;margin:0 auto}
+.msg{box-shadow:none;border:1px solid var(--line);border-radius:16px;animation:none}
+.msg.user{background:#e8f1e9;color:#203b2b;border:1px solid #d7e6d9;border-bottom-right-radius:5px}
+.msg.bot{background:#fff;color:var(--ink);border-left:3px solid #b9d2bd;border-bottom-left-radius:5px}
+.cp{color:var(--muted)}
+.newchat{background:#edf3ed;color:var(--forest);border:1px solid #dce7dd;border-radius:10px;padding:8px 12px}
+.compose{
+ position:fixed;z-index:10;left:238px;right:0;bottom:0;width:auto;margin:0;
+ padding:14px clamp(18px,4vw,54px) calc(14px + env(safe-area-inset-bottom,0px));
+ background:rgba(255,255,255,.96);border-top:1px solid var(--line);
+ backdrop-filter:blur(12px);
+}
+.compose textarea{
+ max-width:850px;height:52px;background:#fff;border:1px solid #dce3dd;
+ border-radius:14px;padding:14px 16px;color:var(--ink);box-shadow:none;
+}
+.btn,.primary,.secondary,.light{
+ border-radius:10px;box-shadow:none;font-weight:650;transition:background .15s,border-color .15s;
+}
+.btn{background:var(--forest);color:#fff}
+.btn.alt,.secondary{background:#e8f1e9;color:var(--forest)}
+.btn.ghost,.light{background:#f1f3f1;color:#46534a}
+.btn:hover,.primary:hover{filter:brightness(.97)}
+.pluginCard{border-top:1px solid var(--line);padding:17px}
+.pluginCard h3,.plan h3,.tool b{color:var(--forest)}
+.pluginGroupTitle{color:var(--forest);border-bottom:1px solid var(--line)}
+.pluginCats button{border-color:var(--line);border-radius:9px;color:#455249}
+.pluginCats button.on{background:var(--forest);color:#fff;border-color:var(--forest)}
+input,textarea,select,.f input,.f textarea{
+ border:1px solid #dce3dd;border-radius:10px;background:#fff;color:var(--ink);
+}
+dialog{border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 55px #1b30201a}
+dialog::backdrop{background:rgba(22,36,27,.35)}
+@media(max-width:700px){
+ header{height:58px;min-height:58px;padding:8px 12px;background:#fff}
+ .logo{font-size:1.05rem}
+ .sidebar{top:0;background:#fff;box-shadow:12px 0 34px rgba(20,40,25,.12);padding-top:76px}
+ .menu-scrim{background:rgba(20,35,25,.28)}
+ #bar{margin:8px 10px 0}
+ main{margin:0;width:100%;padding:18px 14px 94px;background:var(--workspace)}
+ .hero{padding:14px 2px}
+ .hero h1,.hm{font-size:1.8rem}
+ #chatbox{min-height:42vh}
+ .compose{
+  position:relative;left:auto;right:auto;bottom:auto;flex:0 0 auto;
+  width:100%;padding:9px 10px calc(9px + env(safe-area-inset-bottom,0px));
+  background:#fff;border-top:1px solid var(--line);backdrop-filter:none;
+ }
+ .compose textarea{height:48px;border-radius:13px}
+ .card{padding:16px}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+
 </style>
 </head>
 <body>
