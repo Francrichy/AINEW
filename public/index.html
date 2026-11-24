@@ -324,6 +324,18 @@ dialog::backdrop{background:rgba(22,36,27,.35)}
 <dialog id="payD"><form method="dialog" class="f"><h2 id="payT">Lipia</h2><p id="payP" style="font-size:.9rem"></p>
  <input id="payAmount" type="number" min="5000" max="2000000" step="1000" value="10000" placeholder="Kiasi cha kuongeza (TZS)"><input id="ph" placeholder="Namba yako ya simu"><input id="pr" placeholder="Namba ya muamala"><div class="err" id="perr"></div>
  <button class="btn alt" id="pok" type="button">Nimelipa</button> <button class="btn ghost" value="x">Funga</button></form></dialog>
+<dialog id="fleetD"><form id="fleetForm" class="f">
+ <h2>Unganisha Mlimani Fleet</h2>
+ <p style="font-size:.92rem">1. Fungua Fleet Management na uingie kwa akaunti ya mmiliki wa kampuni.</p>
+ <p style="font-size:.92rem">2. Chagua <b>AI Integration</b>, kisha bonyeza <b>Generate Mlimani AI token</b>.</p>
+ <p style="font-size:.92rem">3. Nakili token uliyopata na uibandike hapa chini.</p>
+ <label for="fleetToken"><b>Token ya Mlimani Fleet (siku 7)</b></label>
+ <input id="fleetToken" type="password" autocomplete="off" spellcheck="false" placeholder="Bandika token hapa" required>
+ <p style="font-size:.82rem;color:#5b6d5f">Token itahifadhiwa ikiwa imesimbwa kwa njia fiche. Usiibandike kwenye sehemu ya API Key ya Mlimani AI.</p>
+ <div class="err" id="fleetErr"></div>
+ <button class="btn alt" id="fleetConnect" type="submit">Thibitisha na Unganisha</button>
+ <button class="btn ghost" id="fleetCancel" type="button">Funga</button>
+</form></dialog>
 
 <script>
 const $=s=>document.querySelector(s);
@@ -350,6 +362,25 @@ async function loadPlugins(){
   renderPlugins(d.categories||[]);
  }catch(e){err.textContent=e.message}
 }
+function openFleetConnect(){
+ const dialog=$('#fleetD'),form=$('#fleetForm'),input=$('#fleetToken'),err=$('#fleetErr'),submit=$('#fleetConnect');
+ err.textContent='';input.value='';submit.disabled=false;submit.textContent='Thibitisha na Unganisha';
+ const fleetWindow=window.open('https://app.mlimani.net/ai-connect.html','_blank','noopener');
+ if(!fleetWindow) err.textContent='Kama ukurasa wa Fleet haujafunguka, fungua https://app.mlimani.net/ai-connect.html kwenye kichupo kingine.';
+ dialog.showModal();
+ form.onsubmit=async event=>{
+  event.preventDefault();const value=input.value.trim();
+  if(!value){err.textContent='Bandika token kwanza.';return}
+  submit.disabled=true;submit.textContent='Inathibitisha...';err.textContent='';
+  try{
+   const result=await api('plugins/mlimanifleet/connect',{method:'POST',body:{token:value}});
+   input.value='';dialog.close();alert(result.message||'Mlimani Fleet imeunganishwa kwa mafanikio.');await loadPlugins();
+  }catch(e){err.textContent=e.message||'Imeshindikana kuunganisha. Hakikisha token ni sahihi na haijaisha.'}
+  finally{submit.disabled=false;submit.textContent='Thibitisha na Unganisha'}
+ };
+}
+$('#fleetCancel').onclick=()=>$('#fleetD').close();
+
 function renderPlugins(categories){
  const grid=$('#pluginGrid');grid.innerHTML='';
  const list=pluginData.filter(p=>pluginCategory==='all'||(p.cats||[]).includes(pluginCategory));
@@ -360,7 +391,7 @@ function renderPlugins(categories){
   c.appendChild(head);c.appendChild(el('h3','',p.name));c.appendChild(el('div','desc',p.desc||''));if(p.freeEligible)c.appendChild(el('div','pluginMeta','BURE kwa Free · hadi 100 matumizi kwa mwezi'));
   let status=p.soon?'Inatayarishwa':(p.kind==='fleet'&&p.meta?.expiresAt&&Number(p.meta.expiresAt)<=Date.now())?'Token imeisha · Unganisha tena':p.enabled?'Imeunganishwa / imewashwa':p.locked?'Inahitaji mpango wa kulipia':'Haijaunganishwa';
   c.appendChild(el('div','pluginMeta',status));
-  const b=el('button','btn',p.soon?'Inatayarishwa':p.locked?'Angalia mipango':p.enabled?'Simamia':'Washa / Unganisha');
+  const b=el('button','btn',p.soon?'Inatayarishwa':p.locked?'Angalia mipango':p.kind==='fleet'&&p.enabled?'Tenganisha':p.enabled?'Simamia':p.kind==='fleet'?'Unganisha Fleet':'Washa / Unganisha');
   if(p.soon){b.disabled=true;b.title='Muunganisho utawezeshwa baada ya kukamilisha API salama.'}
   else b.onclick=async()=>{
    if(p.locked){tab('plans');return}
@@ -379,14 +410,10 @@ function renderPlugins(categories){
      if(p.enabled){
       await api('plugins/mlimanifleet',{method:'DELETE'});
       alert('Mlimani Fleet imetenganishwa na akaunti hii ya Mlimani AI.');
+      await loadPlugins();
      }else{
-      window.open('https://app.mlimani.net/ai-connect.html','_blank','noopener');
-      const tokenValue=prompt('Fungua ukurasa wa Fleet uliofunguka, tengeneza token ya Mlimani AI, kisha ibandike hapa:');
-      if(!tokenValue)return;
-      const result=await api('plugins/mlimanifleet/connect',{method:'POST',body:{token:tokenValue}});
-      alert(result.message||'Mlimani Fleet imeunganishwa.');
+      openFleetConnect();
      }
-     await loadPlugins();
     }else if(p.kind==='composio'){
      const result=await api('plugins/'+p.id+'/connect',{method:'POST',body:{}});
      if(result.url)window.location.href=result.url;
