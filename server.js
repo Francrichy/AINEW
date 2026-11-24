@@ -640,7 +640,7 @@ app.post('/api/video', need, (req, res) => {
     try {
       const en = await quick(raw);
       const model = duration === 15 ? (env.VIDEO_MODEL_15S || 'bytedance/seedance-2.0') : (env.VIDEO_MODEL || 'seedance');
-      const r = await fetch(`https://gen.pollinations.ai/video/${encodeURIComponent(en)}?model=${encodeURIComponent(model)}&duration=${duration}&aspectRatio=${encodeURIComponent(aspectRatio)}&nologo=true`, { headers: { Authorization: `Bearer ${PK}` }, signal: AbortSignal.timeout(240000) });
+      const r = await fetch(`https://gen.pollinations.ai/video/${encodeURIComponent(en)}?model=${encodeURIComponent(model)}&duration=${duration}&aspectRatio=${encodeURIComponent(aspectRatio)}&nologo=true`, { headers: { Authorization: `Bearer ${PK}` }, signal: AbortSignal.timeout(290000) });
       const ct = r.headers.get('content-type') || '';
       if (!r.ok || !ct.startsWith('video/')) throw new Error('video imeshindwa ' + r.status);
       job.buf = Buffer.from(await r.arrayBuffer()); job.ct = ct;
