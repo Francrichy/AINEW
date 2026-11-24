@@ -20,6 +20,13 @@ function grant(db, service, bucket, balance, expiresAt = null) {
   }
 }
 
+test('billing seeds runtime Chat markup and USD/TZS settings', () => {
+  const db=setup();
+  assert.equal(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='markup_multiplier'").get().customer_price,4);
+  assert.equal(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='usd_tzs'").get().customer_price,2600);
+  db.close();
+});
+
 test('wallet mode is enabled only after a subscription grant for that service', () => {
   const db=setup();
   grant(db,'chat','subscription',100);
