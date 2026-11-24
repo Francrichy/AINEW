@@ -81,6 +81,48 @@ input,textarea,select{border-radius:13px}
 #videoFields{background:#f3f7ef;border-radius:18px;padding:18px}
 #videoFields .status{background:#fff}
 @media(min-width:700px){.primary-action-wrap{max-width:520px;margin:20px auto 4px}.choices{max-width:680px;margin-left:auto;margin-right:auto}}
+
+/* Mobile reliability and clean creator-workspace finish */
+html{width:100%;min-height:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
+body{width:100%;min-width:0;overflow-x:hidden;min-height:100svh;padding-bottom:env(safe-area-inset-bottom)}
+main{width:100%;min-width:0}
+.panel,.choices,.primary-action-wrap,#liveFields,#videoFields{min-width:0}
+button,select,input,textarea{font:inherit;touch-action:manipulation}
+button{-webkit-tap-highlight-color:transparent}
+#continueStudio{display:block;position:relative;z-index:2;touch-action:manipulation}
+#liveAvatarVideo,#localCameraVideo,#generatedVideo{display:block;width:100%;height:auto;max-width:100%;aspect-ratio:16/9;object-fit:contain;border-radius:16px}
+#liveAvatarVideo.hidden,#localCameraVideo.hidden,#generatedVideo.hidden{display:none}
+@media(max-width:640px){
+ body{font-size:15px}
+ header{gap:8px;flex-wrap:wrap}
+ header strong{letter-spacing:.035em}
+ header a{white-space:nowrap}
+ main{padding:8px 10px calc(24px + env(safe-area-inset-bottom))}
+ #studioHeading{font-size:1.75rem;line-height:1.15}
+ .lead{font-size:.92rem;line-height:1.45;margin-bottom:14px}
+ .panel{padding:13px;border-radius:18px}
+ .panel>h2{font-size:1rem}
+ .modes{grid-template-columns:1fr 1fr;gap:7px;margin:10px 0 16px}
+ .modes button{min-width:0;min-height:54px;padding:9px 6px;font-size:.82rem;line-height:1.25}
+ .choices{grid-template-columns:1fr 1fr;gap:8px}
+ .avatar{min-width:0;padding:7px}
+ .avatar-art{width:100%;aspect-ratio:1/1;max-height:none;object-fit:cover}
+ .avatar strong{font-size:.95rem}
+ .avatar small{font-size:.7rem}
+ .primary-action-wrap{margin:12px 0 2px}
+ #continueStudio{min-height:54px;font-size:1rem}
+ #selectionHint{font-size:.8rem;line-height:1.4}
+ #liveFields,#videoFields{margin-top:12px;padding:12px 0 0}
+ #videoFields{padding:12px;border-radius:14px}
+ .live-config{padding:11px}
+ .actions{grid-template-columns:1fr;display:grid}
+ .actions button{min-height:48px;width:100%}
+ .chatlog{min-height:140px;max-height:42svh}
+ .live-text-row{display:flex;flex-direction:column}
+ .live-text-row button{width:100%;min-height:48px}
+ #liveAvatarVideo{min-height:180px!important;max-height:56svh;object-fit:contain}
+}
+
 </style></head><body><header><strong>🌍 MLIMANI LABS STUDIO</strong><a href="/">← Rudi Mlimani Labs</a></header><main>
 <h1 id="studioHeading">Karibu Mlimani Labs</h1><p class="lead">Zungumza moja kwa moja na msaidizi wako wa AI au tengeneza tangazo la video kwa hatua chache.</p>
 <section class="panel"><h2 style="margin-top:4px">Ungependa kufanya nini leo?</h2><div class="modes"><button type="button" data-mode="live" aria-pressed="true">🎥 Video ya moja kwa moja</button><button type="button" data-mode="video" aria-pressed="false">📣 Matangazo</button></div>
