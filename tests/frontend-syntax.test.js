@@ -9,11 +9,11 @@ test('inline JavaScript in public HTML pages parses', () => {
   const pages = readdirSync(dir).filter(name => name.endsWith('.html'));
   for (const page of pages) {
     const html = readFileSync(path.join(dir, page), 'utf8');
-    const scripts = [...html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script>/gi)];
+    const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
     scripts.forEach((match, index) => {
       const attributes = match[1] || '';
       const source = (match[2] || '').trim();
-      if (!source || /\\bsrc\\s*=|type\\s*=\\s*["']module["']/i.test(attributes)) return;
+      if (!source || /\bsrc\s*=|type\s*=\s*["']module["']/i.test(attributes)) return;
       assert.doesNotThrow(() => new vm.Script(source, { filename: page + '#script-' + index }), page + ' inline script ' + index);
     });
   }
