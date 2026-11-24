@@ -365,6 +365,19 @@ async function freeModels() {
     .sort((a, b) => (like.test(b[0]) - like.test(a[0])) || b[1].ctx - a[1].ctx).slice(0, 3).map(([id]) => ({ id }));
 }
 
+async function freeToolModels() {
+  const map = await prices();
+  const isFreeToolModel = id => map[id] && map[id].tools && map[id].p === 0 && map[id].c === 0 && id.endsWith(':free');
+  // Prefer explicitly configured free models, but fall back to every currently
+  // advertised zero-cost tool-capable model if that list is stale or incomplete.
+  const preferred = FREE_MODELS.filter(isFreeToolModel);
+  const discovered = Object.keys(map).filter(isFreeToolModel);
+  const unique = [...new Set([...preferred, ...discovered])];
+  return unique.map(id => ({ id, ...map[id] }))
+    .sort((a, b) => b.ctx - a.ctx)
+    .slice(0, 3);
+}
+
 // ---------- auth ----------
 app.post('/api/register', (req, res) => {
   const { login, email, phone, name, password } = req.body || {};
@@ -1003,19 +1016,32 @@ const PLUGIN_NOTE = '\nUna zana za plugins za mtumiaji. Tumia zana inapohitajika
 
 async function orStep(st) {
   const fresh = db.prepare('select credit_used from users where id=?').get(st.u.id);
-  if (st.cashPayg) {
-    if (cashWalletBalance(db, st.u.id) <= 0) throw Object.assign(new Error('Salio la Wallet limeisha. Ongeza salio kuendelea.'), { status: 402 });
-  } else if (st.walletChat) {
-    if (walletAvailable(db, st.u.id, 'chat') <= 0) throw Object.assign(new Error('Salio la Chat Wallet limeisha.'), { status: 402 });
-  } else if (st.u.plan === 'free' || fresh.credit_used >= st.plan.price) throw Object.assign(new Error('Salio la Wallet halitoshi. Ongeza salio kuendelea.'), { status: 402 });
-  const top = await cheapest(st.plan.tier, { tools: true });
-  if (!top.length) throw new Error('hakuna modeli yenye zana');
-  const r = await fetch(OR_URL + '/chat/completions', { method: 'POST', signal: AbortSignal.timeout(60000),
-    headers: { Authorization: `Bearer ${OR_KEY}`, 'Content-Type': 'application/json', 'HTTP-Referer': env.SITE_URL || 'https://mlimani.net', 'X-Title': 'Mlimani' },
-    body: JSON.stringify({ model: top[0].id, models: top.map(t => t.id), max_tokens: st.plan.maxTokens, usage: { include: true }, tools: st.tools, tool_choice: 'auto', messages: st.messages }) });
-  const d = await r.json();
-  if (!r.ok || !d.choices?.[0]) throw new Error(d.error?.message || 'imeshindwa');
-  const usd = d.usage?.cost ?? ((d.usage?.prompt_tokens || 0) * top[0].p + (d.usage?.completion_tokens || 0) * top[0].c);
+  const freeToolMode = st.u.plan === 'free' && !st.cashPayg && st.freeQuotaAvailable === true && (!st.walletChat || walletAvailable(db, st.u.id, 'chat') <= 0);
+  if (!freeToolMode) {
+    if (st.cashPayg) {
+      if (cashWalletBalance(db, st.u.id) <= 0) throw Object.assign(new Error('Salio la Wallet limeisha. Ongeza salio kuendelea.'), { status: 402 });
+    } else if (st.walletChat) {
+      if (walletAvailable(db, st.u.id, 'chat') <= 0) throw Object.assign(new Error('Salio la Chat Wallet limeisha.'), { status: 402 });
+    } else if (fresh.credit_used >= st.plan.price) throw Object.assign(new Error('Salio la Wallet halitoshi. Ongeza salio kuendelea.'), { status: 402 });
+  }
+  const top = freeToolMode ? await freeToolModels() : await cheapest(st.plan.tier, { tools: true });
+  if (!top.length) {
+    if (freeToolMode) throw Object.assign(new Error('Mlimani Fleet imeunganishwa, lakini kwa sasa hakuna modeli ya bure inayounga mkono matumizi ya Plugins. Ongeza salio la Wallet au jaribu tena baadaye.'), { status: 402 });
+    throw new Error('Hakuna modeli inayounga mkono zana za Plugin kwa sasa.');
+  }
+  let d, lastError;
+  for (const model of top) {
+    try {
+      const r = await fetch(OR_URL + '/chat/completions', { method: 'POST', signal: AbortSignal.timeout(60000),
+        headers: { Authorization: `Bearer ${OR_KEY}`, 'Content-Type': 'application/json', 'HTTP-Referer': env.SITE_URL || 'https://mlimani.net', 'X-Title': 'Mlimani' },
+        body: JSON.stringify({ model: model.id, max_tokens: st.plan.maxTokens, usage: { include: true }, tools: st.tools, tool_choice: 'auto', messages: st.messages }) });
+      const payload = await r.json();
+      if (r.ok && payload.choices?.[0]) { d = payload; break; }
+      lastError = payload.error?.message || ('HTTP ' + r.status);
+    } catch (error) { lastError = error.message; }
+  }
+  if (!d) throw new Error(lastError || 'Huduma ya AI yenye zana haipatikani.');
+  const usd = freeToolMode ? 0 : (d.usage?.cost ?? ((d.usage?.prompt_tokens || 0) * top[0].p + (d.usage?.completion_tokens || 0) * top[0].c));
   const chargeTzs = usd * MARKUP * USD_TZS * (st.multiplier || 1);
   if (chargeTzs > 0 && st.cashPayg) consumeWalletCredits(db, st.u.id, 'cash', chargeTzs, 'Matumizi ya AI Chat');
   else if (chargeTzs > 0 && st.walletChat) consumeWalletCredits(db, st.u.id, 'chat', chargeTzs, 'Matumizi ya AI Chat');
@@ -1092,7 +1118,7 @@ app.post('/api/chat', async (req, res) => {
     try {
       const act = await activeTools(u);
       if (act.specs.length) {
-        const out = await agent({ u, plan, tools: act.specs, messages: [{ role: 'system', content: system + PLUGIN_NOTE + act.notes.join(' ') }, ...msgs], step: 0, queue: [], multiplier: durationMultiplier, sessionExpiresAt: studioSessionExpiresAt, walletChat, cashPayg });
+        const out = await agent({ u, plan, tools: act.specs, messages: [{ role: 'system', content: system + PLUGIN_NOTE + act.notes.join(' ') }, ...msgs], step: 0, queue: [], multiplier: durationMultiplier, sessionExpiresAt: studioSessionExpiresAt, walletChat, cashPayg, freeQuotaAvailable: lim !== null && used(k) <= lim });
         req.user = db.prepare('select * from users where id=?').get(u.id);
         return res.json({ ...out, me: meInfo(req), sessionExpiresAt: studioSessionExpiresAt });
       }

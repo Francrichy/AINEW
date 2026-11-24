@@ -34,3 +34,8 @@ Kwa msajili wa domain weka CNAME: `www` → `<jina-lako>.onrender.com`. Render h
 
 ## Bure kwanza
 FREE_FIRST=true: kila ujumbe hujaribu modeli ya bure (OpenRouter `:free`) kwanza; ikijaa au ikishindwa, huhamia ya kulipia ya bei nafuu zaidi. Matumizi ya bure hayakati mkopo wa mtumiaji. Angalia logi za Render: "IMETUMIA BURE" / "IMETUMIA KULIPIA".
+
+
+## Mlimani Labs — Video, Music na Film Studio
+
+Usanifu wa Video Creator, Music Generator na Film Studio (hadi dakika 30), pamoja na usanifu wa malipo ya mobile money na uzalishaji wa scenes, umeandikwa kwenye [docs/MLIMANI_LABS_STUDIO_ARCHITECTURE.md](docs/MLIMANI_LABS_STUDIO_ARCHITECTURE.md). Huu ni usanifu wa utekelezaji; filamu ndefu na utengenezaji wa audio bado vinahitaji provider maalum, storage na worker zilizosanidiwa na kujaribiwa.
