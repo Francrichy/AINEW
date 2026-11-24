@@ -367,12 +367,13 @@ async function freeModels() {
 
 async function freeToolModels() {
   const map = await prices();
-  const candidates = FREE_MODELS.length
-    ? FREE_MODELS
-    : Object.keys(map).filter(id => id.endsWith(':free'));
-  return candidates
-    .filter(id => map[id] && map[id].tools && map[id].p === 0 && map[id].c === 0)
-    .map(id => ({ id, ...map[id] }))
+  const isFreeToolModel = id => map[id] && map[id].tools && map[id].p === 0 && map[id].c === 0 && id.endsWith(':free');
+  // Prefer explicitly configured free models, but fall back to every currently
+  // advertised zero-cost tool-capable model if that list is stale or incomplete.
+  const preferred = FREE_MODELS.filter(isFreeToolModel);
+  const discovered = Object.keys(map).filter(isFreeToolModel);
+  const unique = [...new Set([...preferred, ...discovered])];
+  return unique.map(id => ({ id, ...map[id] }))
     .sort((a, b) => b.ctx - a.ctx)
     .slice(0, 3);
 }
