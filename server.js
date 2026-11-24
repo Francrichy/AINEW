@@ -669,10 +669,17 @@ app.post('/api/video', need, (req, res) => {
     try {
       const en = raw; // Preserve the customer-approved spoken script and its selected language.
       const model = duration === 15 ? (env.VIDEO_MODEL_15S || 'bytedance/seedance-2.0') : (env.VIDEO_MODEL || 'seedance');
-      const referenceParam = referenceUrl ? '&reference_images=' + encodeURIComponent(referenceUrl) : '';
-      const r = await fetch(`https://gen.pollinations.ai/video/${encodeURIComponent(en)}?model=${encodeURIComponent(model)}&duration=${duration}&aspectRatio=${encodeURIComponent(aspectRatio)}&audio=${duration === 15 ? 'true' : 'false'}${referenceParam}&nologo=true`, { headers: { Authorization: `Bearer ${PK}` }, signal: AbortSignal.timeout(290000) });
+      const referenceParam = referenceUrl ? '&reference_images=' + encodeURIComponent(JSON.stringify([referenceUrl])) : '';
+      // Pollinations returns a completed MP4 synchronously. Send only documented
+      // video parameters; reference_images must be an array, not a plain URL.
+      const videoUrl = `https://gen.pollinations.ai/video/${encodeURIComponent(en)}?model=${encodeURIComponent(model)}&duration=${duration}&aspectRatio=${encodeURIComponent(aspectRatio)}${referenceParam}`;
+      const r = await fetch(videoUrl, { headers: { Authorization: `Bearer ${PK}`, Accept: 'video/mp4' }, signal: AbortSignal.timeout(290000) });
       const ct = r.headers.get('content-type') || '';
-      if (!r.ok || !ct.startsWith('video/')) throw new Error('video imeshindwa ' + r.status);
+      if (!r.ok || !ct.startsWith('video/')) {
+        const providerDetail = (await r.text().catch(() => '')).replace(/\\s+/g, ' ').slice(0, 500);
+        console.error('video provider response:', r.status, ct, providerDetail);
+        throw new Error('Mlimani imeshindwa kupata video kutoka kwa huduma ya utengenezaji (HTTP ' + r.status + ').');
+      }
       job.buf = Buffer.from(await r.arrayBuffer()); job.ct = ct;
       if (job.buf.length > 20e6) throw new Error('video kubwa mno');
       if (walletAd) consumeWalletCredits(db, u.id, 'advertisement', adPrice, 'Tangazo la sekunde 15');
