@@ -323,7 +323,7 @@ main{max-width:920px;padding:20px 24px 60px;text-align:center}
 <script>
 let avatar='Ngina',mode='live',localCameraStream=null,age='young',durationTier='normal',videoType='marketing',history=[],sessionEndsAt=0,sessionTimer=null,studioSessionId=null,liveAvatarSession=null,liveAvatarCatalogData=null,videoObjectUrl=null,liveRecorder=null,liveRecordingChunks=[];
 let adScriptApproved=false;
-const $=s=>document.querySelector(s), $=s=>[...document.querySelectorAll(s)];
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 document.querySelectorAll('[data-lab-launch]').forEach(button=>button.addEventListener('click',()=>{
  const target=button.dataset.labLaunch;
  const modeButton=document.querySelector('[data-mode="'+target+'"]');
