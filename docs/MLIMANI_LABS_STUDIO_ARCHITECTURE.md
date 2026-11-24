@@ -99,3 +99,12 @@ Use a payment adapter, not a direct dependency between the studio and one provid
 - Current LiveAvatar integration is for interactive live sessions, not finished film rendering.
 - No production music-generation adapter or durable 30-minute film pipeline is confirmed in the current code.
 - Therefore this document is a design and rollout plan, not a claim that 30-minute films or generated songs are live today.
+
+
+## Planning MVP implementation (November 2026)
+- Added `public/production-studio.html`, linked from the Music Generator and Film Studio cards on `public/studio.html`.
+- Music Generator uses the authenticated Mlimani chat endpoint to draft original lyrics, song structure, suggested tempo/BPM, and instrumentation from the user's brief.
+- Film Studio uses the authenticated Mlimani chat endpoint to draft a logline, synopsis, characters, locations, timed scene breakdown, opening-scene script, and production notes for a selected duration from 5 to 30 minutes.
+- Drafts can be edited, downloaded as text, and saved in the current browser's local storage.
+- This is a planning and writing MVP only. It does not generate audio, singing voices, video clips, or completed films. Local browser storage is not cloud project storage and drafts do not sync between devices.
+- No new provider credentials, paid media provider, database tables, payment flow, or Render service changes are required for this planning MVP.
