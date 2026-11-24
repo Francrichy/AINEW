@@ -370,7 +370,7 @@ async function startLiveAvatar(){
   session.on('avatar.transcription',event=>{if(event?.text)addVoiceLine('assistant',avatar+': '+event.text);});
   session.on('avatar.speak_started',()=>{$('#liveSpeakingStatus').textContent=avatar+' anazungumza...';});
   session.on('avatar.speak_ended',()=>{$('#liveSpeakingStatus').textContent=avatar+' amemaliza kujibu. Unaweza kuzungumza tena.';});
-  session.on('session.disconnected',()=>{liveAvatarStarting=false;resetLiveControls('Kikao kimefungwa. Unaweza kuanza tena.');});
+  session.on('session.disconnected',()=>{liveAvatarStarting=false;if(liveRecorder&&liveRecorder.state!=='inactive'){try{liveRecorder.stop();}catch{}}resetLiveControls('Kikao kimefungwa. Unaweza kupakua mazungumzo.');$('#liveEndActions').classList.remove('hidden');});
   await session.start();
   if(liveAvatarCancelRequested){liveAvatarStarting=false;await session.stop();resetLiveControls('Umefunga kikao wakati kinaunganisha.');return;}
   $('#liveStatus').textContent='Kikao kimeunganishwa. Tunasubiri video ya avatar...';
