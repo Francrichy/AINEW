@@ -34,7 +34,7 @@ test('Studio multi-choice controls use collections and key actions are wired', (
   assert.match(html, /\$\$\('#voiceLog \.bubble'\)\.map/);
   assert.match(html, /id="draftNewsScript"/);
   assert.match(html, /Mlimani Labs Studio/);
-  assert.doesNotMatch(html, /\$\('\[data-vtype\]'\)\.forEach/);
-  assert.doesNotMatch(html, /\$\('\[data-mode\]'\)\.forEach/);
-  assert.doesNotMatch(html, /\$\('#voiceLog \.bubble'\)\.map/);
+  assert.doesNotMatch(html, /(?<!\$)\$\('\[data-vtype\]'\)\.forEach/);
+  assert.doesNotMatch(html, /(?<!\$)\$\('\[data-mode\]'\)\.forEach/);
+  assert.doesNotMatch(html, /(?<!\$)\$\('#voiceLog \.bubble'\)\.map/);
 });
