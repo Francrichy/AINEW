@@ -5,6 +5,7 @@ import { initializeBilling, walletModeEnabled, walletAvailable, consumeWalletCre
 
 function setup() {
   const db = new Database(':memory:');
+  db.exec('CREATE TABLE users(id INTEGER PRIMARY KEY,email TEXT,created INTEGER)');
   initializeBilling(db);
   db.prepare("INSERT INTO users(id,email,created) VALUES(1,'wallet@example.test',?)").run(Date.now());
   return db;
