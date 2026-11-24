@@ -1,0 +1,27 @@
+name: Studio validation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  syntax-and-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+      - name: Check server JavaScript syntax
+        run: node --check server.js
+      - name: Check Studio browser JavaScript syntax
+        run: |
+          node --input-type=module -e "import fs from 'node:fs'; import vm from 'node:vm'; const html = fs.readFileSync('public/production-studio.html', 'utf8'); const scripts = [...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/gi)].map(m => m[1]); if (!scripts.length) throw new Error('No inline Studio script found'); for (const script of scripts) new vm.Script(script); console.log('Studio inline JavaScript syntax OK');"
+      - name: Run Node test suite
+        run: npm test
