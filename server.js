@@ -648,6 +648,12 @@ app.post('/v1/chat', async (req, res) => {
 });
 
 // ---------- MLIMANI STUDIO: MUSIC GENERATION (separate Studio billing) ----------
+app.get('/api/studio/music/estimate', need, (req, res) => {
+  const durationSeconds = Math.max(15, Math.min(180, Math.round(Number(req.query.durationSeconds) || 60)));
+  const rate = Number(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='studio_music_minute_tzs'").get()?.customer_price || 0);
+  const charge = Math.ceil(durationSeconds / 60) * rate;
+  res.json({ durationSeconds, billedMinutes: Math.ceil(durationSeconds / 60), customerPricePerMinuteTzs: rate, estimatedChargeTzs: charge, walletBalanceTzs: cashWalletBalance(db, req.user.id), enabled: Boolean(env.ELEVENLABS_API_KEY && rate > 0 && cashWalletBalance(db, req.user.id) >= charge) });
+});
 app.post('/api/studio/music', need, async (req, res) => {
   const prompt = String(req.body?.prompt || '').trim().slice(0, 4000);
   const durationSeconds = Math.max(15, Math.min(180, Math.round(Number(req.body?.durationSeconds) || 60)));
@@ -658,6 +664,8 @@ app.post('/api/studio/music', need, async (req, res) => {
   const rate = Number(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='studio_music_minute_tzs'").get()?.customer_price || 0);
   if (!Number.isFinite(rate) || rate <= 0) return res.status(503).json({ error: 'Bei ya Mlimani Studio Music bado haijaidhinishwa na Admin.' });
   const charge = Math.ceil(durationSeconds / 60) * rate;
+  const expectedCharge = Number(req.body?.expectedChargeTzs);
+  if (!Number.isFinite(expectedCharge) || expectedCharge !== charge) return res.status(409).json({ error: 'Bei imebadilika. Tafadhali angalia makadirio mapya kabla ya kuendelea.', estimatedChargeTzs: charge });
   if (cashWalletBalance(db, req.user.id) < charge) return res.status(402).json({ error: 'Salio la Wallet halitoshi. Unahitaji TZS ' + charge.toLocaleString('en-US') + ' kwa muziki huu.' });
   const k = 'studio_music:u' + req.user.id;
   if (used(k) >= Math.max(1, Number(env.STUDIO_MUSIC_DAILY || 5))) return res.status(429).json({ error: 'Umefikia kikomo cha Music Generator cha leo. Jaribu kesho.' });
