@@ -64,6 +64,12 @@ create table if not exists studio_chat_sessions(session_id text primary key, own
 try { db.exec('alter table users add column video_credits integer default 0'); } catch {}
 try { db.exec('alter table users add column video_expires integer default 0'); } catch {}
 db.prepare('delete from studio_chat_sessions where expires_at < ?').run(Date.now() - 24 * 3600e3);
+db.exec(`CREATE TABLE IF NOT EXISTS live_talk_sessions (
+  session_id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, started_at INTEGER NOT NULL,
+  connected_at INTEGER, expires_at INTEGER NOT NULL, max_duration_seconds INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending', billed_minutes INTEGER NOT NULL DEFAULT 0, ended_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS live_talk_sessions_user ON live_talk_sessions(user_id,status,expires_at);`);
 initializeBilling(db);
 syncBillingPlans(db, PLANS);
 const savedBillingSettings = Object.fromEntries(db.prepare("SELECT config_key,customer_price FROM admin_pricing WHERE config_key IN ('markup_multiplier','usd_tzs')").all().map(x => [x.config_key, Number(x.customer_price)]));
@@ -158,6 +164,58 @@ async function liveAvatarContext(character, language) {
   liveAvatarContextCache.set(key, promise);
   try { return await promise; } catch (error) { liveAvatarContextCache.delete(key); throw error; }
 }
+function finishLiveTalkSession(userId, sessionId) {
+  const tx = db.transaction(() => {
+    const row = db.prepare("SELECT * FROM live_talk_sessions WHERE session_id=? AND user_id=?").get(sessionId, userId);
+    if (!row || row.status === 'closed' || row.status === 'cancelled') return { billedMinutes: row?.billed_minutes || 0, status: row?.status || 'missing' };
+    let minutes = 0;
+    if (row.connected_at) {
+      const endAt = Math.min(Date.now(), row.expires_at);
+      const elapsedMs = Math.max(0, endAt - row.connected_at);
+      minutes = Math.min(Math.ceil(elapsedMs / 60000), Math.max(1, Math.ceil(row.max_duration_seconds / 60)));
+      if (minutes > 0) consumeWalletCredits(db, userId, 'live_talk', minutes, 'Matumizi ya Live Talk (' + minutes + ' dakika)');
+    }
+    db.prepare("UPDATE live_talk_sessions SET status=?,billed_minutes=?,ended_at=? WHERE session_id=? AND user_id=?")
+      .run(row.connected_at ? 'closed' : 'cancelled', minutes, Date.now(), sessionId, userId);
+    return { billedMinutes: minutes, status: row.connected_at ? 'closed' : 'cancelled' };
+  });
+  try { return tx(); }
+  catch (error) {
+    db.prepare("UPDATE live_talk_sessions SET status='billing_error',ended_at=? WHERE session_id=? AND user_id=? AND status IN ('pending','active')")
+      .run(Date.now(), sessionId, userId);
+    throw error;
+  }
+}
+app.post('/api/liveavatar/connected', need, (req, res) => {
+  const id = String(req.body?.billingSessionId || '');
+  if (!/^[a-f0-9-]{36}$/i.test(id)) return res.status(400).json({ error: 'Kikao cha Live Talk si sahihi.' });
+  const now = Date.now();
+  const result = db.prepare("UPDATE live_talk_sessions SET status='active',connected_at=COALESCE(connected_at,?) WHERE session_id=? AND user_id=? AND status='pending' AND expires_at>?")
+    .run(now, id, req.user.id, now);
+  if (!result.changes) {
+    const existing = db.prepare("SELECT status FROM live_talk_sessions WHERE session_id=? AND user_id=?").get(id, req.user.id);
+    return existing?.status === 'active' ? res.json({ ok: true }) : res.status(404).json({ error: 'Kikao hakipatikani au muda wake umeisha.' });
+  }
+  res.json({ ok: true });
+});
+app.post('/api/liveavatar/end', need, (req, res) => {
+  const id = String(req.body?.billingSessionId || '');
+  if (!/^[a-f0-9-]{36}$/i.test(id)) return res.status(400).json({ error: 'Kikao cha Live Talk si sahihi.' });
+  try {
+    const result = finishLiveTalkSession(req.user.id, id);
+    res.json({ ok: true, ...result, remainingMinutes: walletAvailable(db, req.user.id, 'live_talk') });
+  } catch (error) {
+    res.status(error.code === 'INSUFFICIENT_WALLET' ? 402 : 500).json({ error: error.message || 'Imeshindikana kufunga kikao cha Live Talk.' });
+  }
+});
+setInterval(() => {
+  const expired = db.prepare("SELECT session_id,user_id FROM live_talk_sessions WHERE status IN ('pending','active') AND expires_at<=?").all(Date.now());
+  for (const row of expired) {
+    try { finishLiveTalkSession(row.user_id, row.session_id); }
+    catch (error) { console.error('Live Talk billing cleanup:', error.message); }
+  }
+}, 30000);
+
 app.get('/api/liveavatar/catalog', need, async (_req, res) => {
   try {
     const catalog = await liveAvatarCatalog();
@@ -172,6 +230,15 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
     const language = ['sw', 'en'].includes(req.body?.language) ? req.body.language : 'sw';
     const configuredAvatarId = env['LIVEAVATAR_' + character.toUpperCase() + '_AVATAR_ID'] || '';
     const production = Boolean(configuredAvatarId);
+    let maxSessionDuration = production ? 180 : 60;
+    const billLiveTalk = production && walletModeEnabled(db, req.user.id, 'live_talk');
+    if (billLiveTalk) {
+      const availableMinutes = Math.floor(walletAvailable(db, req.user.id, 'live_talk'));
+      if (availableMinutes < 1) return res.status(402).json({ error: 'Salio la Live Talk Wallet limeisha. Ongeza angalau dakika moja ya credits.' });
+      const active = db.prepare("SELECT 1 FROM live_talk_sessions WHERE user_id=? AND status IN ('pending','active') AND expires_at>? LIMIT 1").get(req.user.id, Date.now());
+      if (active) return res.status(409).json({ error: 'Una kikao cha Live Talk kinachoendelea. Maliza kwanza kabla ya kuanza kingine.' });
+      maxSessionDuration = Math.min(180, availableMinutes * 60);
+    }
     const catalog = await liveAvatarCatalog();
     const voiceGender = character === 'Ethan' ? 'male' : 'female';
     const voiceLanguage = v => {
@@ -212,10 +279,17 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
       avatar_persona: { voice_id: voice.id, context_id: contextId, language },
       interactivity_type: 'CONVERSATIONAL',
       video_settings: { quality: 'high', encoding: 'H264' },
-      max_session_duration: production ? 180 : 60,
+      max_session_duration: maxSessionDuration,
     };
     const result = await liveAvatarRequest('/v1/sessions/token', { method: 'POST', body: JSON.stringify(payload) });
     if (!result?.data?.session_token) throw new Error('LiveAvatar haikurudisha session token.');
+    let billingSessionId = null;
+    if (billLiveTalk) {
+      billingSessionId = randomUUID();
+      const startedAt = Date.now();
+      db.prepare("INSERT INTO live_talk_sessions(session_id,user_id,started_at,expires_at,max_duration_seconds,status) VALUES(?,?,?,?,?,'pending')")
+        .run(billingSessionId, req.user.id, startedAt, startedAt + maxSessionDuration * 1000, maxSessionDuration);
+    }
     res.json({
       sessionToken: result.data.session_token,
       sessionId: result.data.session_id || null,
@@ -227,7 +301,8 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
       voiceFallback,
       voiceNotice: voiceFallback ? 'Sauti ya Kiswahili haikupatikana; mfumo umetumia sauti mbadala. Matamshi ya Kiswahili yanaweza kutofautiana.' : null,
       sandbox: !production,
-      maxSessionDuration: production ? 180 : 60,
+      maxSessionDuration,
+      billingSessionId,
     });
   } catch (error) {
     console.error('LiveAvatar session token error:', error.message);
