@@ -189,6 +189,8 @@ export function registerBillingRoutes(app, { db, need, admin, plans: runtimePlan
     if (!existing) return res.status(404).json({ error: 'Mpangilio wa bei haupo. Ongeza aina mpya kupitia usimamizi wa mfumo.' });
     const providerCost = Number(b.provider_cost), customerPrice = Number(b.customer_price);
     if (!Number.isFinite(providerCost) || providerCost < 0 || !Number.isFinite(customerPrice) || customerPrice < 0) return res.status(400).json({ error: 'Gharama na bei lazima ziwe namba zisizo hasi.' });
+    if (key === 'markup_multiplier' && customerPrice < 4) return res.status(400).json({ error: 'Markup ya Chat haiwezi kuwa chini ya x4.' });
+    if (key === 'usd_tzs' && customerPrice <= 0) return res.status(400).json({ error: 'Weka kiwango halali cha USD/TZS.' });
     const notes = String(b.notes ?? existing.notes).slice(0,500);
     db.prepare('UPDATE admin_pricing SET provider_cost=?,customer_price=?,notes=?,updated_at=? WHERE config_key=?').run(providerCost, customerPrice, notes, Date.now(), key);
     if (typeof onPricingChange === 'function') onPricingChange(key, customerPrice);
