@@ -28,6 +28,6 @@
 - The current product-ad workflow drafts a script using Chat, requires the customer to approve it, and then generates a 5- or 15-second video.
 - The 15-second model is configured as `bytedance/seedance-2.0` by default; `VIDEO_MODEL_15S` can override it. If the provider account does not allow that model or duration, the job fails without consuming credits.
 - 30-second generation is not enabled because the current verified model path does not guarantee a single 30-second output.
-- Product images are preview-only and are not uploaded to the video provider.
+- Product images are uploaded only when the customer starts a 15-second product ad. They are kept in a short-lived in-memory reference store, served through an unguessable HTTPS URL for the provider to fetch, then deleted after generation or after 10 minutes. The customer is informed before generation.
 - Ethan and Ngina are prompt guidance in generated ads; consistent identity is not guaranteed. Live Talk production avatars are a separate integration.
 - No production paid-generation test is run in CI. CI checks syntax and Wallet billing logic only.
