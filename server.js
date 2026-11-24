@@ -40,6 +40,7 @@ const CX_FREE_USER_MONTHLY = Math.max(1, +(env.COMPOSIO_FREE_USER_MONTHLY || 100
 const CX_FREE_GLOBAL_MONTHLY = Math.max(1, +(env.COMPOSIO_FREE_GLOBAL_MONTHLY || 8000));
 const BUILTIN_PLANS = (env.BUILTIN_PLANS || 'free,kawaida,biashara,kampuni').split(','); // plugins za bure zilizojengwa ndani
 const CX_API = env.COMPOSIO_URL || 'https://backend.composio.dev', CX_KEY = env.COMPOSIO_API_KEY;
+const FLEET_API_URL = String(env.MLIMANI_FLEET_URL || 'https://app.mlimani.net').replace(/\\/+$/, '');
 let CX_CFG = []; try { CX_CFG = JSON.parse(env.COMPOSIO_PLUGINS || '[]'); } catch { console.warn('COMPOSIO_PLUGINS si JSON sahihi.'); }
 const ENC_KEY = env.ENCRYPTION_KEY ? Buffer.from(env.ENCRYPTION_KEY, 'hex') : null;
 
@@ -804,7 +805,7 @@ const CATALOG = [
   { id: 'mkopo_nyumba', icon: '🏠', name: 'Mkopo wa nyumba', desc: 'Kokotoa malipo ya kila mwezi ya mkopo wa nyumba au kiwanja.', cats: ['mali'], kind: 'builtin', tools: ['loan_calc'] },
   { id: 'github', icon: '🐙', name: 'GitHub', desc: 'Soma repo, commits, issues na tengeneza issue (kwa ruhusa yako).', cats: ['watengenezaji'], kind: 'connector' },
   { id: 'render', icon: '🚀', name: 'Render', desc: 'Hali ya huduma na deploys; anzisha deploy kwa ruhusa yako.', cats: ['watengenezaji'], kind: 'connector' },
-  { id: 'mlimanifleet', icon: '🚛', name: 'Mlimani Fleet Management', desc: 'Unganisha Mlimani Fleet kusoma taarifa za magari, madereva, safari, mafuta, matengenezo na ripoti.', cats: ['usafirishaji', 'maarufu', 'biashara', 'sme'], kind: 'fleet', soon: true },
+  { id: 'mlimanifleet', icon: '🚛', name: 'Mlimani Fleet Management', desc: 'Unganisha akaunti ya kampuni kusoma magari, madereva, safari, mafuta, matengenezo, hesabu na ripoti. Vitendo vya kuandika vinahitaji idhini ya mmiliki.', cats: ['usafirishaji', 'maarufu', 'biashara', 'sme'], kind: 'fleet' },
   { id: 'mlimani', icon: '⛰️', name: 'Mlimani Business Platform', desc: 'Unganisha mfumo mkuu wa Mlimani kwa taarifa za biashara, shughuli, wateja na ripoti.', cats: ['maarufu', 'biashara', 'uzalishaji'], kind: 'platform', soon: true },
   { id: 'whatsapp_biz', icon: '💬', name: 'WhatsApp Business', desc: 'AI inajibu wateja wako kwa Kiswahili.', cats: ['biashara'], kind: 'soon', soon: true },
   { id: 'malipo_simu', icon: '📲', name: 'Malipo ya simu', desc: 'M-Pesa, Tigo Pesa, Airtel Money (Selcom/ClickPesa).', cats: ['biashara'], kind: 'soon', soon: true },
@@ -852,6 +853,7 @@ async function activeTools(u) {
   for (const r of db.prepare('select provider,meta from connections where user_id=?').all(u.id)) {
     const m = JSON.parse(r.meta || '{}');
     if ((r.provider === 'github' || r.provider === 'render') && PLUGIN_PLANS.includes(u.plan)) { for (const [n, t] of Object.entries(TOOLS)) if (t.p === r.provider) add(n, t); notes.push(r.provider === 'github' ? `GitHub repo ya kawaida: ${m.defaultRepo || 'haijawekwa'}.` : `Render huduma ya kawaida: ${m.defaultService || 'haijawekwa'}.`); }
+    else if (r.provider === 'mlimanifleet' && m.status === 'active' && Number(m.expiresAt) > Date.now()) { for (const item of (m.tools || [])) { const t = { p:'mlimanifleet', name:item.name, d:item.description, schema:item.inputSchema, w:item.name === 'mlimani_request_write_approval' }; dyn.set(item.name,t); add(item.name,t); } notes.push('Mlimani Fleet imeunganishwa kwa taarifa za kampuni hii tu. Vitendo vya kuandika vinahitaji idhini tofauti ya mmiliki ndani ya Fleet.'); }
     else if (r.provider.startsWith('cx:') && CX_PLANS.includes(u.plan) && m.status === 'active') { const cfg = cxConfig(r.provider.slice(3)); if (cfg) for (const slug of cfg.tools) { const t = await cxTool(cfg, slug); if (t) add(t.name, t); } }
   }
   if (BUILTIN_PLANS.includes(u.plan)) { const on = new Set(db.prepare('select plugin_id from plugin_prefs where user_id=? and enabled=1').all(u.id).map(r => r.plugin_id));
@@ -867,7 +869,7 @@ app.get('/api/plugins', need, (req, res) => {
   res.json({ freeComposioLimit: CX_FREE_USER_MONTHLY, freeComposioUsed: freeUsed, freeComposioRemaining: Math.max(0, CX_FREE_USER_MONTHLY - freeUsed), categories: CATS, plugins: fullCatalog().map(p => {
     const c = conns.get(p.kind === 'composio' ? 'cx:' + p.id : p.id);
     return { id: p.id, icon: p.icon, name: p.name, desc: p.desc, cats: p.cats, kind: p.kind, soon: !!p.soon,
-      locked: p.kind === 'builtin' ? !BUILTIN_PLANS.includes(u.plan) : p.kind === 'composio' ? !(CX_PLANS.includes(u.plan) && (u.plan !== 'free' || CX_FREE_IDS.has(p.id))) : !PLUGIN_PLANS.includes(u.plan),
+      locked: p.kind === 'builtin' ? !BUILTIN_PLANS.includes(u.plan) : p.kind === 'composio' ? !(CX_PLANS.includes(u.plan) && (u.plan !== 'free' || CX_FREE_IDS.has(p.id))) : p.kind === 'fleet' ? false : !PLUGIN_PLANS.includes(u.plan),
       freeEligible: p.kind === 'composio' && CX_FREE_IDS.has(p.id),
       enabled: p.kind === 'builtin' ? on.has(p.id) : !!c && (c.status ? c.status === 'active' : true), pending: p.kind === 'composio' && c?.status === 'pending', meta: c || null };
   }) });
@@ -876,6 +878,39 @@ app.post('/api/plugins/:id/toggle', need, (req, res) => {
   const p = CATALOG.find(x => x.id === req.params.id && x.kind === 'builtin'); if (!p) return res.status(404).json({ error: 'Plugin haipo.' });
   if (!BUILTIN_PLANS.includes(req.user.plan)) return res.status(403).json({ error: 'Plugins zinahitaji mpango wa kulipia.' });
   db.prepare('insert into plugin_prefs(user_id,plugin_id,enabled) values(?,?,?) on conflict(user_id,plugin_id) do update set enabled=excluded.enabled').run(req.user.id, p.id, req.body?.enabled ? 1 : 0); res.json({ ok: 1 });
+});
+app.post('/api/plugins/mlimanifleet/connect', need, async (req, res) => {
+  const token = String(req.body?.token || '').trim();
+  if (token.length < 40 || token.length > 5000) return res.status(400).json({ error: 'Token ya Mlimani Fleet si sahihi.' });
+  try {
+    const initResponse = await fetch(FLEET_API_URL + '/api/mcp', {
+      method: 'POST', signal: AbortSignal.timeout(15000),
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc:'2.0', id:'mlimani-ai-init', method:'initialize', params:{ protocolVersion:'2025-03-26', capabilities:{}, clientInfo:{name:'Mlimani AI',version:'1.0.0'} } })
+    });
+    const initialized = await initResponse.json().catch(() => ({}));
+    if (!initResponse.ok || initialized.error || !initialized.result?.serverInfo) throw new Error('Token haikubaliwi na Mlimani Fleet. Tengeneza token mpya kupitia ukurasa wa AI Integration.');
+    const toolsResponse = await fetch(FLEET_API_URL + '/api/mcp', {
+      method: 'POST', signal: AbortSignal.timeout(15000),
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc:'2.0', id:'mlimani-ai-tools', method:'tools/list', params:{} })
+    });
+    const listed = await toolsResponse.json().catch(() => ({}));
+    const tools = listed.result?.tools;
+    if (!toolsResponse.ok || !Array.isArray(tools) || !tools.some(t => t.name === 'mlimani_list_vehicles')) throw new Error('Akaunti hii haina ruhusa au MCP ya Mlimani Fleet haipatikani.');
+    const safeTools = tools.filter(t => /^mlimani_[a-z0-9_]+$/.test(t.name)).map(t => ({ name:t.name, description:String(t.description || t.name).slice(0,300), inputSchema:t.inputSchema || {type:'object',properties:{},additionalProperties:false} }));
+    const expiresAt = Date.now() + 7 * 86400000;
+    db.prepare('insert into connections(user_id,provider,secret,meta,created) values(?,?,?,?,?) on conflict(user_id,provider) do update set secret=excluded.secret,meta=excluded.meta,created=excluded.created')
+      .run(req.user.id, 'mlimanifleet', enc(token), JSON.stringify({ status:'active', endpoint:FLEET_API_URL, expiresAt, tools:safeTools, tenantScoped:true }), Date.now());
+    res.json({ ok:true, status:'active', expiresAt, toolCount:safeTools.length, message:'Mlimani Fleet imeunganishwa. Token itaisha baada ya siku 7.' });
+  } catch (error) {
+    console.error('Mlimani Fleet connect:', error.message);
+    res.status(400).json({ error: error.status ? error.message : (error.message || 'Imeshindikana kuunganisha Mlimani Fleet.') });
+  }
+});
+app.delete('/api/plugins/mlimanifleet', need, (req, res) => {
+  db.prepare("DELETE FROM connections WHERE user_id=? AND provider='mlimanifleet'").run(req.user.id);
+  res.json({ ok:true });
 });
 app.post('/api/plugins/:id/connect', need, async (req, res) => {   // Composio: tengeneza kiungo cha kuunganisha akaunti
   const cfg = cxConfig(req.params.id); if (!cfg) return res.status(404).json({ error: 'Plugin hii bado haijawezeshwa.' });
@@ -922,6 +957,18 @@ async function execConn(uid, name, a) {
   const t = getTool(name), row = db.prepare('select * from connections where user_id=? and provider=?').get(uid, t.p);
   if (!row) throw new Error('Muunganisho wa ' + t.p + ' haupo.');
   const tok = dec(row.secret), meta = JSON.parse(row.meta || '{}');
+  if (t.p === 'mlimanifleet') {
+    if (Number(meta.expiresAt) <= Date.now()) throw new Error('Token ya Mlimani Fleet imeisha. Tengeneza token mpya na uunganishe tena.');
+    const response = await fetch(String(meta.endpoint || FLEET_API_URL).replace(/\\/+$/, '') + '/api/mcp', {
+      method:'POST', signal:AbortSignal.timeout(30000),
+      headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},
+      body:JSON.stringify({jsonrpc:'2.0',id:randomUUID(),method:'tools/call',params:{name,arguments:a||{}}})
+    });
+    const payload = await response.json().catch(() => ({}));
+    const textResult = payload.result?.content?.find(x => x.type === 'text')?.text;
+    if (!response.ok || payload.error || payload.result?.isError) throw new Error(textResult || payload.error?.message || 'Mlimani Fleet haikukubali ombi.');
+    try { return JSON.parse(textResult || '{}'); } catch { return { result:textResult || 'Hakuna taarifa.' }; }
+  }
   const repo = () => { const r = String(a.repo || meta.defaultRepo || ''); if (!r) throw new Error('Repo haijatajwa.'); const f = r.includes('/') ? r : `${meta.login}/${r}`; if (!/^[\w.-]+\/[\w.-]+$/.test(f)) throw new Error('Jina la repo si sahihi.'); return f; };
   const svc = async () => { const q = String(a.service || meta.defaultService || ''); if (!q) throw new Error('Huduma haijatajwa.'); if (q.startsWith('srv-')) return q;
     const l = await must(await RD(tok, `/services?name=${encodeURIComponent(q)}&limit=20`)); const f = l.map(x => x.service || x).find(x => x.name?.toLowerCase() === q.toLowerCase()); if (!f) throw new Error('Huduma "' + q + '" haipatikani.'); return f.id; };
