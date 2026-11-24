@@ -134,3 +134,23 @@ Use a payment adapter, not a direct dependency between the studio and one provid
 5. Add production TTS/voice-over and dubbing with a tested Swahili voice, user consent for voice cloning, and separate Studio voice pricing.
 6. Add Studio project/asset management, script approval, scene regeneration, progress, retry/resume, exports, and audit history.
 7. Run automated tests and provider acceptance tests on Render. Only after successful tests should the branch be merged and the deployment authorized.
+
+
+## Cloud media library implementation milestone — November 24, 2026
+- Added an S3-compatible private object-storage adapter using Cloudflare R2 configuration. Media objects are isolated by authenticated user ID; project metadata is stored as private JSON objects in the same bucket.
+- Added authenticated endpoints for storage status, presigned uploads, upload completion verification, project listing, temporary signed downloads, and project deletion.
+- Uploads are sent directly from the browser to R2; the Mlimani API does not proxy large video files. The initial single-request upload limit is 1 GB. Multipart/resumable upload is still required for unreliable networks or larger recordings.
+- The server verifies the uploaded object's owner/project metadata before creating the project record. Download URLs expire after 10 minutes.
+- Required Render environment values are declared in `render.yaml`: `R2_ENDPOINT`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, and `R2_SECRET_ACCESS_KEY`. They must be filled by the account owner after creating a private R2 bucket and scoped API token.
+- Configure the R2 bucket CORS policy to allow the exact Mlimani site origin (for example `https://www.mlimani.net`), method `PUT`, request header `Content-Type`, and expose only the response headers needed by browser uploads. Do not make the bucket public.
+- The browser Studio page now has a cloud library list with download and delete controls, plus actions to upload recorded or selected videos.
+- R2 free-tier pricing currently includes 10 GB-month standard storage and 1 million Class A / 10 million Class B requests; standard storage above included usage is USD 0.015/GB-month. Confirm current terms and request volumes. Source: https://developers.cloudflare.com/r2/pricing/.
+
+## Remaining production gates (revised)
+1. Configure and test R2 credentials/CORS in Render; test upload, download, ownership isolation, deletion, and 30-minute recordings on real phones.
+2. Add multipart/resumable upload, thumbnails, preview transcoding, retention controls, and cloud project metadata versioning.
+3. Implement timeline editing and FFmpeg export; no editing engine is shipped in this milestone.
+4. Add durable film jobs, queue and worker, provider polling/retries, cost reservation/refunds and scene assembly. Do not attempt a 30-minute film as one synchronous web request.
+5. Select and configure a video provider for long-form scene generation, then validate unit costs and provider terms before exposing 30-minute AI films.
+6. Add tested Swahili voice-over/TTS, dubbing and licensed avatar/voice consent workflows.
+7. Run dependency install, automated tests, security checks and provider acceptance tests before production rollout.
