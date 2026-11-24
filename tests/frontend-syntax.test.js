@@ -26,3 +26,15 @@ test('inline JavaScript in public HTML pages parses', () => {
     });
   }
 });
+
+test('Studio multi-choice controls use collections and key actions are wired', () => {
+  const html = readFileSync(path.join('public', 'studio.html'), 'utf8');
+  assert.match(html, /\$\$\('\[data-vtype\]'\)\.forEach/);
+  assert.match(html, /\$\$\('\[data-mode\]'\)\.forEach/);
+  assert.match(html, /\$\$\('#voiceLog \.bubble'\)\.map/);
+  assert.match(html, /id="draftNewsScript"/);
+  assert.match(html, /Mlimani Labs Studio/);
+  assert.doesNotMatch(html, /(?<!\$)\$\('\[data-vtype\]'\)\.forEach/);
+  assert.doesNotMatch(html, /(?<!\$)\$\('\[data-mode\]'\)\.forEach/);
+  assert.doesNotMatch(html, /(?<!\$)\$\('#voiceLog \.bubble'\)\.map/);
+});
