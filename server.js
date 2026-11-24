@@ -383,7 +383,7 @@ app.get('/api/usage', need, (req, res) => {
   const u = db.prepare('select plan,expires,credit_used from users where id=?').get(req.user.id), p = PLANS[u.plan];
   const walletChat = u.plan !== 'free' && walletModeEnabled(db, u.id, 'chat');
   const remaining = u.plan === 'free' ? 0 : (walletChat ? walletAvailable(db, u.id, 'chat') : Math.max(0, p.price - u.credit_used));
-  res.json({plan:u.plan,monthlyLimitTzs:p.price,usedTzs:Math.round((p.price-remaining)*100)/100,remainingTzs:Math.round(remaining*100)/100,expires:u.expires,currency:'TZS',wallet:walletChat});
+  res.json({plan:u.plan,monthlyLimitTzs:p.price,usedTzs:Math.max(0,Math.round((p.price-remaining)*100)/100),remainingTzs:Math.round(remaining*100)/100,expires:u.expires,currency:'TZS',wallet:walletChat});
 });
 app.get('/api/developer', need, (req, res) => {
   if (req.user.plan === 'free') return res.status(403).json({error:'API inapatikana kwa wateja wa kulipia.'});
