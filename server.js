@@ -638,7 +638,7 @@ app.post('/api/video', need, (req, res) => {
   const id = randomUUID(), job = { uid: u.id, status: 'working', t: Date.now(), duration, creditsRequired, purpose }; jobs.set(id, job);
   (async () => {
     try {
-      const en = await quick(raw);
+      const en = raw; // Preserve the customer-approved spoken script and its selected language.
       const model = duration === 15 ? (env.VIDEO_MODEL_15S || 'bytedance/seedance-2.0') : (env.VIDEO_MODEL || 'seedance');
       const r = await fetch(`https://gen.pollinations.ai/video/${encodeURIComponent(en)}?model=${encodeURIComponent(model)}&duration=${duration}&aspectRatio=${encodeURIComponent(aspectRatio)}&nologo=true`, { headers: { Authorization: `Bearer ${PK}` }, signal: AbortSignal.timeout(290000) });
       const ct = r.headers.get('content-type') || '';
