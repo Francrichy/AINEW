@@ -763,7 +763,13 @@ app.post('/api/studio/music', need, async (req, res) => {
   if (cashWalletBalance(db, req.user.id) < charge) return res.status(402).json({ error: 'Salio la Wallet halitoshi. Unahitaji TZS ' + charge.toLocaleString('en-US') + ' kwa muziki huu.' });
   const k = 'studio_music:u' + req.user.id;
   if (used(k) >= Math.max(1, Number(env.STUDIO_MUSIC_DAILY || 5))) return res.status(429).json({ error: 'Umefikia kikomo cha Music Generator cha leo. Jaribu kesho.' });
+  try {
+    consumeWalletCredits(db, req.user.id, 'cash', charge, 'Mlimani Studio Music reservation (' + durationSeconds + ' sekunde)');
+  } catch (billingError) {
+    return res.status(402).json({ error: 'Salio limebadilika. Tafadhali angalia Wallet yako na ujaribu tena.' });
+  }
   bump(k);
+  let reserved = true;
   try {
     const response = await fetch('https://api.elevenlabs.io/v1/music?output_format=mp3_44100_128', {
       method: 'POST',
@@ -778,12 +784,7 @@ app.post('/api/studio/music', need, async (req, res) => {
     }
     const audio = Buffer.from(await response.arrayBuffer());
     if (!audio.length || audio.length > 35 * 1024 * 1024) throw new Error('Faili ya muziki si sahihi au ni kubwa mno.');
-    try {
-      consumeWalletCredits(db, req.user.id, 'cash', charge, 'Mlimani Studio Music (' + durationSeconds + ' sekunde)');
-    } catch (billingError) {
-      console.error('Studio music billing:', billingError.message);
-      return res.status(402).json({ error: 'Muziki umetengenezwa lakini salio limebadilika kabla ya malipo. Wasiliana na Admin kabla ya kuomba tena.' });
-    }
+    reserved = false; // Provider succeeded; the reserved amount is now the final charge.
     res.set({
       'Content-Type': 'audio/mpeg',
       'Content-Length': String(audio.length),
@@ -793,9 +794,13 @@ app.post('/api/studio/music', need, async (req, res) => {
     });
     return res.send(audio);
   } catch (error) {
+    if (reserved) {
+      try { creditCashWallet(db, req.user.id, charge, 'studio-music-refund:' + randomUUID(), 'Refund ya Mlimani Studio Music iliyoshindwa'); }
+      catch (refundError) { console.error('Studio music refund FAILED:', refundError.message); }
+    }
     bump(k, -1);
     console.error('Mlimani Studio Music:', error.message);
-    return res.status(502).json({ error: 'Imeshindikana kutengeneza muziki kwa sasa. Hakuna salio lililokatwa. ' + error.message.slice(0, 250) });
+    return res.status(502).json({ error: 'Imeshindikana kutengeneza muziki kwa sasa. Salio limerudishwa ikiwa provider ameshindwa. ' + error.message.slice(0, 250) });
   }
 });
 
