@@ -23,7 +23,7 @@ const PRO = (env.PRO_MODELS || 'google/gemini-2.5-flash,openai/gpt-4.1-mini,deep
 // Mikopo ya kila mwezi (TZS, bei ya rejareja) = bei ya mpango.
 // Mkopo wa rejareja; gharama ya mtoa huduma inazidishwa mara 4.
 const PLANS = {
-  free:     { name: 'Bure',    price: 0,      bots: 0,  maxTokens: 600,  tier: 'eco' },
+  free:     { name: 'Pay As You Go', price: 0, bots: 10, maxTokens: 1200, tier: 'eco' },
   kawaida:  { name: 'Kawaida', price: 10000,  bots: 1,  maxTokens: 1200, tier: 'eco' },
   biashara: { name: 'Biashara',price: 30000,  bots: 10, maxTokens: 2500, tier: 'pro' },
   kampuni:  { name: 'Kampuni', price: 100000, bots: 50, maxTokens: 4000, tier: 'pro' },
@@ -33,14 +33,14 @@ const VIDEO_PACKAGES = { video_5:{name:'Video 5 kwa mwezi',price:7500,credits:5,
 const PK = env.POLLINATIONS_API_KEY;
 const OR_URL = env.OPENROUTER_URL || 'https://openrouter.ai/api/v1';
 const GH_API = env.GITHUB_API || 'https://api.github.com', RD_API = env.RENDER_API || 'https://api.render.com/v1';
-const PLUGIN_PLANS = (env.PLUGIN_PLANS || 'biashara,kampuni').split(',');         // miunganisho ya GitHub na Render
+const PLUGIN_PLANS = (env.PLUGIN_PLANS || 'free,kawaida,biashara,kampuni').split(',');         // miunganisho ya GitHub na Render
 const CX_PLANS = (env.COMPOSIO_PLANS || 'free,kawaida,biashara,kampuni').split(',').map(x => x.trim()); // Free inaruhusiwa kwa toolkit zilizoidhinishwa na zenye kikomo
 const CX_FREE_IDS = new Set((env.COMPOSIO_FREE_PLUGINS || 'google_drive,google_calendar,google_sheets,slack,notion,canva,salesforce').split(',').map(x => x.trim()).filter(Boolean));
 const CX_FREE_USER_MONTHLY = Math.max(1, +(env.COMPOSIO_FREE_USER_MONTHLY || 100));
 const CX_FREE_GLOBAL_MONTHLY = Math.max(1, +(env.COMPOSIO_FREE_GLOBAL_MONTHLY || 8000));
 const BUILTIN_PLANS = (env.BUILTIN_PLANS || 'free,kawaida,biashara,kampuni').split(','); // plugins za bure zilizojengwa ndani
 const CX_API = env.COMPOSIO_URL || 'https://backend.composio.dev', CX_KEY = env.COMPOSIO_API_KEY;
-const FLEET_API_URL = String(env.MLIMANI_FLEET_URL || 'https://app.mlimani.net').replace(/\\/+$/, '');
+const FLEET_API_URL = String(env.MLIMANI_FLEET_URL || 'https://app.mlimani.net').replace(/\/+$/, '');
 let CX_CFG = []; try { CX_CFG = JSON.parse(env.COMPOSIO_PLUGINS || '[]'); } catch { console.warn('COMPOSIO_PLUGINS si JSON sahihi.'); }
 const ENC_KEY = env.ENCRYPTION_KEY ? Buffer.from(env.ENCRYPTION_KEY, 'hex') : null;
 
@@ -338,7 +338,7 @@ function meInfo(req) {
     videoCredits: u ? (walletModeEnabled(db, u.id, 'video') ? walletAvailable(db, u.id, 'video') : (u.video_expires > Date.now() ? (u.video_credits || 0) : 0)) : 0,
     videoExpires: u?.video_expires > Date.now() ? u.video_expires : null,
     walletCredits: u ? Object.fromEntries(['cash','chat','video','live_talk','advertisement'].map(service => [service, walletAvailable(db, u.id, service)])) : {},
-    pending: u ? db.prepare("select plan,ref,created from payments where user_id=? and status='pending'").all(u.id) : [],
+    pending: u ? db.prepare("select plan,ref,created,amount_tzs from payments where user_id=? and status='pending'").all(u.id) : [],
   };
 }
 
@@ -871,7 +871,7 @@ app.get('/api/plugins', need, (req, res) => {
     return { id: p.id, icon: p.icon, name: p.name, desc: p.desc, cats: p.cats, kind: p.kind, soon: !!p.soon,
       locked: p.kind === 'builtin' ? !BUILTIN_PLANS.includes(u.plan) : p.kind === 'composio' ? !(CX_PLANS.includes(u.plan) && (u.plan !== 'free' || CX_FREE_IDS.has(p.id))) : p.kind === 'fleet' ? false : !PLUGIN_PLANS.includes(u.plan),
       freeEligible: p.kind === 'composio' && CX_FREE_IDS.has(p.id),
-      enabled: p.kind === 'builtin' ? on.has(p.id) : !!c && (c.status ? c.status === 'active' : true), pending: p.kind === 'composio' && c?.status === 'pending', meta: c || null };
+      enabled: p.kind === 'builtin' ? on.has(p.id) : p.kind === 'fleet' ? !!c && c.status === 'active' && Number(c.expiresAt) > Date.now() : !!c && (c.status ? c.status === 'active' : true), pending: p.kind === 'composio' && c?.status === 'pending', meta: c || null };
   }) });
 });
 app.post('/api/plugins/:id/toggle', need, (req, res) => {
@@ -959,7 +959,7 @@ async function execConn(uid, name, a) {
   const tok = dec(row.secret), meta = JSON.parse(row.meta || '{}');
   if (t.p === 'mlimanifleet') {
     if (Number(meta.expiresAt) <= Date.now()) throw new Error('Token ya Mlimani Fleet imeisha. Tengeneza token mpya na uunganishe tena.');
-    const response = await fetch(String(meta.endpoint || FLEET_API_URL).replace(/\\/+$/, '') + '/api/mcp', {
+    const response = await fetch(String(meta.endpoint || FLEET_API_URL).replace(/\/+$/, '') + '/api/mcp', {
       method:'POST', signal:AbortSignal.timeout(30000),
       headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},
       body:JSON.stringify({jsonrpc:'2.0',id:randomUUID(),method:'tools/call',params:{name,arguments:a||{}}})
@@ -1050,6 +1050,7 @@ app.post('/api/chat', async (req, res) => {
   if (!msgs.length || msgs.at(-1).role !== 'user') return res.status(400).json({ error: 'Andika ujumbe.' });
 
   const u = req.user, plan = PLANS[u ? u.plan : 'free'], k = keyFor(req), lim = limitFor(u);
+  const cashPayg = !!(u && cashWalletBalance(db, u.id) > 0);
   const durationTier = req.body?.durationTier === 'extended' ? 'extended' : 'normal';
   const durationMultiplier = durationTier === 'extended' ? 4 : 1;
   if (durationMultiplier === 4 && (!u || (u.plan === 'free' && !cashPayg))) return res.status(403).json({ error: 'Ongeza salio la Wallet kutumia mazungumzo marefu.' });
@@ -1069,7 +1070,6 @@ app.post('/api/chat', async (req, res) => {
   }
   if (ASK.test(msgs.at(-1).content)) return res.json({ reply: REFUSAL, me: meInfo(req), sessionExpiresAt: studioSessionExpiresAt }); // haitumii token, haihesabiwi
   if (lim !== null && used(k) >= lim) return res.status(429).json({ error: u ? 'Umetumia ujumbe wako wa bure wa leo. Rudi kesho au chagua mpango wa kulipia.' : 'Ujumbe wa bure wa leo umeisha. Fungua akaunti kupata zaidi, au rudi kesho.', limit: true, me: meInfo(req) });
-  const cashPayg = !!(u && cashWalletBalance(db, u.id) > 0);
   const walletChat = !!(u && walletModeEnabled(db, u.id, 'chat'));
   if (u && !cashPayg && walletChat && walletAvailable(db, u.id, 'chat') <= 0 && !(lim !== null && used(k) < lim)) return res.status(402).json({ error: 'Salio la Wallet halitoshi. Ongeza salio kuendelea.', me: meInfo(req) });
   if (u && !cashPayg && !walletChat && u.plan !== 'free' && u.credit_used >= plan.price) return res.status(402).json({ error: 'Salio la Wallet halitoshi. Ongeza salio kuendelea.', me: meInfo(req) });
