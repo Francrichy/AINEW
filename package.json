@@ -2,7 +2,7 @@
   "name": "mlimani-ai",
   "version": "1.0.0",
   "type": "module",
-  "scripts": { "start": "node server.js" },
+  "scripts": { "start": "node server.js", "test": "node --test" },
   "engines": { "node": ">=20" },
   "dependencies": {
     "bcryptjs": "^2.4.3",
