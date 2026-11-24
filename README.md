@@ -39,3 +39,15 @@ FREE_FIRST=true: kila ujumbe hujaribu modeli ya bure (OpenRouter `:free`) kwanza
 ## Mlimani Labs — Video, Music na Film Studio
 
 Usanifu wa Video Creator, Music Generator na Film Studio (hadi dakika 30), pamoja na usanifu wa malipo ya mobile money na uzalishaji wa scenes, umeandikwa kwenye [docs/MLIMANI_LABS_STUDIO_ARCHITECTURE.md](docs/MLIMANI_LABS_STUDIO_ARCHITECTURE.md). Huu ni usanifu wa utekelezaji; filamu ndefu na utengenezaji wa audio bado vinahitaji provider maalum, storage na worker zilizosanidiwa na kujaribiwa.
+
+
+## Mlimani Studio cloud storage and AI Music setup
+The Studio cloud library uses a private S3-compatible bucket (Cloudflare R2 is the first adapter). Configure these secrets in Render Environment after creating the bucket and scoped API token:
+- `R2_ENDPOINT` — Cloudflare account R2 endpoint URL
+- `R2_BUCKET` — private bucket name
+- `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY` — scoped R2 S3 credentials
+- `ELEVENLABS_API_KEY` — paid ElevenLabs API key for Music Generator
+
+Configure bucket CORS for the exact Mlimani web origin and `PUT` with `Content-Type`; keep the bucket private. Do not paste credentials into GitHub or chat. The Admin must set a positive `studio_music_minute_tzs` retail price only after confirming the provider cost and licensing. It remains disabled at zero by default.
+
+Current cloud upload supports a single direct upload up to 1 GB (not yet resumable). Full timeline editing, FFmpeg export and durable AI film rendering still require the next worker/provider milestones; see the Studio architecture document.
