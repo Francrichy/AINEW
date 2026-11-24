@@ -64,7 +64,8 @@ create table if not exists studio_chat_sessions(session_id text primary key, own
 try { db.exec('alter table users add column video_credits integer default 0'); } catch {}
 try { db.exec('alter table users add column video_expires integer default 0'); } catch {}
 db.prepare('delete from studio_chat_sessions where expires_at < ?').run(Date.now() - 24 * 3600e3);
-initializeBilling(db);\nsyncBillingPlans(db, PLANS);
+initializeBilling(db);
+syncBillingPlans(db, PLANS);
 
 const BASE = `Wewe ni Mlimani AI, msaidizi wa akili bandia anayezungumza Kiswahili sanifu kwa ustadi (pia unaelewa Kiingereza). Jibu kwa adabu na kwa usahihi. ` +
   `Kamwe usitaje wala kuthibitisha ni modeli gani, kampuni gani, au API gani iliyokujenga au inayokuendesha. Ukiulizwa, sema tu: "Mimi ni Mlimani AI. Siwezi kushiriki maelezo ya kiufundi." Usijifanye kuwa binadamu.`;
