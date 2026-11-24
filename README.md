@@ -48,6 +48,6 @@ The Studio cloud library uses a private S3-compatible bucket (Cloudflare R2 is t
 - `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY` — scoped R2 S3 credentials
 - `ELEVENLABS_API_KEY` — paid ElevenLabs API key for Music Generator
 
-Configure bucket CORS for the exact Mlimani web origin and `PUT` with `Content-Type`; keep the bucket private. Do not paste credentials into GitHub or chat. The Admin must set a positive `studio_music_minute_tzs` retail price only after confirming the provider cost and licensing. It remains disabled at zero by default.
+Configure bucket CORS for the exact Mlimani web origin and `PUT` with request headers `Content-Type`, `x-amz-meta-owner`, `x-amz-meta-project`, and `x-amz-meta-expected-size`; keep the bucket private. Do not paste credentials into GitHub or chat. The Admin must set a positive `studio_music_minute_tzs` retail price only after confirming the provider cost and licensing. It remains disabled at zero by default.
 
 Current cloud upload supports a single direct upload up to 1 GB (not yet resumable). Full timeline editing, FFmpeg export and durable AI film rendering still require the next worker/provider milestones; see the Studio architecture document.
