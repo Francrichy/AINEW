@@ -649,14 +649,17 @@ app.post('/api/video', need, (req, res) => {
   const aspectRatio = ['9:16', '16:9', '1:1'].includes(req.body?.aspectRatio) ? req.body.aspectRatio : '9:16';
   const purpose = req.body?.purpose === 'advertisement' && duration === 15 ? 'advertisement' : 'video';
   const creditsRequired = Math.ceil(duration / 5);
-  const walletVideo = walletModeEnabled(db, u.id, 'video');
-  const walletAd = purpose === 'advertisement' && walletModeEnabled(db, u.id, 'advertisement');
-  const adPrice = Number(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='advertisement_15'").get()?.customer_price || 0);
-  if (walletAd ? walletAvailable(db, u.id, 'advertisement') < adPrice
-    : (walletVideo ? walletAvailable(db, u.id, 'video') < creditsRequired
-      : (u.video_expires <= Date.now() || (u.video_credits || 0) < creditsRequired))) {
-    return res.status(403).json({ error: walletAd ? 'Salio la Matangazo halitoshi. Ongeza advertisement credits.' : 'Huna salio la kutosha la Video. Video ya sekunde 15 hutumia credits 3.' });
-  }
+  const legacyAdPrice = Number(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='advertisement_15'").get()?.customer_price || 0);
+  const walletAd = purpose === 'advertisement' && walletModeEnabled(db, u.id, 'advertisement') && walletAvailable(db, u.id, 'advertisement') >= legacyAdPrice && legacyAdPrice > 0;
+  const walletVideo = walletModeEnabled(db, u.id, 'video') && walletAvailable(db, u.id, 'video') >= creditsRequired;
+  const oldVideoCredits = !walletAd && !walletVideo && u.video_expires > Date.now() && Number(u.video_credits || 0) >= creditsRequired;
+  const video5sTzs = Number(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='video_5s_tzs'").get()?.customer_price || 0);
+  const adTzsConfigured = Number(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='advertisement_15_tzs'").get()?.customer_price || 0);
+  const cashChargeTzs = purpose === 'advertisement' ? (adTzsConfigured || video5sTzs * 3) : video5sTzs * creditsRequired;
+  const cashVideo = !walletAd && !walletVideo && !oldVideoCredits;
+  if (cashVideo && cashChargeTzs <= 0) return res.status(503).json({ error: 'Bei ya Video bado haijawekwa na Admin. Jaribu tena baadaye.' });
+  if (cashVideo && cashWalletBalance(db, u.id) < cashChargeTzs) return res.status(402).json({ error: 'Salio la Wallet halitoshi kwa video hii. Ongeza salio kuendelea.' });
+  if (!cashVideo && !walletAd && !walletVideo && !oldVideoCredits) return res.status(402).json({ error: 'Huna salio la kutosha la Video.' });
   if (!PK) return res.status(500).json({ error: 'Huduma ya video haijawekwa bado.' });
   const referenceId = String(req.body?.referenceId || '');
   const referenceImage = referenceId ? videoReferenceImages.get(referenceId) : null;
@@ -669,9 +672,9 @@ app.post('/api/video', need, (req, res) => {
   if (BAD.test(raw)) return res.status(400).json({ error: 'Maelezo haya hayaruhusiwi.' });
   if ([...jobs.values()].some(j => j.uid === u.id && j.status === 'working')) return res.status(429).json({ error: 'Subiri video ya kwanza imalizike.' });
   const k = 'vid:u' + u.id;
-  if (used(k) >= VIDEO_DAILY) return res.status(429).json({ error: 'Video za leo zimeisha. Rudi kesho.' });
+  if (!cashVideo && used(k) >= VIDEO_DAILY) return res.status(429).json({ error: 'Video za leo zimeisha. Rudi kesho.' });
   bump(k);
-  const id = randomUUID(), job = { uid: u.id, status: 'working', t: Date.now(), duration, creditsRequired, purpose }; jobs.set(id, job);
+  const id = randomUUID(), job = { uid: u.id, status: 'working', t: Date.now(), duration, creditsRequired, purpose, billingMode: cashVideo ? 'cash' : walletAd ? 'legacy_ad' : walletVideo ? 'legacy_wallet' : 'legacy_video', cashChargeTzs }; jobs.set(id, job);
   (async () => {
     try {
       const en = raw; // Preserve the customer-approved spoken script and its selected language.
@@ -689,8 +692,9 @@ app.post('/api/video', need, (req, res) => {
       }
       job.buf = Buffer.from(await r.arrayBuffer()); job.ct = ct;
       if (job.buf.length > 20e6) throw new Error('video kubwa mno');
-      if (walletAd) consumeWalletCredits(db, u.id, 'advertisement', adPrice, 'Tangazo la sekunde 15');
-      else if (walletVideo) consumeWalletCredits(db, u.id, 'video', creditsRequired, 'Kutengeneza video ya sekunde ' + duration);
+      if (job.billingMode === 'cash') consumeWalletCredits(db, u.id, 'cash', job.cashChargeTzs, purpose === 'advertisement' ? 'Tangazo la sekunde 15' : 'Video ya sekunde ' + duration);
+      else if (job.billingMode === 'legacy_ad') consumeWalletCredits(db, u.id, 'advertisement', legacyAdPrice, 'Tangazo la sekunde 15');
+      else if (job.billingMode === 'legacy_wallet') consumeWalletCredits(db, u.id, 'video', creditsRequired, 'Kutengeneza video ya sekunde ' + duration);
       else db.prepare('update users set video_credits=case when video_credits>=? then video_credits-? else 0 end where id=?').run(creditsRequired, creditsRequired, u.id);
       job.status = 'done';
     } catch (e) { job.status = 'error'; bump(k, -1); console.error('video error:', e.message); }
@@ -699,7 +703,9 @@ app.post('/api/video', need, (req, res) => {
   res.json({
     id, duration, creditsRequired, purpose,
     videoCredits: walletVideo ? walletAvailable(db, u.id, 'video') : (u.video_credits || 0),
-    advertisementCredits: walletAd ? walletAvailable(db, u.id, 'advertisement') : null
+    advertisementCredits: walletAd ? walletAvailable(db, u.id, 'advertisement') : null,
+    chargedTzs: cashVideo ? cashChargeTzs : 0,
+    walletBalanceTzs: cashWalletBalance(db, u.id)
   });
 });
 app.get('/api/video/:id', need, (req, res) => {
