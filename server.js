@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import { randomUUID, randomBytes, createHash, createCipheriv, createDecipheriv } from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { initializeBilling, registerBillingRoutes, syncBillingPlans, walletModeEnabled, walletAvailable, consumeWalletCredits } from './billing.js';
+import { initializeBilling, registerBillingRoutes, syncBillingPlans, walletModeEnabled, walletAvailable, consumeWalletCredits, cashWalletBalance, creditCashWallet } from './billing.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const env = process.env;
@@ -70,6 +70,9 @@ db.exec(`CREATE TABLE IF NOT EXISTS live_talk_sessions (
   status TEXT NOT NULL DEFAULT 'pending', billed_minutes INTEGER NOT NULL DEFAULT 0, ended_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS live_talk_sessions_user ON live_talk_sessions(user_id,status,expires_at);`);
+try { db.exec('ALTER TABLE payments ADD COLUMN amount_tzs REAL'); } catch {}
+try { db.exec("ALTER TABLE live_talk_sessions ADD COLUMN billing_mode TEXT NOT NULL DEFAULT 'legacy'"); } catch {}
+try { db.exec('ALTER TABLE live_talk_sessions ADD COLUMN unit_price_tzs REAL NOT NULL DEFAULT 0'); } catch {}
 initializeBilling(db);
 syncBillingPlans(db, PLANS);
 const savedBillingSettings = Object.fromEntries(db.prepare("SELECT config_key,customer_price FROM admin_pricing WHERE config_key IN ('markup_multiplier','usd_tzs')").all().map(x => [x.config_key, Number(x.customer_price)]));
@@ -314,7 +317,7 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
   }
 });
 
-const limitFor = u => u ? (u.plan === 'free' ? FREE_DAILY : null) : ANON_DAILY;
+const limitFor = u => u ? (u.plan === 'free' && cashWalletBalance(db, u.id) <= 0 ? FREE_DAILY : null) : ANON_DAILY;
 const keyFor = (req) => req.user ? 'u' + req.user.id : 'ip' + req.ip;
 
 function meInfo(req) {
@@ -322,11 +325,12 @@ function meInfo(req) {
   return {
     loggedIn: !!u, email: u?.email, name: u?.name, plan: u?.plan || 'free', planName: p.name,
     dailyLeft: lim === null ? null : Math.max(0, lim - used(k)), dailyLimit: lim, imgLeft: Math.max(0, IMG_LIM(u) - used('img:' + k)),
-    creditLeft: u && u.plan !== 'free' ? (walletModeEnabled(db, u.id, 'chat') ? Math.max(0, Math.round(walletAvailable(db, u.id, 'chat'))) : Math.max(0, Math.round(p.price - u.credit_used))) : null,
+    creditLeft: u ? Math.max(0, Math.round(cashWalletBalance(db, u.id))) : null,
+    cashBalanceTzs: u ? Math.round(cashWalletBalance(db, u.id) * 100) / 100 : 0,
     botsMax: p.bots, expires: u?.expires || null, phone: u?.phone || null,
     videoCredits: u ? (walletModeEnabled(db, u.id, 'video') ? walletAvailable(db, u.id, 'video') : (u.video_expires > Date.now() ? (u.video_credits || 0) : 0)) : 0,
     videoExpires: u?.video_expires > Date.now() ? u.video_expires : null,
-    walletCredits: u ? Object.fromEntries(['chat','video','live_talk','advertisement'].map(service => [service, walletAvailable(db, u.id, service)])) : {},
+    walletCredits: u ? Object.fromEntries(['cash','chat','video','live_talk','advertisement'].map(service => [service, walletAvailable(db, u.id, service)])) : {},
     pending: u ? db.prepare("select plan,ref,created from payments where user_id=? and status='pending'").all(u.id) : [],
   };
 }
@@ -378,12 +382,10 @@ app.post('/api/login', (req, res) => {
   res.json({ token: sign(u) });
 });
 app.get('/api/me', (req, res) => res.json(meInfo(req)));
-app.get('/api/plans', (_req, res) => res.json({ plans: PLANS, videoPackages: VIDEO_PACKAGES, payInfo: env.PAY_INFO || 'Wasiliana nasi kulipia.' }));
+app.get('/api/plans', (_req, res) => res.json({ payAsYouGo: true, minTopupTzs: 5000, maxTopupTzs: 2000000, payInfo: env.PAY_INFO || 'Tuma malipo kwa maelekezo ya Mlimani.' }));
 app.get('/api/usage', need, (req, res) => {
-  const u = db.prepare('select plan,expires,credit_used from users where id=?').get(req.user.id), p = PLANS[u.plan];
-  const walletChat = u.plan !== 'free' && walletModeEnabled(db, u.id, 'chat');
-  const remaining = u.plan === 'free' ? 0 : (walletChat ? walletAvailable(db, u.id, 'chat') : Math.max(0, p.price - u.credit_used));
-  res.json({plan:u.plan,monthlyLimitTzs:p.price,usedTzs:Math.max(0,Math.round((p.price-remaining)*100)/100),remainingTzs:Math.round(remaining*100)/100,expires:u.expires,currency:'TZS',wallet:walletChat});
+  const balance = cashWalletBalance(db, req.user.id);
+  res.json({ plan:'pay_as_you_go', monthlyLimitTzs:0, usedTzs:0, remainingTzs:balance, cashBalanceTzs:balance, expires:null, currency:'TZS', wallet:true });
 });
 app.get('/api/developer', need, (req, res) => {
   if (req.user.plan === 'free') return res.status(403).json({error:'API inapatikana kwa wateja wa kulipia.'});
