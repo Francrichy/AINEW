@@ -7,7 +7,9 @@ const DEFAULT_PRICING = [
   ['live_talk', 'Live Talk', 'live_talk', 'per_minute', 0, 0, 'TZS', 'Gharama na bei bado hazijathibitishwa'],
   ['advertisement_15', 'Advertisement 15s', 'advertisement', 'per_ad', 0, 150, 'credits', 'Bei ya majaribio; si bei rasmi'],
   ['advertisement_30', 'Advertisement 30s', 'advertisement', 'per_ad', 0, 250, 'credits', 'Bei ya majaribio; si bei rasmi'],
-  ['image', 'Image', 'image', 'per_image', 0, 0, 'TZS', 'Gharama na bei bado hazijathibitishwa']
+  ['image', 'Image', 'image', 'per_image', 0, 0, 'TZS', 'Gharama na bei bado hazijathibitishwa'],
+  ['markup_multiplier', 'Chat markup multiplier', 'billing', 'multiplier', 0, 4, 'x', 'Minimum x4; badili baada ya kuthibitisha gharama'],
+  ['usd_tzs', 'USD/TZS exchange rate', 'billing', 'exchange_rate', 0, 2600, 'TZS/USD', 'Weka kiwango cha sasa cha kubadilisha USD kwenda TZS']
 ];
 
 const DEFAULT_PLANS = [
@@ -101,12 +103,57 @@ export function initializeBilling(db) {
     VALUES ('usd_tzs','USD/TZS exchange rate','all','exchange_rate',2600,2600,'TZS','Weka kiwango cha ubadilishaji kinachotumika.',?)`).run(now);
 }
 
+
+// Wallet helpers. Subscription credits are enabled per service only after an explicit grant;
+// older accounts keep their existing legacy balance until their next plan activation.
+export function walletModeEnabled(db, userId, service) {
+  return !!db.prepare("SELECT 1 FROM credits_ledger WHERE user_id=? AND service=? AND entry_type='subscription_credit' LIMIT 1").get(userId, service);
+}
+
+export function walletAvailable(db, userId, service) {
+  const now = Date.now();
+  const rows = db.prepare("SELECT bucket,balance,expires_at FROM wallet_balances WHERE user_id=? AND service=?").all(userId, service);
+  return rows.reduce((sum, row) => {
+    if (row.expires_at != null && row.expires_at <= now) return sum;
+    return sum + Math.max(0, Number(row.balance) || 0);
+  }, 0);
+}
+
+// Atomically consume subscription credits first, then purchased credits, and write one
+// immutable ledger entry for each bucket touched.
+export function consumeWalletCredits(db, userId, service, amount, description = 'Matumizi ya huduma') {
+  const charge = Number(amount);
+  if (!Number.isFinite(charge) || charge <= 0) return { consumed: 0, remaining: walletAvailable(db, userId, service) };
+  const tx = db.transaction(() => {
+    const now = Date.now();
+    const rows = db.prepare("SELECT bucket,balance,expires_at FROM wallet_balances WHERE user_id=? AND service=? ORDER BY CASE bucket WHEN 'subscription' THEN 0 ELSE 1 END").all(userId, service);
+    let remaining = charge;
+    const touched = [];
+    for (const row of rows) {
+      if (row.expires_at != null && row.expires_at <= now) continue;
+      const before = Math.max(0, Number(row.balance) || 0);
+      const take = Math.min(before, remaining);
+      if (take <= 0) continue;
+      const after = Math.max(0, before - take);
+      db.prepare('UPDATE wallet_balances SET balance=?,updated_at=? WHERE user_id=? AND service=? AND bucket=?')
+        .run(after, now, userId, service, row.bucket);
+      db.prepare('INSERT INTO credits_ledger(user_id,service,bucket,entry_type,amount,balance_after,reference,description,created_at) VALUES(?,?,?,?,?,?,?,?,?)')
+        .run(userId, service, row.bucket, 'usage_debit', -take, after, 'usage:' + randomUUID(), String(description).slice(0,300), now);
+      touched.push({ bucket: row.bucket, amount: take, balance: after });
+      remaining = Math.max(0, remaining - take);
+    }
+    if (remaining > 0.000001) throw Object.assign(new Error('Salio la Wallet halitoshi. Tafadhali ongeza credits au chagua mpango mwingine.'), { code: 'INSUFFICIENT_WALLET' });
+    return { consumed: charge, remaining: walletAvailable(db, userId, service), touched };
+  });
+  return tx();
+}
+
 export function syncBillingPlans(db, plans) {
   const rows = db.prepare('SELECT plan_key,name,monthly_price_tzs,bots FROM subscription_plans').all();
   for (const row of rows) if (plans[row.plan_key]) Object.assign(plans[row.plan_key], { name: row.name, price: row.monthly_price_tzs, bots: row.bots });
 }
 
-export function registerBillingRoutes(app, { db, need, admin, plans: runtimePlans }) {
+export function registerBillingRoutes(app, { db, need, admin, plans: runtimePlans, onPricingChange }) {
   const router = express.Router();
   router.get('/wallet', need, (req, res) => {
     const balances = db.prepare('SELECT service,bucket,balance,expires_at,updated_at FROM wallet_balances WHERE user_id=? ORDER BY service,bucket').all(req.user.id);
@@ -142,8 +189,11 @@ export function registerBillingRoutes(app, { db, need, admin, plans: runtimePlan
     if (!existing) return res.status(404).json({ error: 'Mpangilio wa bei haupo. Ongeza aina mpya kupitia usimamizi wa mfumo.' });
     const providerCost = Number(b.provider_cost), customerPrice = Number(b.customer_price);
     if (!Number.isFinite(providerCost) || providerCost < 0 || !Number.isFinite(customerPrice) || customerPrice < 0) return res.status(400).json({ error: 'Gharama na bei lazima ziwe namba zisizo hasi.' });
+    if (key === 'markup_multiplier' && customerPrice < 4) return res.status(400).json({ error: 'Markup ya Chat haiwezi kuwa chini ya x4.' });
+    if (key === 'usd_tzs' && customerPrice <= 0) return res.status(400).json({ error: 'Weka kiwango halali cha USD/TZS.' });
     const notes = String(b.notes ?? existing.notes).slice(0,500);
     db.prepare('UPDATE admin_pricing SET provider_cost=?,customer_price=?,notes=?,updated_at=? WHERE config_key=?').run(providerCost, customerPrice, notes, Date.now(), key);
+    if (typeof onPricingChange === 'function') onPricingChange(key, customerPrice);
     res.json({ ok: true, pricing: db.prepare('SELECT * FROM admin_pricing WHERE config_key=?').get(key) });
   });
   router.get('/admin/billing/subscriptions', admin, (req, res) => {

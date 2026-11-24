@@ -213,7 +213,7 @@ main{max-width:920px;padding:20px 24px 60px;text-align:center}
  #liveEndActions .actions{display:grid;grid-template-columns:1fr}
 }
 
-</style></head><body><header><strong>MLIMANI STUDIO LABS</strong><a href="/">← Rudi Mlimani Labs</a></header><main>
+</style></head><body><header><strong>MLIMANI STUDIO LABS</strong><span><a href="/guide.html">Mwongozo</a> · <a href="/">← Rudi Mlimani Labs</a></span></header><main>
 <h1 id="studioHeading">Karibu Mlimani Labs</h1><p class="lead">Zungumza moja kwa moja na msaidizi wako wa AI au tengeneza tangazo la video kwa hatua chache.</p>
 <section class="panel"><h2 style="margin-top:4px">Ungependa kufanya nini leo?</h2><div class="modes"><button type="button" data-mode="live" aria-pressed="true">🎥 Video ya moja kwa moja</button><button type="button" data-mode="video" aria-pressed="false">📣 Matangazo</button></div>
 <h2>Chagua msaidizi wako</h2><p class="note">Wachague Ethan au Ngina, kisha anza mazungumzo.</p><div class="choices">
@@ -260,17 +260,24 @@ main{max-width:920px;padding:20px 24px 60px;text-align:center}
 <img id="productPreview" class="hidden" alt="Picha ya bidhaa" style="width:100%;max-height:260px;object-fit:contain;border-radius:14px;background:#fff">
 <label for="productName">Jina la bidhaa</label><input id="productName" placeholder="Mfano: Mlimani Coffee">
 <label for="productBenefit">Faida kuu ya bidhaa</label><input id="productBenefit" placeholder="Mfano: Kahawa halisi, ladha ya kipekee">
-<label for="productCTA">Wateja wafanye nini?</label><input id="productCTA" placeholder="Mfano: Piga simu 07... kuagiza">
+<label for="productPrice">Bei ya bidhaa (hiari)</label><input id="productPrice" placeholder="Mfano: TZS 25,000">
+<label for="adLanguage">Lugha ya tangazo</label><select id="adLanguage"><option value="sw">Kiswahili</option><option value="en">English</option></select>
+<label for="productCTA">Mawasiliano / wito wa kuchukua hatua</label><input id="productCTA" placeholder="Mfano: Piga simu 07... kuagiza">
+<label for="adScript">Script ya tangazo</label><textarea id="adScript" placeholder="Bonyeza Andaa script kwa AI, ipitie na urekebishe hapa..."></textarea>
+<div class="actions"><button type="button" class="light" id="draftAdScript">Andaa script kwa AI</button></div>
 </div>
 <div id="newsFields" class="hidden"><label for="newsScript">Andika taarifa au script ya habari</label><textarea id="newsScript" placeholder="Andika taarifa unayotaka msaidizi aisome..."></textarea></div>
+<div class="actions"><button type="button" class="secondary" id="approveAdScript" disabled>Nimeidhinisha script</button></div>
+<label for="videoDuration">Muda wa video</label><select id="videoDuration"><option value="15">Sekunde 15 — Tangazo</option><option value="5">Sekunde 5</option><option value="30" disabled>Sekunde 30 — bado inatayarishwa</option></select>
 <label for="format">Muundo wa video</label><select id="format"><option value="9:16">9:16 — TikTok / Reels</option><option value="16:9">16:9 — YouTube / Presentation</option><option value="1:1">1:1 — Social media</option></select>
-<p class="note">Tengeneza video fupi ya sekunde 5 kwa kutumia huduma ya video iliyopo. Kifurushi cha Video na kuingia kwenye akaunti vinahitajika. Picha ya bidhaa hapa ni preview; haitatumwa kwenye injini ya video katika toleo hili.</p><div class="actions"><button class="primary" id="createVideo">Tengeneza video</button></div><div class="status" id="videoProviderStatus">Jaza taarifa kisha bonyeza Tengeneza video sasa.</div><video id="generatedVideo" class="hidden" controls playsinline style="width:100%;max-height:420px;border-radius:16px;background:#111;margin-top:12px"></video>
+<p class="note">Script ya AI hutumia Chat credits. Video ya sekunde 15 hutumia Matangazo credits zilizowekwa na Admin; kama akaunti haina Matangazo Wallet, hutumia Video credits 3. Video ya sekunde 30 bado haijawezeshwa. Picha ya bidhaa hutumwa kwa muda kama reference image kwenye tangazo la sekunde 15 tu; huondolewa baada ya kutumika au dakika 10. Ethan/Ngina ni maelekezo ya mhusika tu; mwonekano na sauti zao halisi havijahakikishwa.</p><div class="actions"><button class="primary" id="createVideo">Tengeneza video</button></div><div class="status" id="videoProviderStatus">Jaza taarifa kisha bonyeza Tengeneza video sasa.</div><video id="generatedVideo" class="hidden" controls playsinline style="width:100%;max-height:420px;border-radius:16px;background:#111;margin-top:12px"></video><div class="actions"><button type="button" class="secondary hidden" id="downloadGeneratedVideo">Pakua video</button></div>
 </div>
-<div class="status" id="status">Live Talk inakuwezesha kuzungumza na msaidizi wa Mlimani kwa sauti na kusikia majibu. Tengeneza Video hukuwezesha kuunda video fupi ya sekunde 5 kwa kutumia salio lako la Video.</div><div class="actions"><button class="secondary" id="back">Rudi Mlimani Labs</button></div>
+<div class="status" id="status">Live Talk inakuwezesha kuzungumza na msaidizi wa Mlimani kwa sauti na kusikia majibu. Tengeneza Video hukuwezesha kuunda video fupi ya sekunde 5 au 15 kwa kutumia salio lako la Video au Matangazo.</div><div class="actions"><button class="secondary" id="back">Rudi Mlimani Labs</button></div>
 <p class="note">Ngina na Ethan ni wahusika wa AI. Kamera/microphone zitaombwa ruhusa tu Live Talk itakapowashwa. Mazungumzo hayatapakuliwa mpaka uchague kitufe cha kupakua.</p>
 </section></main>
 <script>
 let avatar='Ngina',mode='live',localCameraStream=null,age='young',durationTier='normal',videoType='marketing',history=[],sessionEndsAt=0,sessionTimer=null,studioSessionId=null,liveAvatarSession=null,liveAvatarCatalogData=null,videoObjectUrl=null,liveRecorder=null,liveRecordingChunks=[];
+let adScriptApproved=false;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 function addBubble(role,text){const d=document.createElement('div');d.className='bubble '+role;d.textContent=text;$('#chatlog').append(d);$('#chatlog').scrollTop=$('#chatlog').scrollHeight}
 function transcript(){return history.map(m=>(m.role==='user'?'WEWE':'MLIMANI LABS')+':\n'+m.content).join('\n\n')}
@@ -294,8 +301,16 @@ $('#sendChat').textContent='Ongea na '+avatar;
 $$('[data-age]').forEach(b=>b.addEventListener('click',()=>{age=b.dataset.age;$$('[data-age]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));}));
 $$('[data-duration]').forEach(b=>b.addEventListener('click',()=>{durationTier=b.dataset.duration;$$('[data-duration]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#durationNote').textContent=durationTier==='extended'?'Muda mrefu wa mazungumzo umechaguliwa.':'Muda wa kawaida wa mazungumzo.';}));
 $$('[data-mode]').forEach(b=>b.addEventListener('click',async()=>{const next=b.dataset.mode;if(next===mode)return;if(liveAvatarStarting){liveAvatarCancelRequested=true;}else if(liveAvatarSession){try{await liveAvatarSession.stop();}catch{}resetLiveControls('Umebadilisha huduma.');}mode=next;$$('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#chatFields').classList.add('hidden');$('#liveFields').classList.add('hidden');$('#videoFields').classList.add('hidden');$('#continueStudio').classList.remove('hidden');$('#continueStudio').disabled=false;$('#continueStudio').textContent=mode==='live'?'Anza kuzungumza':'Endelea na tangazo';$('#selectionHint').textContent=mode==='live'?'Chagua Ethan au Ngina, kisha anza mazungumzo ya video.':'Chagua Ethan au Ngina, kisha endelea kuweka maelezo ya tangazo.';if(mode==='video')refreshVideoWallet();}));
-$$('[data-vtype]').forEach(b=>b.addEventListener('click',()=>{videoType=b.dataset.vtype;$$('[data-vtype]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#marketingFields').classList.toggle('hidden',videoType!=='marketing');$('#newsFields').classList.toggle('hidden',videoType!=='news');}));
-$('#productImage').addEventListener('change',e=>{const file=e.target.files?.[0];if(!file)return;const url=URL.createObjectURL(file);$('#productPreview').src=url;$('#productPreview').classList.remove('hidden');});
+$('[data-vtype]').forEach(b=>b.addEventListener('click',()=>{videoType=b.dataset.vtype;adScriptApproved=false;$('[data-vtype]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#marketingFields').classList.toggle('hidden',videoType!=='marketing');$('#newsFields').classList.toggle('hidden',videoType!=='news');$('#approveAdScript').disabled=!currentStudioScript();}));
+$('#productImage').addEventListener('change',e=>{
+ const file=e.target.files?.[0];
+ if(!file){$('#productPreview').classList.add('hidden');return;}
+ if(!['image/jpeg','image/png','image/webp'].includes(file.type)){e.target.value='';$('#videoProviderStatus').textContent='Chagua picha ya JPG, PNG au WEBP.';return;}
+ if(file.size>5*1024*1024){e.target.value='';$('#videoProviderStatus').textContent='Picha isizidi MB 5.';return;}
+ const url=URL.createObjectURL(file);$('#productPreview').src=url;$('#productPreview').classList.remove('hidden');
+ $('#videoProviderStatus').textContent='Picha iko tayari. Itatumwa tu ukibonyeza Tengeneza video ya sekunde 15.';
+});
+['#productName','#productBenefit','#productPrice','#productCTA','#adLanguage'].forEach(selector=>$(selector).addEventListener('input',()=>{adScriptApproved=false;$('#approveAdScript').disabled=!currentStudioScript();}));
 $('#liveCatalogStatus').textContent='Chagua Ethan au Ngina. Bonyeza Anza kuzungumza ukitaka kuanza kikao cha video na sauti.';
 
 function resetLiveControls(message){
@@ -312,6 +327,26 @@ function resetLiveControls(message){
  if(message)$('#liveStatus').textContent=message;
 }
 let liveAvatarStarting=false,liveAvatarCancelRequested=false;
+let liveBillingSessionId=null,liveBillingFinished=false;
+async function markLiveBillingConnected(){
+ if(!liveBillingSessionId||liveBillingFinished)return;
+ const token=localStorage.getItem('t')||'';
+ const response=await fetch('/api/liveavatar/connected',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({billingSessionId:liveBillingSessionId})});
+ if(!response.ok){const detail=await response.json().catch(()=>({}));throw new Error(detail.error||'Imeshindikana kuanza kipimo cha dakika za Live Talk.');}
+}
+async function finishLiveBilling(){
+ if(!liveBillingSessionId||liveBillingFinished)return;
+ liveBillingFinished=true;
+ const id=liveBillingSessionId,token=localStorage.getItem('t')||'';
+ try{
+  const r=await fetch('/api/liveavatar/end',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({billingSessionId:id})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)console.warn('Live Talk billing:',d.error||r.status);
+  else if(d.billedMinutes>0)$('#liveStatus').textContent='Mazungumzo yameisha. Salio limetumika: dakika '+d.billedMinutes+'.';
+ }catch(e){console.warn('Live Talk billing end:',e.message);}
+ liveBillingSessionId=null;
+}
+
 async function startLiveAvatar(){
  if(liveAvatarSession||liveAvatarStarting){$('#liveStatus').textContent='Kikao kinaendelea au kinaunganishwa.';return;}
  const token=localStorage.getItem('t')||'';
@@ -332,6 +367,7 @@ async function startLiveAvatar(){
    throw new Error('Server imerudisha jibu lisilo JSON (HTTP '+response.status+'). '+(snippet||'Hakuna maelezo kutoka server.')+' Angalia kama umeingia upya kisha jaribu tena.');
   }
   if(!response.ok)throw new Error(payload.error||('Imeshindikana kuanzisha mazungumzo (HTTP '+response.status+').'));
+  liveBillingSessionId=payload.billingSessionId||null;liveBillingFinished=false;
   $('#liveStatus').textContent='Hatua 2/3: Tunafungua video na microphone...';
   const sdk=await import('https://esm.sh/@heygen/liveavatar-web-sdk@0.0.20?bundle');
   if(typeof sdk.LiveAvatarSession!=='function')throw new Error('Huduma ya mazungumzo haikupakiwa vizuri. Tafadhali onyesha upya ukurasa ujaribu tena.');
@@ -370,9 +406,10 @@ async function startLiveAvatar(){
   session.on('avatar.transcription',event=>{if(event?.text)addVoiceLine('assistant',avatar+': '+event.text);});
   session.on('avatar.speak_started',()=>{$('#liveSpeakingStatus').textContent=avatar+' anazungumza...';});
   session.on('avatar.speak_ended',()=>{$('#liveSpeakingStatus').textContent=avatar+' amemaliza kujibu. Unaweza kuzungumza tena.';});
-  session.on('session.disconnected',()=>{liveAvatarStarting=false;if(liveRecorder&&liveRecorder.state!=='inactive'){try{liveRecorder.stop();}catch{}}resetLiveControls('Kikao kimefungwa. Unaweza kupakua mazungumzo.');$('#liveEndActions').classList.remove('hidden');});
+  session.on('session.disconnected',()=>{liveAvatarStarting=false;finishLiveBilling();if(liveRecorder&&liveRecorder.state!=='inactive'){try{liveRecorder.stop();}catch{}}resetLiveControls('Kikao kimefungwa. Unaweza kupakua mazungumzo.');$('#liveEndActions').classList.remove('hidden');});
   await session.start();
-  if(liveAvatarCancelRequested){liveAvatarStarting=false;await session.stop();resetLiveControls('Umefunga kikao wakati kinaunganisha.');return;}
+  await markLiveBillingConnected();
+  if(liveAvatarCancelRequested){liveAvatarStarting=false;await session.stop();await finishLiveBilling();resetLiveControls('Umefunga kikao wakati kinaunganisha.');return;}
   $('#liveStatus').textContent='Kikao kimeunganishwa. Tunasubiri video ya avatar...';
   const ready=await Promise.race([streamReady,new Promise(resolve=>setTimeout(()=>resolve(false),25000))]);
   liveAvatarStarting=false;
@@ -385,6 +422,7 @@ async function startLiveAvatar(){
  }catch(e){
   const session=liveAvatarSession;liveAvatarStarting=false;
   try{await session?.stop();}catch{}
+  await finishLiveBilling();
   resetLiveControls('Imeshindikana kuanzisha video conference: '+(e.message||'Jaribu tena.'));
  }
 }
@@ -394,6 +432,7 @@ $('#stopLive').addEventListener('click',async()=>{
  if(liveAvatarStarting){liveAvatarCancelRequested=true;$('#stopLive').disabled=true;$('#liveStatus').textContent='Tunafunga kikao kinachoendelea kuunganishwa...';return;}
  const session=liveAvatarSession;$('#stopLive').disabled=true;$('#liveStatus').textContent='Tunafunga mazungumzo...';
  try{await session?.stop();}catch(e){$('#liveStatus').textContent='Kikao kimefungwa. '+(e.message||'');}
+ await finishLiveBilling();
  if(liveRecorder&&liveRecorder.state!=='inactive'){try{liveRecorder.stop();}catch{}}
  resetLiveControls('Mazungumzo yameisha. Pakua rekodi au nakala ya mazungumzo.');
  $('#liveEndActions').classList.remove('hidden');
@@ -406,14 +445,73 @@ $('#sendLiveText').addEventListener('click',()=>{
 $('#liveTextInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#sendLiveText').click();});
 
 
-$('#createVideo').addEventListener('click',async()=>{const token=localStorage.getItem('t')||'';if(!token){$('#videoProviderStatus').textContent='Tafadhali ingia kwenye akaunti kwanza.';return;}let prompt='';if(videoType==='marketing'){const name=$('#productName').value.trim(),benefit=$('#productBenefit').value.trim(),cta=$('#productCTA').value.trim();if(!name||!benefit){$('#videoProviderStatus').textContent='Jaza jina la bidhaa na faida kuu kwanza.';return;}prompt='Create a polished '+$('#format').value+' five-second marketing video for '+name+'. Main benefit: '+benefit+'. Call to action: '+cta+'. Presenter: '+avatar+'. Professional East African commercial style.';}else{const script=$('#newsScript').value.trim();if(!script){$('#videoProviderStatus').textContent='Andika script ya habari kwanza.';return;}prompt='Create a professional '+$('#format').value+' five-second news bulletin video. Presenter: '+avatar+'. News script: '+script;}if(prompt.length>390)prompt=prompt.slice(0,390);$('#createVideo').disabled=true;$('#videoProviderStatus').textContent='Video inatengenezwa. Subiri kidogo...';try{const r=await fetch('/api/video',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({prompt})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Ombi la video limeshindwa.');let status='working',tries=0;while(status==='working'&&tries++<80){await new Promise(resolve=>setTimeout(resolve,3000));const p=await fetch('/api/video/'+encodeURIComponent(d.id),{headers:{Authorization:'Bearer '+token}});const pj=await p.json();if(!p.ok)throw new Error(pj.error||'Imeshindikana kufuatilia video.');status=pj.status;}if(status!=='done')throw new Error(status==='error'?'Video imeshindwa kutengenezwa. Hakuna salio lililokatwa.':'Video bado inachakatwa. Jaribu kuangalia tena baada ya muda.');const file=await fetch('/api/video/'+encodeURIComponent(d.id)+'/file',{headers:{Authorization:'Bearer '+token}});if(!file.ok)throw new Error('Video imetengenezwa lakini haikuweza kupakuliwa.');const blob=await file.blob();if(videoObjectUrl)URL.revokeObjectURL(videoObjectUrl);videoObjectUrl=URL.createObjectURL(blob);$('#generatedVideo').src=videoObjectUrl;$('#generatedVideo').classList.remove('hidden');$('#videoProviderStatus').textContent='Video yako iko tayari. Bonyeza Play kuitazama.';refreshVideoWallet();}catch(e){$('#videoProviderStatus').textContent=e.message;}finally{$('#createVideo').disabled=false;}});
+function currentStudioScript(){return videoType==='marketing'?$('#adScript').value.trim():$('#newsScript').value.trim();}
+$('#draftAdScript').addEventListener('click',async()=>{
+ const token=localStorage.getItem('t')||'',name=$('#productName').value.trim(),benefit=$('#productBenefit').value.trim(),price=$('#productPrice').value.trim(),language=$('#adLanguage').value,cta=$('#productCTA').value.trim(),duration=Number($('#videoDuration').value);
+ if(!token){$('#videoProviderStatus').textContent='Tafadhali ingia kwenye akaunti kwanza.';return;}
+ if(!name||!benefit){$('#videoProviderStatus').textContent='Jaza jina la bidhaa na faida kuu kwanza.';return;}
+ const button=$('#draftAdScript');button.disabled=true;$('#videoProviderStatus').textContent='AI inaandaa script ya tangazo...';
+ try{
+  const targetLanguage=language==='en'?'natural English':'Kiswahili sanifu';
+  const request='Andaa script fupi ya tangazo la sekunde '+duration+' kwa '+targetLanguage+'. Bidhaa: '+name+'. Faida kuu: '+benefit+'. Bei: '+(price||'Haikutajwa')+'. Wito wa kuchukua hatua: '+(cta||'Wasiliana nasi kuagiza')+'. Mhusika wa kuwasilisha: '+avatar+'. Toa script inayozungumzika kwa kawaida, yenye mwanzo wa kuvutia, faida, bei kama imetolewa, na mwito wa kuchukua hatua. Usieleze hatua za kutengeneza video; toa maneno ya tangazo tu.';
+  const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({messages:[{role:'user',content:request}]})});
+  const data=await response.json();if(!response.ok)throw new Error(data.error||'Imeshindikana kuandaa script.');
+  $('#adScript').value=data.reply||'';adScriptApproved=false;$('#approveAdScript').disabled=!$('#adScript').value.trim();
+  $('#videoProviderStatus').textContent='Script imeandaliwa. Ipitie, rekebisha ukihitaji, kisha bonyeza Nimeidhinisha script.';
+ }catch(error){$('#videoProviderStatus').textContent=error.message;}
+ finally{button.disabled=false;}
+});
+$('#adScript').addEventListener('input',()=>{adScriptApproved=false;$('#approveAdScript').disabled=!$('#adScript').value.trim();});
+$('#newsScript').addEventListener('input',()=>{adScriptApproved=false;$('#approveAdScript').disabled=!$('#newsScript').value.trim();});
+$('#videoDuration').addEventListener('change',()=>{adScriptApproved=false;$('#approveAdScript').disabled=!currentStudioScript();});
+$('#approveAdScript').addEventListener('click',()=>{
+ const script=currentStudioScript();if(!script){$('#videoProviderStatus').textContent='Andika au andaa script kwanza.';return;}
+ adScriptApproved=true;$('#approveAdScript').disabled=false;$('#videoProviderStatus').textContent='Script imeidhinishwa. Sasa unaweza kutengeneza video.';
+});
+$('#downloadGeneratedVideo').addEventListener('click',()=>{if(!videoObjectUrl)return;const a=document.createElement('a');a.href=videoObjectUrl;a.download='mlimani-studio-video-'+Date.now()+'.mp4';a.click();});
+$('#createVideo').addEventListener('click',async()=>{
+ const token=localStorage.getItem('t')||'',duration=Number($('#videoDuration').value),script=currentStudioScript();
+ if(!token){$('#videoProviderStatus').textContent='Tafadhali ingia kwenye akaunti kwanza.';return;}
+ if(!script){$('#videoProviderStatus').textContent=videoType==='marketing'?'Andaa script ya tangazo kwanza.':'Andika script ya habari kwanza.';return;}
+ if(!adScriptApproved){$('#videoProviderStatus').textContent='Tafadhali pitia na uidhinishe script kabla ya kutengeneza video.';return;}
+ let prompt='';
+ if(videoType==='marketing'){
+  const name=$('#productName').value.trim(),benefit=$('#productBenefit').value.trim(),price=$('#productPrice').value.trim(),cta=$('#productCTA').value.trim(),language=$('#adLanguage').value;
+  prompt='Create a '+duration+'-second '+$('#format').value+' product advertisement in '+(language==='en'?'English':'Swahili')+' for '+name+'. Main benefit: '+benefit+'. Price: '+(price||'not provided')+'. Call to action: '+cta+'. Presenter guidance: '+avatar+'. Use this approved spoken script: '+script+'. Professional East African commercial, clear product focus, natural presenter delivery.';
+ }else{
+  prompt='Create a '+duration+'-second '+$('#format').value+' news bulletin video. Presenter guidance: '+avatar+'. Use this approved news script: '+script+'. Professional East African news presentation.';
+ }
+ if(prompt.length>1500)prompt=prompt.slice(0,1500);
+ $('#createVideo').disabled=true;$('#downloadGeneratedVideo').classList.add('hidden');$('#videoProviderStatus').textContent='Video inatengenezwa. Subiri kidogo...';
+ try{
+  const purpose=videoType==='marketing'&&duration===15?'advertisement':'video';
+  let referenceId=null;
+  const productFile=videoType==='marketing'&&duration===15?$('#productImage').files?.[0]:null;
+  if(productFile){
+   if(!['image/jpeg','image/png','image/webp'].includes(productFile.type)||productFile.size>5*1024*1024)throw new Error('Picha lazima iwe JPG, PNG au WEBP na isizidi MB 5.');
+   $('#videoProviderStatus').textContent='Picha inatumwa kwa muda kwa ajili ya tangazo...';
+   const imageResponse=await fetch('/api/video/reference',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':productFile.type},body:productFile});
+   const imageData=await imageResponse.json();if(!imageResponse.ok)throw new Error(imageData.error||'Imeshindikana kutuma picha.');
+   referenceId=imageData.referenceId;
+  }
+  const r=await fetch('/api/video',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({prompt,duration,aspectRatio:$('#format').value,purpose,referenceId})});
+  const d=await r.json();if(!r.ok)throw new Error(d.error||'Ombi la video limeshindwa.');
+  let status='working',tries=0;while(status==='working'&&tries++<100){await new Promise(resolve=>setTimeout(resolve,3000));const p=await fetch('/api/video/'+encodeURIComponent(d.id),{headers:{Authorization:'Bearer '+token}});const pj=await p.json();if(!p.ok)throw new Error(pj.error||'Imeshindikana kufuatilia video.');status=pj.status;}
+  if(status!=='done')throw new Error(status==='error'?'Video imeshindwa kutengenezwa. Hakuna salio lililokatwa.':'Video bado inachakatwa. Jaribu kuangalia tena baada ya muda.');
+  const file=await fetch('/api/video/'+encodeURIComponent(d.id)+'/file',{headers:{Authorization:'Bearer '+token}});if(!file.ok)throw new Error('Video imetengenezwa lakini haikuweza kupakuliwa.');
+  const blob=await file.blob();if(videoObjectUrl)URL.revokeObjectURL(videoObjectUrl);videoObjectUrl=URL.createObjectURL(blob);
+  $('#generatedVideo').src=videoObjectUrl;$('#generatedVideo').classList.remove('hidden');$('#downloadGeneratedVideo').classList.remove('hidden');
+  $('#videoProviderStatus').textContent='Video ya sekunde '+duration+' iko tayari. Bonyeza Play kuitazama.';refreshVideoWallet();
+ }catch(error){$('#videoProviderStatus').textContent=error.message;}
+ finally{$('#createVideo').disabled=false;}
+});
 
 async function send(){const q=$('#chatInput').value.trim();if(!q)return;if(sessionEndsAt&&Date.now()>=sessionEndsAt){$('#status').textContent='Muda wa mazungumzo umeisha. Anza mazungumzo mapya.';$('#sendChat').disabled=true;return;}if(!sessionEndsAt){$$('[data-duration]').forEach(b=>b.disabled=true);sessionEndsAt=Date.now()+(durationTier==='extended'?60:15)*60*1000;sessionTimer=setInterval(()=>{const left=Math.max(0,sessionEndsAt-Date.now());if(!left){clearInterval(sessionTimer);$('#sendChat').disabled=true;$('#status').textContent='Muda wa mazungumzo umeisha. Pakua mazungumzo au anza upya.';return;}const mins=Math.floor(left/60000),secs=Math.floor(left%60000/1000);$('#status').textContent='Muda uliobaki: '+mins+' dakika '+secs+' sekunde.';},1000);}const lang='sw';history.push({role:'user',content:q});addBubble('user',q);$('#chatInput').value='';$('#sendChat').disabled=true;$('#status').textContent='Mlimani Labs inatafakari...';try{const token=localStorage.getItem('t')||'';const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify({messages:history.slice(-12),studio:true,studioAvatar:avatar,sessionId:(studioSessionId||(studioSessionId=crypto.randomUUID())),language:lang,durationTier})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Imeshindikana kupata jibu.');if(d.sessionExpiresAt)sessionEndsAt=d.sessionExpiresAt;const answer=d.reply||'Samahani, sijapata jibu.';history.push({role:'assistant',content:answer});addBubble('assistant',answer);$('#status').textContent='Jibu limepatikana.';}catch(e){history.pop();addBubble('assistant','Samahani: '+e.message);$('#status').textContent=e.message;}finally{$('#sendChat').disabled=false;}}
 $('#sendChat').addEventListener('click',send);$('#chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
 $('#downloadChat').addEventListener('click',()=>{if(!history.length){$('#status').textContent='Bado hakuna mazungumzo ya kupakua.';return;}const content='MLIMANI LABS — NAKALA YA MAZUNGUMZO\nMhusika: '+avatar+' ('+(age==='young'?'Kijana':'Mtu mzima / Mzee')+')\nLugha: '+'Kiswahili'+'\n\n'+transcript();const blob=new Blob([content],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='mlimani-labs-mazungumzo.txt';a.click();URL.revokeObjectURL(url);$('#status').textContent='Nakala ya mazungumzo imeandaliwa kupakuliwa.';});
 $('#clearChat').addEventListener('click',()=>{history=[];sessionEndsAt=0;studioSessionId=null;$$('[data-duration]').forEach(b=>b.disabled=false);if(sessionTimer)clearInterval(sessionTimer);$('#sendChat').disabled=false;$('#chatlog').innerHTML='';addBubble('assistant','Mazungumzo mapya yameanza. Niulize swali lolote.');$('#status').textContent='Mazungumzo mapya yako tayari. Muda utaanza unapotuma ujumbe wa kwanza.';});
 $('#motionSpeed')?.addEventListener('change',e=>{const v=Number(e.target.value);$('#motionHelp').textContent='Umechagua mwendo '+v+'×. Mpangilio huu ni wa maandalizi tu; slow motion halisi itafanya kazi baada ya kuunganisha API ya video.';});$('#continue')?.addEventListener('click',()=>{});$('#back').addEventListener('click',()=>location.href='/');
-async function refreshVideoWallet(){const token=localStorage.getItem('t')||'';if(!token){$('#videoWallet').textContent='Ingia kwenye akaunti ili kuona salio la Video na kununua kifurushi.';return;}try{const r=await fetch('/api/me',{headers:{Authorization:'Bearer '+token}}),d=await r.json();$('#videoWallet').textContent='Salio la Video: '+(d.videoCredits||0)+' video'+(d.videoExpires?' · Inaisha: '+new Date(d.videoExpires).toLocaleDateString():'');}catch{$('#videoWallet').textContent='Imeshindikana kupata salio la Video.';}}
+async function refreshVideoWallet(){const token=localStorage.getItem('t')||'';if(!token){$('#videoWallet').textContent='Ingia kwenye akaunti ili kuona salio la Video na Matangazo.';return;}try{const r=await fetch('/api/me',{headers:{Authorization:'Bearer '+token}}),d=await r.json();const w=d.walletCredits||{};$('#videoWallet').textContent='Video credits: '+(d.videoCredits||0)+' · Matangazo credits: '+(w.advertisement||0)+(d.videoExpires?' · Video inaisha: '+new Date(d.videoExpires).toLocaleDateString():'');}catch{$('#videoWallet').textContent='Imeshindikana kupata salio la Video.';}}
 $('[data-mode]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.mode==='video')refreshVideoWallet();}));
 refreshVideoWallet();
 
