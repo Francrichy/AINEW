@@ -208,7 +208,7 @@ main{margin:0 0 0 224px;width:calc(100% - 224px);max-width:none;padding:18px 22p
  <input id="ap" type="password" placeholder="Nenosiri"><div class="err" id="aerr"></div>
  <button class="btn alt" id="aok" type="button">Endelea</button> <button class="btn ghost" id="aswap" type="button">Sina akaunti</button> <button class="btn ghost" value="x">Funga</button></form></dialog>
 <dialog id="payD"><form method="dialog" class="f"><h2 id="payT">Lipia</h2><p id="payP" style="font-size:.9rem"></p>
- <input id="ph" placeholder="Namba yako ya simu"><input id="pr" placeholder="Namba ya muamala"><div class="err" id="perr"></div>
+ <input id="payAmount" type="number" min="5000" max="2000000" step="1000" value="10000" placeholder="Kiasi cha kuongeza (TZS)"><input id="ph" placeholder="Namba yako ya simu"><input id="pr" placeholder="Namba ya muamala"><div class="err" id="perr"></div>
  <button class="btn alt" id="pok" type="button">Nimelipa</button> <button class="btn ghost" value="x">Funga</button></form></dialog>
 
 <script>
@@ -244,7 +244,7 @@ function renderPlugins(categories){
   const c=el('div','pluginCard'),head=el('div','','');
   head.style.fontSize='1.7rem';head.textContent=p.icon||'🔌';
   c.appendChild(head);c.appendChild(el('h3','',p.name));c.appendChild(el('div','desc',p.desc||''));if(p.freeEligible)c.appendChild(el('div','pluginMeta','BURE kwa Free · hadi 100 matumizi kwa mwezi'));
-  let status=p.soon?'Inatayarishwa':p.enabled?'Imeunganishwa / imewashwa':p.locked?'Inahitaji mpango wa kulipia':'Haijaunganishwa';
+  let status=p.soon?'Inatayarishwa':(p.kind==='fleet'&&p.meta?.expiresAt&&Number(p.meta.expiresAt)<=Date.now())?'Token imeisha · Unganisha tena':p.enabled?'Imeunganishwa / imewashwa':p.locked?'Inahitaji mpango wa kulipia':'Haijaunganishwa';
   c.appendChild(el('div','pluginMeta',status));
   const b=el('button','btn',p.soon?'Inatayarishwa':p.locked?'Angalia mipango':p.enabled?'Simamia':'Washa / Unganisha');
   if(p.soon){b.disabled=true;b.title='Muunganisho utawezeshwa baada ya kukamilisha API salama.'}
@@ -260,6 +260,18 @@ function renderPlugins(categories){
      const defaultValue=prompt(p.id==='github'?'Repo ya kawaida (mf. Francrichy/AINEW), au acha wazi:':'Jina la huduma ya Render (mf. AINEW), au acha wazi:')||'';
      await api('connections/'+p.id,{method:'POST',body:{token:tokenValue,default:defaultValue}});
      alert(p.name+' imeunganishwa. Token imehifadhiwa ikiwa imesimbwa kwa njia fiche.');
+     await loadPlugins();
+    }else if(p.kind==='fleet'){
+     if(p.enabled){
+      await api('plugins/mlimanifleet',{method:'DELETE'});
+      alert('Mlimani Fleet imetenganishwa na akaunti hii ya Mlimani AI.');
+     }else{
+      window.open('https://app.mlimani.net/ai-connect.html','_blank','noopener');
+      const tokenValue=prompt('Fungua ukurasa wa Fleet uliofunguka, tengeneza token ya Mlimani AI, kisha ibandike hapa:');
+      if(!tokenValue)return;
+      const result=await api('plugins/mlimanifleet/connect',{method:'POST',body:{token:tokenValue}});
+      alert(result.message||'Mlimani Fleet imeunganishwa.');
+     }
      await loadPlugins();
     }else if(p.kind==='composio'){
      const result=await api('plugins/'+p.id+'/connect',{method:'POST',body:{}});
@@ -290,11 +302,15 @@ function authUI(){$('#authT').textContent=reg?'Fungua akaunti':'Ingia';$('#an').
 $('#authBtn').onclick=()=>{if(me.loggedIn){token='';localStorage.removeItem('t');hist=[];save();botId=null;$('#botName').textContent='';$('#chatbox').innerHTML='';refresh();return}reg=false;authUI();$('#aerr').textContent='';$('#authD').showModal()};
 $('#aswap').onclick=()=>{reg=!reg;authUI()};
 $('#aok').onclick=async()=>{try{const d=await api(reg?'register':'login',{method:'POST',body:{login:$('#al').value,email:$('#ae').value,name:$('#an').value,password:$('#ap').value}});token=d.token;localStorage.t=token;$('#authD').close();refresh()}catch(e){$('#aerr').textContent=e.message}};
-function renderAcct(){const b=$('#acctbox');b.innerHTML='';if(!me.loggedIn){b.append(el('h2','','Akaunti'),el('p','','Ingia au fungua akaunti kuona mpango wako na kutumia boti, video na zaidi.'));const x=el('button','btn','Ingia / Jisajili');x.onclick=()=>$('#authBtn').click();b.append(x);return}
- b.append(el('h2','','Akaunti yangu'));const wc=me.walletCredits||{};const rows=[['Jina',me.name||'—'],['Simu/Barua pepe',me.phone||me.email||'—'],['Mpango',me.planName],['Mwisho wa mpango',me.expires?new Date(me.expires).toLocaleDateString('sw-TZ'):'—'],['Chat Wallet','TZS '+Number(me.creditLeft||0).toLocaleString('sw-TZ')],['Video Wallet',Number(wc.video||me.videoCredits||0).toLocaleString('sw-TZ')+' credits'],['Live Talk Wallet',Number(wc.live_talk||0).toLocaleString('sw-TZ')+' dakika'],['Matangazo Wallet',Number(wc.advertisement||0).toLocaleString('sw-TZ')+' credits'],['Chat zilizobaki leo',me.dailyLeft??'bila kikomo cha kila siku'],['Picha zilizobaki leo',me.imgLeft??'—']];
+function renderAcct(){
+ const b=$('#acctbox');b.innerHTML='';
+ if(!me.loggedIn){b.append(el('h2','','Akaunti'),el('p','','Ingia au fungua akaunti ili kutumia Wallet, video na plugins.'));const x=el('button','btn','Ingia / Jisajili');x.onclick=()=>$('#authBtn').click();b.append(x);return}
+ b.append(el('h2','','Akaunti yangu'));const wc=me.walletCredits||{};
+ const rows=[['Jina',me.name||'—'],['Simu/Barua pepe',me.phone||me.email||'—'],['Salio la Wallet','TZS '+Number(me.cashBalanceTzs||me.creditLeft||0).toLocaleString('sw-TZ')],['Chat zilizobaki bure leo',me.dailyLeft??'bila kikomo'],['Picha zilizobaki leo',me.imgLeft??'—'],['Credits za zamani za Video',Number(wc.video||me.videoCredits||0).toLocaleString('sw-TZ')],['Dakika za zamani za Live Talk',Number(wc.live_talk||0).toLocaleString('sw-TZ')]];
  rows.forEach(([k,v])=>{const r=el('div','row');r.append(el('span','',k),el('b','',v));b.appendChild(r)});
- (me.pending||[]).forEach(p=>b.appendChild(el('div','pend','⏳ Malipo ya mpango wa '+p.plan+' (muamala '+p.ref+') yanasubiri uthibitisho. Utaarifiwa mpango ukiwashwa.')));
- const up=el('button','btn','Pandisha mpango');up.style.marginTop='12px';up.onclick=()=>tab('plans');b.appendChild(up)}
+ (me.pending||[]).forEach(p=>b.appendChild(el('div','pend','⏳ Ombi la kuongeza salio TZS '+Number(p.amount_tzs||0).toLocaleString('sw-TZ')+' (muamala '+p.ref+') linasubiri uthibitisho.')));
+ const up=el('button','btn','Ongeza salio');up.style.marginTop='12px';up.onclick=()=>tab('plans');b.appendChild(up);
+}
 let editingBotId=null;
 async function loadBots(){const l=$('#botlist');if(!me.loggedIn){l.innerHTML='<div class="card">Ingia kwanza ili kuunda na kutumia boti.</div>';return}
  try{const bs=await api('bots');l.innerHTML='';if(!bs.length)l.innerHTML='<div class="card">Huna boti bado. Unda ya kwanza hapo juu (mipango ya kulipia).</div>';
@@ -304,13 +320,30 @@ async function loadBots(){const l=$('#botlist');if(!me.loggedIn){l.innerHTML='<d
   const x=el('button','btn ghost','Futa');x.onclick=async()=>{await api('bots/'+b.id,{method:'DELETE'});if(botId===b.id){botId=null;$('#botName').textContent=''}loadBots()};
   c.append(el('b','',b.name),p,u,' ',edit,' ',x);l.appendChild(c)})}catch(e){l.textContent=e.message}}
 $('#bcreate').onclick=async()=>{try{const editing=editingBotId!==null;await api(editing?'bots/'+editingBotId:'bots',{method:editing?'PUT':'POST',body:{name:$('#bn').value,prompt:$('#bp').value}});editingBotId=null;$('#bn').value=$('#bp').value='';$('#bcreate').textContent='Unda Boti';$('#berr').textContent=editing?'Mabadiliko yamehifadhiwa.':'';loadBots()}catch(e){$('#berr').textContent=e.message}};
-async function loadPlans(){const d=await api('plans');cfg=d;const {plans,payInfo}=d;const g=$('#plangrid');g.innerHTML='';const pi=$('#payinfo');pi.textContent=payInfo;
- const vc='Video (TZS '+d.videoCost.toLocaleString()+' kwa video, kutoka mkopo)';
- const feat={free:['Ujumbe wachache bure kila siku','Picha 2 kwa siku','Majibu mafupi'],kawaida:['Mkopo wa TZS 10,000 kila mwezi','Boti 1','Majibu marefu',vc],biashara:['Mkopo wa TZS 30,000 kila mwezi','Modeli bora zaidi','Boti 10','Majibu marefu sana',vc],kampuni:['Mkopo wa TZS 100,000 kila mwezi','Kwa timu na kampuni','Boti 50','Majibu marefu zaidi',vc]};
- for(const [k,p] of Object.entries(plans)){const c=el('div','card plan');c.append(el('h3','',p.name),el('div','p',p.price?`TZS ${p.price.toLocaleString()}/mwezi`:'Bure'));const u=el('ul');feat[k].forEach(f=>u.appendChild(el('li','',f)));c.appendChild(u);
-  if(p.price){const b=el('button','btn','Chagua');b.onclick=()=>{if(!me.loggedIn){$('#authBtn').click();return}payPlan=k;$('#payT').textContent='Lipia '+p.name;$('#payP').textContent=`${payInfo} — Kiasi: TZS ${p.price.toLocaleString()}`;$('#perr').textContent='';$('#payD').showModal()};c.appendChild(b)}
-  g.appendChild(c)}}
-$('#pok').onclick=async()=>{try{const d=await api('pay',{method:'POST',body:{plan:payPlan,phone:$('#ph').value,ref:$('#pr').value}});$('#payD').close();alert(d.message);refresh()}catch(e){$('#perr').textContent=e.message}};
+async function loadPlans(){
+ const d=await api('plans');cfg=d;const g=$('#plangrid'),pi=$('#payinfo');g.innerHTML='';
+ const rates=d.rates||{},fmt=v=>Number(v)>0?'TZS '+Number(v).toLocaleString('sw-TZ'):'Bei bado inaandaliwa';
+ const card=el('div','card plan');card.append(el('h3','','Pay As You Go'),el('div','p','Hakuna ada ya mwezi'));
+ const list=el('ul');
+ [
+  'Ongeza salio la TZS Wallet unapohitaji',
+  'AI Chat: '+(rates.chat||'Matumizi halisi ya tokens'),
+  'Video sekunde 5: '+fmt(rates.video5sTzs),
+  'Video sekunde 15: '+fmt(rates.video15sTzs),
+  'Tangazo sekunde 15: '+fmt(rates.advertisement15sTzs),
+  'Live Talk kwa dakika: '+fmt(rates.liveTalkMinuteTzs),
+  'Salio halina tarehe ya kuisha'
+ ].forEach(x=>list.appendChild(el('li','',x)));
+ card.appendChild(list);
+ const btn=el('button','btn','Ongeza salio');btn.onclick=()=>{
+  if(!me.loggedIn){$('#authBtn').click();return}
+  $('#payT').textContent='Ongeza salio la Wallet';
+  $('#payP').textContent=(d.payInfo||'')+' Kiasi: TZS 5,000 hadi 2,000,000. Admin atathibitisha muamala kabla salio halijaongezwa.';
+  $('#payAmount').value=10000;$('#perr').textContent='';$('#payD').showModal();
+ };card.appendChild(btn);g.appendChild(card);
+ pi.textContent='Mlimani AI hutumia mfumo wa PAYG: hakuna ada ya mwezi. '+(d.payInfo||'');
+}
+$('#pok').onclick=async()=>{try{const d=await api('wallet/topup',{method:'POST',body:{amountTzs:Number($('#payAmount').value),phone:$('#ph').value,ref:$('#pr').value}});$('#payD').close();alert(d.message);refresh();if($('#acct').classList.contains('on'))renderAcct()}catch(e){$('#perr').textContent=e.message}};
 $('#igo').onclick=async()=>{$('#ierr').textContent='';$('#iimg').style.display='none';$('#idl').style.display='none';$('#igo').disabled=true;$('#igo').textContent='Inatengeneza…';
  try{const d=await api('image',{method:'POST',body:{prompt:$('#ip').value}});$('#iimg').src=d.image;$('#iimg').style.display='block';$('#idl').href=d.image;$('#idl').style.display='inline-block';me=d.me;bar()}
  catch(e){$('#ierr').textContent=e.message;if(e.d?.me){me=e.d.me;bar()}}$('#igo').disabled=false;$('#igo').textContent='Tengeneza picha'};

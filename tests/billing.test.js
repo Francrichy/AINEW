@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import Database from 'better-sqlite3';
-import { initializeBilling, walletModeEnabled, walletAvailable, consumeWalletCredits } from '../billing.js';
+import { initializeBilling, walletModeEnabled, walletAvailable, consumeWalletCredits, cashWalletBalance, creditCashWallet } from '../billing.js';
 
 function setup() {
   const db = new Database(':memory:');
@@ -65,5 +65,19 @@ test('insufficient balance rolls back all partial deductions', () => {
   assert.throws(()=>consumeWalletCredits(db,1,'chat',8),/Salio la Wallet halitoshi/);
   assert.equal(walletAvailable(db,1,'chat'),7);
   assert.equal(db.prepare("SELECT COUNT(*) n FROM credits_ledger WHERE entry_type='usage_debit'").get().n,0);
+  db.close();
+});
+
+test('cash Wallet top-ups are idempotent and can be spent as TZS', () => {
+  const db=setup();
+  const first=creditCashWallet(db,1,12000,'cash-test-payment-1','test top-up');
+  const duplicate=creditCashWallet(db,1,12000,'cash-test-payment-1','duplicate');
+  assert.equal(first.credited,true);
+  assert.equal(duplicate.credited,false);
+  assert.equal(cashWalletBalance(db,1),12000);
+  const debit=consumeWalletCredits(db,1,'cash',2500,'chat test');
+  assert.equal(debit.consumed,2500);
+  assert.equal(cashWalletBalance(db,1),9500);
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM credits_ledger WHERE service='cash' AND entry_type='cash_topup'").get().n,1);
   db.close();
 });

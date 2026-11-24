@@ -9,7 +9,10 @@ const DEFAULT_PRICING = [
   ['advertisement_30', 'Advertisement 30s', 'advertisement', 'per_ad', 0, 250, 'credits', 'Bei ya majaribio; si bei rasmi'],
   ['image', 'Image', 'image', 'per_image', 0, 0, 'TZS', 'Gharama na bei bado hazijathibitishwa'],
   ['markup_multiplier', 'Chat markup multiplier', 'billing', 'multiplier', 0, 4, 'x', 'Minimum x4; badili baada ya kuthibitisha gharama'],
-  ['usd_tzs', 'USD/TZS exchange rate', 'billing', 'exchange_rate', 0, 2600, 'TZS/USD', 'Weka kiwango cha sasa cha kubadilisha USD kwenda TZS']
+  ['usd_tzs', 'USD/TZS exchange rate', 'billing', 'exchange_rate', 0, 2600, 'TZS/USD', 'Weka kiwango cha sasa cha kubadilisha USD kwenda TZS'],
+  ['video_5s_tzs', 'Video ya sekunde 5', 'video', 'per_5_seconds', 0, 0, 'TZS', 'Bei ya mteja kwa kila sekunde 5; weka baada ya kuthibitisha gharama.'],
+  ['live_talk_minute_tzs', 'Live Talk kwa dakika', 'live_talk', 'per_minute', 0, 0, 'TZS', 'Bei ya mteja kwa dakika moja; weka baada ya kuthibitisha gharama.'],
+  ['advertisement_15_tzs', 'Tangazo la sekunde 15', 'advertisement', 'per_ad', 0, 0, 'TZS', 'Bei ya mteja kwa tangazo la sekunde 15; weka baada ya kuthibitisha gharama.']
 ];
 
 const DEFAULT_PLANS = [
@@ -110,6 +113,32 @@ export function walletModeEnabled(db, userId, service) {
   return !!db.prepare("SELECT 1 FROM credits_ledger WHERE user_id=? AND service=? AND entry_type='subscription_credit' LIMIT 1").get(userId, service);
 }
 
+export function cashWalletBalance(db, userId) {
+  return walletAvailable(db, userId, 'cash');
+}
+
+export function creditCashWallet(db, userId, amount, reference, description = 'Kuongeza salio la Wallet') {
+  const value = Number(amount);
+  const ref = String(reference || '').trim();
+  if (!Number.isFinite(value) || value <= 0 || !ref) throw new Error('Kiasi au kumbukumbu ya malipo si sahihi.');
+  const tx = db.transaction(() => {
+    const existing = db.prepare('SELECT id,balance_after FROM credits_ledger WHERE reference=?').get(ref);
+    if (existing) return { credited: false, balance: cashWalletBalance(db, userId), ledgerId: existing.id };
+    const now = Date.now();
+    const row = db.prepare("SELECT balance FROM wallet_balances WHERE user_id=? AND service='cash' AND bucket='purchased'").get(userId);
+    const balance = Math.max(0, Number(row?.balance) || 0) + value;
+    db.prepare(`INSERT INTO wallet_balances(user_id,service,bucket,balance,expires_at,updated_at)
+      VALUES(?,'cash','purchased',?,NULL,?)
+      ON CONFLICT(user_id,service,bucket) DO UPDATE SET balance=excluded.balance,expires_at=NULL,updated_at=excluded.updated_at`)
+      .run(userId, balance, now);
+    const result = db.prepare(`INSERT INTO credits_ledger(user_id,service,bucket,entry_type,amount,balance_after,reference,description,created_at)
+      VALUES(?,'cash','purchased','cash_topup',?,?,?,?,?)`)
+      .run(userId, value, balance, ref, String(description).slice(0,300), now);
+    return { credited: true, balance, ledgerId: Number(result.lastInsertRowid) };
+  });
+  return tx();
+}
+
 export function walletAvailable(db, userId, service) {
   const now = Date.now();
   const rows = db.prepare("SELECT bucket,balance,expires_at FROM wallet_balances WHERE user_id=? AND service=?").all(userId, service);
@@ -157,7 +186,7 @@ export function registerBillingRoutes(app, { db, need, admin, plans: runtimePlan
   const router = express.Router();
   router.get('/wallet', need, (req, res) => {
     const balances = db.prepare('SELECT service,bucket,balance,expires_at,updated_at FROM wallet_balances WHERE user_id=? ORDER BY service,bucket').all(req.user.id);
-    res.json({ balances });
+    res.json({ balances, cashBalanceTzs: cashWalletBalance(db, req.user.id) });
   });
   router.get('/wallet/ledger', need, (req, res) => {
     const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 30));
