@@ -231,7 +231,11 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
     const configuredAvatarId = env['LIVEAVATAR_' + character.toUpperCase() + '_AVATAR_ID'] || '';
     const production = Boolean(configuredAvatarId);
     let maxSessionDuration = production ? 180 : 60;
-    const billLiveTalk = production && walletModeEnabled(db, req.user.id, 'live_talk');
+    const walletAccountEnabled = ['chat','video','live_talk','advertisement'].some(service => walletModeEnabled(db, req.user.id, service));
+    const billLiveTalk = production && walletAccountEnabled;
+    if (billLiveTalk && !walletModeEnabled(db, req.user.id, 'live_talk')) {
+      return res.status(402).json({ error: 'Live Talk haijawekewa dakika za credits kwenye mpango wako. Wasiliana na Admin kabla ya kuanza kikao cha avatar.' });
+    }
     if (billLiveTalk) {
       const availableMinutes = Math.floor(walletAvailable(db, req.user.id, 'live_talk'));
       if (availableMinutes < 1) return res.status(402).json({ error: 'Salio la Live Talk Wallet limeisha. Ongeza angalau dakika moja ya credits.' });
