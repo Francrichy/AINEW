@@ -117,6 +117,9 @@ app.use((req, _res, next) => {
   next();
 });
 const need = (req, res, next) => req.user ? next() : res.status(401).json({ error: 'Tafadhali ingia kwanza.' });
+const pluginTestAllowed = user => String(user?.email || '').trim().toLowerCase() === 'francrichy@gmail.com';
+const requirePluginTest = (req,res,next) => pluginTestAllowed(req.user) ? next() : res.status(403).json({ error: 'Plugins zipo kwenye majaribio ya ndani ya Mlimani Labs kwa sasa.' });
+
 
 const LIVEAVATAR_API = 'https://api.liveavatar.com';
 const LIVEAVATAR_SANDBOX_AVATAR = 'dd73ea75-1218-4ef3-92ce-606d5f7fbc0a';
@@ -854,6 +857,7 @@ async function cxTool(cfg, slug) {
 }
 async function cxExec(uid, t, args) {
   const user = db.prepare('select plan from users where id=?').get(uid);
+  if (!pluginTestAllowed(user)) throw new Error('Plugins zipo kwenye majaribio ya ndani ya Mlimani Labs kwa sasa.');
   const month = new Date().toISOString().slice(0, 7);
   if (user?.plan === 'free') {
     if (!CX_FREE_IDS.has(t.plugin)) throw new Error('Plugin hii si sehemu ya huduma za bure. Badili kwenda mpango wa kulipia.');
@@ -870,6 +874,7 @@ async function cxExec(uid, t, args) {
   return j.data;
 }
 async function activeTools(u) {
+  if (!pluginTestAllowed(u)) return { specs: [], notes: ['Plugins zipo kwenye majaribio ya ndani tu.'] };
   const specs = [], notes = [], seen = new Set(); const add = (n, t) => { if (!seen.has(n)) { seen.add(n); specs.push(specOf(n, t)); } };
   for (const r of db.prepare('select provider,meta from connections where user_id=?').all(u.id)) {
     const m = JSON.parse(r.meta || '{}');
@@ -882,7 +887,7 @@ async function activeTools(u) {
   return { specs, notes };
 }
 
-app.get('/api/plugins', need, (req, res) => {
+app.get('/api/plugins', need, requirePluginTest, (req, res) => {
   const u = req.user, conns = new Map(db.prepare('select provider,meta from connections where user_id=?').all(u.id).map(r => [r.provider, JSON.parse(r.meta || '{}')]));
   const on = new Set(db.prepare('select plugin_id from plugin_prefs where user_id=? and enabled=1').all(u.id).map(r => r.plugin_id));
   res.json({ categories: CATS, plugins: fullCatalog().map(p => {
@@ -893,12 +898,12 @@ app.get('/api/plugins', need, (req, res) => {
       enabled: p.kind === 'builtin' ? on.has(p.id) : p.kind === 'fleet' ? !!c && c.status === 'active' && Number(c.expiresAt) > Date.now() : !!c && (c.status ? c.status === 'active' : true), pending: p.kind === 'composio' && c?.status === 'pending', meta: c || null };
   }) });
 });
-app.post('/api/plugins/:id/toggle', need, (req, res) => {
+app.post('/api/plugins/:id/toggle', need, requirePluginTest, (req, res) => {
   const p = CATALOG.find(x => x.id === req.params.id && x.kind === 'builtin'); if (!p) return res.status(404).json({ error: 'Plugin haipo.' });
   if (!BUILTIN_PLANS.includes(req.user.plan)) return res.status(403).json({ error: 'Plugins zinahitaji mpango wa kulipia.' });
   db.prepare('insert into plugin_prefs(user_id,plugin_id,enabled) values(?,?,?) on conflict(user_id,plugin_id) do update set enabled=excluded.enabled').run(req.user.id, p.id, req.body?.enabled ? 1 : 0); res.json({ ok: 1 });
 });
-app.post('/api/plugins/mlimanifleet/connect', need, async (req, res) => {
+app.post('/api/plugins/mlimanifleet/connect', need, requirePluginTest, async (req, res) => {
   const token = String(req.body?.token || '').trim();
   if (token.length < 40 || token.length > 5000) return res.status(400).json({ error: 'Token ya Mlimani Fleet si sahihi.' });
   try {
@@ -928,11 +933,11 @@ app.post('/api/plugins/mlimanifleet/connect', need, async (req, res) => {
     res.status(400).json({ error: error.status ? error.message : (error.message || 'Imeshindikana kuunganisha Mlimani Fleet.') });
   }
 });
-app.delete('/api/plugins/mlimanifleet', need, (req, res) => {
+app.delete('/api/plugins/mlimanifleet', need, requirePluginTest, (req, res) => {
   db.prepare("DELETE FROM connections WHERE user_id=? AND provider='mlimanifleet'").run(req.user.id);
   res.json({ ok:true });
 });
-app.post('/api/plugins/:id/connect', need, async (req, res) => {   // Composio: tengeneza kiungo cha kuunganisha akaunti
+app.post('/api/plugins/:id/connect', need, requirePluginTest, async (req, res) => {   // Composio: tengeneza kiungo cha kuunganisha akaunti
   const cfg = cxConfig(req.params.id); if (!cfg) return res.status(404).json({ error: 'Plugin hii bado haijawezeshwa.' });
   if (!CX_PLANS.includes(req.user.plan) || (req.user.plan === 'free' && !CX_FREE_IDS.has(cfg.id))) return res.status(403).json({ error: 'Plugin hii inahitaji mpango wa kulipia.' });
   try {
@@ -944,7 +949,7 @@ app.post('/api/plugins/:id/connect', need, async (req, res) => {   // Composio: 
     res.json({ url: j.redirect_url });
   } catch (e) { res.status(e.status || 502).json({ error: e.status ? e.message : 'Imeshindwa kuanzisha muunganisho. Jaribu tena.' }); }
 });
-app.post('/api/plugins/:id/verify', need, async (req, res) => {
+app.post('/api/plugins/:id/verify', need, requirePluginTest, async (req, res) => {
   const cfg = cxConfig(req.params.id), row = cfg && db.prepare('select * from connections where user_id=? and provider=?').get(req.user.id, 'cx:' + cfg.id);
   if (!row) return res.status(404).json({ error: 'Hakuna muunganisho unaosubiri.' });
   try {
