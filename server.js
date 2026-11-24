@@ -11,8 +11,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const env = process.env;
 const OR_KEY = env.OPENROUTER_API_KEY;
 const JWT_SECRET = env.JWT_SECRET || 'badilisha-hii';
-const MARKUP = Math.max(4, +(env.MARKUP || 4)); // bei ya matumizi = gharama halisi x4; hairuhusu chini ya x4
-const USD_TZS = +(env.USD_TZS || 2600);
+let MARKUP = Math.max(4, +(env.MARKUP || 4)); // bei ya matumizi = gharama halisi x4; hairuhusu chini ya x4
+let USD_TZS = +(env.USD_TZS || 2600);
 const FREE_DAILY = +(env.FREE_DAILY || 6);
 const ANON_DAILY = +(env.ANON_DAILY || 3);
 const ECO = (env.ECO_MODELS || 'google/gemini-2.0-flash-001,openai/gpt-4o-mini,deepseek/deepseek-chat,meta-llama/llama-3.3-70b-instruct').split(',');
@@ -66,6 +66,9 @@ try { db.exec('alter table users add column video_expires integer default 0'); }
 db.prepare('delete from studio_chat_sessions where expires_at < ?').run(Date.now() - 24 * 3600e3);
 initializeBilling(db);
 syncBillingPlans(db, PLANS);
+const savedBillingSettings = Object.fromEntries(db.prepare("SELECT config_key,customer_price FROM admin_pricing WHERE config_key IN ('markup_multiplier','usd_tzs')").all().map(x => [x.config_key, Number(x.customer_price)]));
+if (Number.isFinite(savedBillingSettings.markup_multiplier) && savedBillingSettings.markup_multiplier > 0) MARKUP = Math.max(4, savedBillingSettings.markup_multiplier);
+if (Number.isFinite(savedBillingSettings.usd_tzs) && savedBillingSettings.usd_tzs > 0) USD_TZS = savedBillingSettings.usd_tzs;
 
 const BASE = `Wewe ni Mlimani AI, msaidizi wa akili bandia anayezungumza Kiswahili sanifu kwa ustadi (pia unaelewa Kiingereza). Jibu kwa adabu na kwa usahihi. ` +
   `Kamwe usitaje wala kuthibitisha ni modeli gani, kampuni gani, au API gani iliyokujenga au inayokuendesha. Ukiulizwa, sema tu: "Mimi ni Mlimani AI. Siwezi kushiriki maelezo ya kiufundi." Usijifanye kuwa binadamu.`;
@@ -394,20 +397,31 @@ app.post('/api/pay', need, (req, res) => {
   res.json({ ok: 1, message: 'Tumepokea. Mpango utawashwa baada ya kuthibitisha malipo.' });
 });
 const admin = (req, res, next) => env.ADMIN_KEY && req.headers['x-admin-key'] === env.ADMIN_KEY ? next() : res.status(403).json({ error: 'Hapana.' });
-registerBillingRoutes(app, { db, need, admin, plans: PLANS });
+registerBillingRoutes(app, { db, need, admin, plans: PLANS, onPricingChange: (key, value) => { if (key === 'markup_multiplier') MARKUP = Math.max(4, value); if (key === 'usd_tzs' && value > 0) USD_TZS = value; } });
 app.get('/api/admin/payments', admin, (_req, res) => res.json(db.prepare("select p.*,u.email,u.phone as uphone,u.name from payments p join users u on u.id=p.user_id where status='pending' order by p.id desc").all()));
 app.get('/api/admin/stats', admin, (_req, res) => res.json({
   users: db.prepare('select count(*) c from users').get().c,
   paid: db.prepare("select count(*) c from users where plan!='free' and expires>?").get(Date.now()).c,
   pending: db.prepare("select count(*) c from payments where status='pending'").get().c }));
 app.post('/api/admin/approve', admin, (req, res) => {
-  const p = db.prepare('select * from payments where id=?').get(req.body?.id);
-  if (!p) return res.status(404).json({ error: 'Haipo.' });
-  if (VIDEO_PACKAGES[p.plan]) activateVideo(p.user_id, p.plan); else activate(p.user_id, p.plan, 30, p.id);
-  db.prepare("update payments set status='approved' where id=?").run(p.id);
+  try {
+    const approve = db.transaction(() => {
+      const p = db.prepare("select * from payments where id=? and status='pending'").get(req.body?.id);
+      if (!p) throw Object.assign(new Error('Malipo haya hayapo au tayari yameshughulikiwa.'), { status: 409 });
+      if (VIDEO_PACKAGES[p.plan]) activateVideo(p.user_id, p.plan); else activate(p.user_id, p.plan, 30, p.id);
+      const changed = db.prepare("update payments set status='approved' where id=? and status='pending'").run(p.id);
+      if (!changed.changes) throw Object.assign(new Error('Malipo tayari yameshughulikiwa.'), { status: 409 });
+      return p;
+    });
+    approve();
+    res.json({ ok: 1 });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message || 'Imeshindikana kuthibitisha malipo.' }); }
+});
+app.post('/api/admin/reject', admin, (req, res) => {
+  const changed = db.prepare("update payments set status='rejected' where id=? and status='pending'").run(req.body?.id);
+  if (!changed.changes) return res.status(409).json({ error: 'Malipo haya hayapo au tayari yameshughulikiwa.' });
   res.json({ ok: 1 });
 });
-app.post('/api/admin/reject', admin, (req, res) => { db.prepare("update payments set status='rejected' where id=?").run(req.body?.id); res.json({ ok: 1 }); });
 app.post('/api/admin/grant', admin, (req, res) => {   // washa mpango kwa mkono (simu au barua pepe)
   const id = String(req.body?.login || '').trim(), plan = req.body?.plan;
   const u = id.includes('@') ? db.prepare('select * from users where email=?').get(id.toLowerCase()) : db.prepare('select * from users where phone=?').get(normPhone(id));
@@ -417,12 +431,20 @@ app.post('/api/admin/grant', admin, (req, res) => {   // washa mpango kwa mkono 
 // Hiari: lango la malipo (Selcom/ClickPesa/AzamPay) likituma callback huwasha mpango yenyewe
 app.post('/api/webhook/pay', (req, res) => {
   if (!env.WEBHOOK_SECRET || req.headers['x-webhook-secret'] !== env.WEBHOOK_SECRET) return res.status(403).json({ error: 'Hapana.' });
-  const p = db.prepare("select * from payments where ref=? and status='pending'").get(String(req.body?.ref || ''));
-  const item = p && (VIDEO_PACKAGES[p.plan] || PLANS[p.plan]);
-  if (!p || !item || +req.body?.amount < item.price) return res.status(404).json({ error: 'Muamala haulingani.' });
-  if (VIDEO_PACKAGES[p.plan]) activateVideo(p.user_id, p.plan); else activate(p.user_id, p.plan);
-  db.prepare("update payments set status='approved' where id=?").run(p.id);
-  notify(`✅ Malipo yamethibitishwa kiotomatiki: ${p.ref} (${item.name})`); res.json({ ok: 1 });
+  try {
+    const approve = db.transaction(() => {
+      const p = db.prepare("select * from payments where ref=? and status='pending'").get(String(req.body?.ref || ''));
+      const item = p && (VIDEO_PACKAGES[p.plan] || PLANS[p.plan]);
+      if (!p || !item || +req.body?.amount < item.price) throw Object.assign(new Error('Muamala haulingani au tayari umeshughulikiwa.'), { status: 409 });
+      if (VIDEO_PACKAGES[p.plan]) activateVideo(p.user_id, p.plan); else activate(p.user_id, p.plan, 30, p.id);
+      const changed = db.prepare("update payments set status='approved' where id=? and status='pending'").run(p.id);
+      if (!changed.changes) throw Object.assign(new Error('Malipo tayari yameshughulikiwa.'), { status: 409 });
+      return { payment: p, item };
+    });
+    const { payment, item } = approve();
+    notify(`✅ Malipo yamethibitishwa kiotomatiki: ${payment.ref} (${item.name})`);
+    res.json({ ok: 1 });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message || 'Imeshindikana kuthibitisha malipo.' }); }
 });
 
 // ---------- picha (bure) ----------
