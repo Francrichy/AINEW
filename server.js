@@ -688,8 +688,8 @@ app.post('/api/studio/uploads/presign', need, async (req, res) => {
   const projectId = randomUUID();
   const storageKey = studioPrefix(req.user.id) + 'assets/' + projectId + '/' + filename;
   try {
-    const uploadUrl = await getSignedUrl(studioS3, new PutObjectCommand({ Bucket: R2_BUCKET, Key: storageKey, ContentType: contentType, ContentLength: sizeBytes, Metadata: { owner: String(req.user.id), project: projectId } }), { expiresIn: 900 });
-    res.json({ projectId, storageKey, uploadUrl, headers: { 'Content-Type': contentType }, expiresIn: 900 });
+    const uploadUrl = await getSignedUrl(studioS3, new PutObjectCommand({ Bucket: R2_BUCKET, Key: storageKey, ContentType: contentType, Metadata: { owner: String(req.user.id), project: projectId, 'expected-size': String(sizeBytes) } }), { expiresIn: 900 });
+    res.json({ projectId, storageKey, uploadUrl, headers: { 'Content-Type': contentType, 'x-amz-meta-owner': String(req.user.id), 'x-amz-meta-project': projectId, 'x-amz-meta-expected-size': String(sizeBytes) }, expiresIn: 900 });
   } catch (error) { console.error('Studio upload presign:', error.message); res.status(502).json({ error: 'Imeshindikana kuandaa upload salama.' }); }
 });
 app.post('/api/studio/projects/complete', need, async (req, res) => {
@@ -700,6 +700,7 @@ app.post('/api/studio/projects/complete', need, async (req, res) => {
   try {
     const head = await studioS3.send(new HeadObjectCommand({ Bucket: R2_BUCKET, Key: storageKey }));
     if (String(head.Metadata?.owner || '') !== String(req.user.id) || String(head.Metadata?.project || '') !== projectId) return res.status(403).json({ error: 'Faili hili halimilikiwi na akaunti hii.' });
+    if (Number(head.ContentLength || 0) > 1024 * 1024 * 1024 || Number(head.ContentLength || 0) !== Number(head.Metadata?.['expected-size'] || -1)) { await studioS3.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: storageKey })); return res.status(413).json({ error: 'Ukubwa wa faili hauendani na ombi au unazidi GB 1. Faili limeondolewa.' }); }
     const project = {
       id: projectId, ownerId: req.user.id, title: String(req.body?.title || 'Studio project').trim().slice(0,120),
       type: ['video','music','film','voice','image'].includes(req.body?.type) ? req.body.type : 'video',
