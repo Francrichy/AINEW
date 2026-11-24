@@ -611,7 +611,30 @@ app.post('/v1/chat', async (req, res) => {
 
 // ---------- video (kulipia, inakata mkopo) ----------
 const jobs = new Map();
-setInterval(() => { for (const [k, j] of jobs) if (Date.now() - j.t > 15 * 60e3) jobs.delete(k); }, 60e3);
+const videoReferenceImages = new Map();
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, j] of jobs) if (now - j.t > 15 * 60e3) jobs.delete(k);
+  for (const [k, image] of videoReferenceImages) if (image.expiresAt <= now) videoReferenceImages.delete(k);
+}, 60e3);
+app.post('/api/video/reference', express.raw({ type: ['image/jpeg','image/png','image/webp'], limit: '5mb' }), need, (req, res) => {
+  const contentType = String(req.headers['content-type'] || '').split(';')[0].toLowerCase();
+  if (!Buffer.isBuffer(req.body) || !req.body.length) return res.status(400).json({ error: 'Chagua picha ya bidhaa kwanza.' });
+  if (!['image/jpeg','image/png','image/webp'].includes(contentType)) return res.status(415).json({ error: 'Picha lazima iwe JPG, PNG au WEBP.' });
+  if (req.body.length > 5 * 1024 * 1024) return res.status(413).json({ error: 'Picha isizidi MB 5.' });
+  const id = randomUUID(), expiresAt = Date.now() + 10 * 60e3;
+  videoReferenceImages.set(id, { userId: req.user.id, buffer: req.body, contentType, expiresAt });
+  res.json({ referenceId: id, expiresAt });
+});
+// Pollinations fetches this short-lived, unguessable URL as a reference image.
+app.get('/api/video/reference/:id', (req, res) => {
+  const image = videoReferenceImages.get(String(req.params.id || ''));
+  if (!image || image.expiresAt <= Date.now()) {
+    videoReferenceImages.delete(String(req.params.id || ''));
+    return res.status(404).end();
+  }
+  res.set('Cache-Control', 'no-store, max-age=0').type(image.contentType).send(image.buffer);
+});
 app.post('/api/video', need, (req, res) => {
   const u = req.user, plan = PLANS[u.plan];
   const duration = Number(req.body?.duration || 5);
@@ -628,6 +651,11 @@ app.post('/api/video', need, (req, res) => {
     return res.status(403).json({ error: walletAd ? 'Salio la Matangazo halitoshi. Ongeza advertisement credits.' : 'Huna salio la kutosha la Video. Video ya sekunde 15 hutumia credits 3.' });
   }
   if (!PK) return res.status(500).json({ error: 'Huduma ya video haijawekwa bado.' });
+  const referenceId = String(req.body?.referenceId || '');
+  const referenceImage = referenceId ? videoReferenceImages.get(referenceId) : null;
+  if (referenceId && (!referenceImage || referenceImage.userId !== u.id || referenceImage.expiresAt <= Date.now())) return res.status(400).json({ error: 'Picha ya bidhaa imeisha muda. Chagua picha tena.' });
+  if (referenceId && (duration !== 15 || purpose !== 'advertisement')) return res.status(400).json({ error: 'Picha ya bidhaa inatumika kwenye tangazo la sekunde 15 pekee.' });
+  const referenceUrl = referenceImage ? (env.PUBLIC_BASE_URL || (req.protocol + '://' + req.get('host'))) + '/api/video/reference/' + referenceId : null;
   const raw = String(req.body?.prompt || '').trim().slice(0, 1600);
   if (raw.length < 3) return res.status(400).json({ error: 'Eleza video unayotaka.' });
   if (BAD.test(raw)) return res.status(400).json({ error: 'Maelezo haya hayaruhusiwi.' });
@@ -640,7 +668,8 @@ app.post('/api/video', need, (req, res) => {
     try {
       const en = raw; // Preserve the customer-approved spoken script and its selected language.
       const model = duration === 15 ? (env.VIDEO_MODEL_15S || 'bytedance/seedance-2.0') : (env.VIDEO_MODEL || 'seedance');
-      const r = await fetch(`https://gen.pollinations.ai/video/${encodeURIComponent(en)}?model=${encodeURIComponent(model)}&duration=${duration}&aspectRatio=${encodeURIComponent(aspectRatio)}&audio=${duration === 15 ? 'true' : 'false'}&nologo=true`, { headers: { Authorization: `Bearer ${PK}` }, signal: AbortSignal.timeout(290000) });
+      const referenceParam = referenceUrl ? '&reference_images=' + encodeURIComponent(referenceUrl) : '';
+      const r = await fetch(`https://gen.pollinations.ai/video/${encodeURIComponent(en)}?model=${encodeURIComponent(model)}&duration=${duration}&aspectRatio=${encodeURIComponent(aspectRatio)}&audio=${duration === 15 ? 'true' : 'false'}${referenceParam}&nologo=true`, { headers: { Authorization: `Bearer ${PK}` }, signal: AbortSignal.timeout(290000) });
       const ct = r.headers.get('content-type') || '';
       if (!r.ok || !ct.startsWith('video/')) throw new Error('video imeshindwa ' + r.status);
       job.buf = Buffer.from(await r.arrayBuffer()); job.ct = ct;
@@ -650,6 +679,7 @@ app.post('/api/video', need, (req, res) => {
       else db.prepare('update users set video_credits=case when video_credits>=? then video_credits-? else 0 end where id=?').run(creditsRequired, creditsRequired, u.id);
       job.status = 'done';
     } catch (e) { job.status = 'error'; bump(k, -1); console.error('video error:', e.message); }
+    finally { if (referenceId) videoReferenceImages.delete(referenceId); }
   })();
   res.json({
     id, duration, creditsRequired, purpose,
