@@ -624,7 +624,7 @@ app.post('/api/video', need, (req, res) => {
     return res.status(403).json({ error: walletAd ? 'Salio la Matangazo halitoshi. Ongeza advertisement credits.' : 'Huna salio la kutosha la Video. Video ya sekunde 15 hutumia credits 3.' });
   }
   if (!PK) return res.status(500).json({ error: 'Huduma ya video haijawekwa bado.' });
-  const raw = String(req.body?.prompt || '').trim().slice(0, 400);
+  const raw = String(req.body?.prompt || '').trim().slice(0, 1600);
   if (raw.length < 3) return res.status(400).json({ error: 'Eleza video unayotaka.' });
   if (BAD.test(raw)) return res.status(400).json({ error: 'Maelezo haya hayaruhusiwi.' });
   if ([...jobs.values()].some(j => j.uid === u.id && j.status === 'working')) return res.status(429).json({ error: 'Subiri video ya kwanza imalizike.' });
