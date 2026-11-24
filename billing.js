@@ -1,12 +1,13 @@
 import express from 'express';
+import { randomUUID } from 'crypto';
 
 const DEFAULT_PRICING = [
-  ['chat', 'Chat', 'per_1000_tokens', 0, 0, 'TZS', 'Gharama na bei bado hazijathibitishwa'],
-  ['video', 'Video', 'per_video_5s', 0, 0, 'TZS', 'Gharama na bei bado hazijathibitishwa'],
-  ['live_talk', 'Live Talk', 'per_minute', 0, 0, 'TZS', 'Gharama na bei bado hazijathibitishwa'],
-  ['advertisement_15', 'Advertisement 15s', 'per_ad', 0, 150, 'credits', 'Bei ya majaribio; si bei rasmi'],
-  ['advertisement_30', 'Advertisement 30s', 'per_ad', 0, 250, 'credits', 'Bei ya majaribio; si bei rasmi'],
-  ['image', 'Image', 'per_image', 0, 0, 'TZS', 'Gharama na bei bado hazijathibitishwa']
+  ['chat', 'Chat', 'chat', 'per_1000_tokens', 0, 0, 'TZS', 'Gharama na bei bado hazijathibitishwa'],
+  ['video', 'Video', 'video', 'per_video_5s', 0, 0, 'TZS', 'Gharama na bei bado hazijathibitishwa'],
+  ['live_talk', 'Live Talk', 'live_talk', 'per_minute', 0, 0, 'TZS', 'Gharama na bei bado hazijathibitishwa'],
+  ['advertisement_15', 'Advertisement 15s', 'advertisement', 'per_ad', 0, 150, 'credits', 'Bei ya majaribio; si bei rasmi'],
+  ['advertisement_30', 'Advertisement 30s', 'advertisement', 'per_ad', 0, 250, 'credits', 'Bei ya majaribio; si bei rasmi'],
+  ['image', 'Image', 'image', 'per_image', 0, 0, 'TZS', 'Gharama na bei bado hazijathibitishwa']
 ];
 
 const DEFAULT_PLANS = [
