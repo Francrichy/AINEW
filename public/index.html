@@ -230,7 +230,7 @@ async function loadPlugins(){
  grid.innerHTML='';cats.innerHTML='';err.textContent='';
  if(!me.loggedIn){grid.appendChild(el('div','card','Ingia kwanza ili kuona na kusimamia plugins zako.'));return}
  try{
-  const d=await api('plugins');pluginData=d.plugins||[];$('#pluginFreeInfo').textContent='Composio Free: matumizi '+d.freeComposioUsed+'/'+d.freeComposioLimit+' kwa mwezi · yaliyobaki '+d.freeComposioRemaining+'. Kikomo cha pamoja cha Mlimani pia kipo ili kuzuia gharama za ziada.';
+  const d=await api('plugins');pluginData=d.plugins||[];$('#pluginFreeInfo').textContent='Baadhi ya plugins zinapatikana bure kwa matumizi yenye kikomo cha kila mwezi.';
   const options=[['all','Zote'],...(d.categories||[])];
   options.forEach(([id,label])=>{const b=el('button',pluginCategory===id?'on':'',label);b.onclick=()=>{pluginCategory=id;renderPlugins(d.categories||[])};cats.appendChild(b)});
   renderPlugins(d.categories||[]);
