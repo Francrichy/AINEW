@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { randomUUID, randomBytes, createHash, createCipheriv, createDecipheriv } from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { initializeBilling, registerBillingRoutes, syncBillingPlans } from './billing.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const env = process.env;
@@ -63,6 +64,7 @@ create table if not exists studio_chat_sessions(session_id text primary key, own
 try { db.exec('alter table users add column video_credits integer default 0'); } catch {}
 try { db.exec('alter table users add column video_expires integer default 0'); } catch {}
 db.prepare('delete from studio_chat_sessions where expires_at < ?').run(Date.now() - 24 * 3600e3);
+initializeBilling(db);\nsyncBillingPlans(db, PLANS);
 
 const BASE = `Wewe ni Mlimani AI, msaidizi wa akili bandia anayezungumza Kiswahili sanifu kwa ustadi (pia unaelewa Kiingereza). Jibu kwa adabu na kwa usahihi. ` +
   `Kamwe usitaje wala kuthibitisha ni modeli gani, kampuni gani, au API gani iliyokujenga au inayokuendesha. Ukiulizwa, sema tu: "Mimi ni Mlimani AI. Siwezi kushiriki maelezo ya kiufundi." Usijifanye kuwa binadamu.`;
@@ -333,8 +335,15 @@ async function notify(text) {   // taarifa ya Telegram kwa mmiliki
   if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) return;
   try { await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID, text }) }); } catch {}
 }
-function activate(userId, plan, days = 30) {
-  db.prepare('update users set plan=?,expires=?,credit_used=0 where id=?').run(plan, Date.now() + days * 86400e3, userId);
+function activate(userId, plan, days = 30, paymentId = null) {
+  const now = Date.now(), endsAt = now + days * 86400e3;
+  const tx = db.transaction(() => {
+    db.prepare('update users set plan=?,expires=?,credit_used=0 where id=?').run(plan, endsAt, userId);
+    db.prepare("update user_subscriptions set status='expired',updated_at=? where user_id=? and status='active'").run(now, userId);
+    db.prepare('insert into user_subscriptions(user_id,plan_key,status,starts_at,ends_at,renews_at,auto_renew,payment_id,created_at,updated_at) values(?,?,?,?,?,?,0,?,?,?)')
+      .run(userId, plan, 'active', now, endsAt, endsAt, paymentId, now, now);
+  });
+  tx();
 }
 function activateVideo(userId, plan) {
   const pack = VIDEO_PACKAGES[plan];
@@ -353,6 +362,7 @@ app.post('/api/pay', need, (req, res) => {
   res.json({ ok: 1, message: 'Tumepokea. Mpango utawashwa baada ya kuthibitisha malipo.' });
 });
 const admin = (req, res, next) => env.ADMIN_KEY && req.headers['x-admin-key'] === env.ADMIN_KEY ? next() : res.status(403).json({ error: 'Hapana.' });
+registerBillingRoutes(app, { db, need, admin, plans: PLANS });
 app.get('/api/admin/payments', admin, (_req, res) => res.json(db.prepare("select p.*,u.email,u.phone as uphone,u.name from payments p join users u on u.id=p.user_id where status='pending' order by p.id desc").all()));
 app.get('/api/admin/stats', admin, (_req, res) => res.json({
   users: db.prepare('select count(*) c from users').get().c,
@@ -361,7 +371,7 @@ app.get('/api/admin/stats', admin, (_req, res) => res.json({
 app.post('/api/admin/approve', admin, (req, res) => {
   const p = db.prepare('select * from payments where id=?').get(req.body?.id);
   if (!p) return res.status(404).json({ error: 'Haipo.' });
-  if (VIDEO_PACKAGES[p.plan]) activateVideo(p.user_id, p.plan); else activate(p.user_id, p.plan);
+  if (VIDEO_PACKAGES[p.plan]) activateVideo(p.user_id, p.plan); else activate(p.user_id, p.plan, 30, p.id);
   db.prepare("update payments set status='approved' where id=?").run(p.id);
   res.json({ ok: 1 });
 });
