@@ -389,7 +389,15 @@ app.post('/api/login', (req, res) => {
   res.json({ token: sign(u) });
 });
 app.get('/api/me', (req, res) => res.json(meInfo(req)));
-app.get('/api/plans', (_req, res) => res.json({ payAsYouGo: true, minTopupTzs: 5000, maxTopupTzs: 2000000, payInfo: env.PAY_INFO || 'Tuma malipo kwa maelekezo ya Mlimani.' }));
+app.get('/api/plans', (_req, res) => {
+  const price = key => Number(db.prepare('SELECT customer_price FROM admin_pricing WHERE config_key=?').get(key)?.customer_price || 0);
+  const video5sTzs = price('video_5s_tzs'), ad15sTzs = price('advertisement_15_tzs') || video5sTzs * 3;
+  res.json({
+    payAsYouGo:true, minTopupTzs:5000, maxTopupTzs:2000000,
+    rates:{ chat:'Gharama hutegemea tokens zilizotumika; salio hukatwa baada ya kila jibu.', video5sTzs, video15sTzs:video5sTzs*3, advertisement15sTzs:ad15sTzs, liveTalkMinuteTzs:price('live_talk_minute_tzs') },
+    payInfo:env.PAY_INFO || 'Tuma malipo kwa maelekezo ya Mlimani.'
+  });
+});
 app.get('/api/usage', need, (req, res) => {
   const balance = cashWalletBalance(db, req.user.id);
   res.json({ plan:'pay_as_you_go', monthlyLimitTzs:0, usedTzs:0, remainingTzs:balance, cashBalanceTzs:balance, expires:null, currency:'TZS', wallet:true });
