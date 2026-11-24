@@ -14,4 +14,6 @@ jobs:
       - run: npm install
       - run: node --check server.js
       - run: node --check billing.js
-      - run: npm test
+      - name: Run tests when test files exist
+        if: ${{ hashFiles('test/**/*.test.js', 'tests/**/*.test.js', '**/*.test.js', '**/*.spec.js') != '' }}
+        run: npm test
