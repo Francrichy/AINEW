@@ -142,7 +142,7 @@ Use a payment adapter, not a direct dependency between the studio and one provid
 - Uploads are sent directly from the browser to R2; the Mlimani API does not proxy large video files. The initial single-request upload limit is 1 GB. Multipart/resumable upload is still required for unreliable networks or larger recordings.
 - The server verifies the uploaded object's owner/project metadata before creating the project record. Download URLs expire after 10 minutes.
 - Required Render environment values are declared in `render.yaml`: `R2_ENDPOINT`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, and `R2_SECRET_ACCESS_KEY`. They must be filled by the account owner after creating a private R2 bucket and scoped API token.
-- Configure the R2 bucket CORS policy to allow the exact Mlimani site origin (for example `https://www.mlimani.net`), method `PUT`, request header `Content-Type`, and expose only the response headers needed by browser uploads. Do not make the bucket public.
+- Configure the R2 bucket CORS policy to allow the exact origin that serves the AINEW Studio page, method `PUT`, and request headers `Content-Type`, `x-amz-meta-owner`, `x-amz-meta-project`, and `x-amz-meta-expected-size`. Keep the bucket private.
 - The browser Studio page now has a cloud library list with download and delete controls, plus actions to upload recorded or selected videos.
 - R2 free-tier pricing currently includes 10 GB-month standard storage and 1 million Class A / 10 million Class B requests; standard storage above included usage is USD 0.015/GB-month. Confirm current terms and request volumes. Source: https://developers.cloudflare.com/r2/pricing/.
 
