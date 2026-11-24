@@ -467,15 +467,17 @@ function activateVideo(userId, plan) {
 }
 
 // ---------- malipo (mwongozo: thibitisha kwa mkono, unganisha Selcom/ClickPesa baadaye) ----------
-app.post('/api/pay', need, (req, res) => {
-  const { plan, phone, ref } = req.body || {};
-  if ((!PLANS[plan]?.price && !VIDEO_PACKAGES[plan]) || !phone || !ref) return res.status(400).json({ error: 'Jaza kifurushi, namba ya simu na namba ya muamala.' });
-  const r = String(ref).trim().slice(0, 40);
-  if (db.prepare('select 1 from payments where ref=?').get(r)) return res.status(409).json({ error: 'Namba hii ya muamala imeshatumwa.' });
-  db.prepare('insert into payments(user_id,plan,phone,ref,created) values(?,?,?,?,?)').run(req.user.id, plan, String(phone).slice(0, 20), r, Date.now());
-  const isVideo = !!VIDEO_PACKAGES[plan], item = isVideo ? VIDEO_PACKAGES[plan] : PLANS[plan];
-  notify(`💰 Malipo mapya Mlimani AI\nAina: ${isVideo ? 'Video' : 'Chat'}\nKifurushi: ${item.name} (TZS ${item.price})\nMtumiaji: ${req.user.phone || req.user.email}\nSimu: ${phone}\nMuamala: ${r}\nThibitisha: ${env.SITE_URL || ''}/admin.html`);
-  res.json({ ok: 1, message: 'Tumepokea. Mpango utawashwa baada ya kuthibitisha malipo.' });
+app.post('/api/pay', need, (_req, res) => res.status(410).json({ error: 'Mipango ya mwezi imeondolewa. Tumia kuongeza salio la PAYG Wallet.' }));
+app.post('/api/wallet/topup', need, (req, res) => {
+  const amount = Math.round(Number(req.body?.amountTzs));
+  const phone = String(req.body?.phone || '').trim().slice(0,20);
+  const ref = String(req.body?.ref || '').trim().slice(0,40);
+  if (!Number.isFinite(amount) || amount < 5000 || amount > 2000000) return res.status(400).json({ error: 'Weka kiasi kati ya TZS 5,000 na TZS 2,000,000.' });
+  if (!phone || !ref) return res.status(400).json({ error: 'Weka namba ya simu na namba ya muamala.' });
+  if (db.prepare('select 1 from payments where ref=?').get(ref)) return res.status(409).json({ error: 'Namba hii ya muamala imeshatumwa.' });
+  db.prepare("insert into payments(user_id,plan,phone,ref,created,amount_tzs) values(?,'wallet_topup',?,?,?,?)").run(req.user.id, phone, ref, Date.now(), amount);
+  notify(`💰 Ombi la kuongeza salio Mlimani AI\nKiasi: TZS ${amount.toLocaleString('en-US')}\nMtumiaji: ${req.user.phone || req.user.email}\nSimu: ${phone}\nMuamala: ${ref}\nThibitisha: ${env.SITE_URL || ''}/admin.html`);
+  res.json({ ok:1, message:'Ombi la kuongeza salio limepokelewa. Salio litaongezwa baada ya Admin kuthibitisha malipo.' });
 });
 const admin = (req, res, next) => env.ADMIN_KEY && req.headers['x-admin-key'] === env.ADMIN_KEY ? next() : res.status(403).json({ error: 'Hapana.' });
 registerBillingRoutes(app, { db, need, admin, plans: PLANS, onPricingChange: (key, value) => { if (key === 'markup_multiplier') MARKUP = Math.max(4, value); if (key === 'usd_tzs' && value > 0) USD_TZS = value; } });
@@ -489,7 +491,7 @@ app.post('/api/admin/approve', admin, (req, res) => {
     const approve = db.transaction(() => {
       const p = db.prepare("select * from payments where id=? and status='pending'").get(req.body?.id);
       if (!p) throw Object.assign(new Error('Malipo haya hayapo au tayari yameshughulikiwa.'), { status: 409 });
-      if (VIDEO_PACKAGES[p.plan]) activateVideo(p.user_id, p.plan); else activate(p.user_id, p.plan, 30, p.id);
+      if (p.plan === 'wallet_topup') creditCashWallet(db, p.user_id, Number(p.amount_tzs), 'cash-topup:payment:' + p.id, 'Kuongeza salio kupitia muamala ' + p.ref); else if (VIDEO_PACKAGES[p.plan]) activateVideo(p.user_id, p.plan); else activate(p.user_id, p.plan, 30, p.id);
       const changed = db.prepare("update payments set status='approved' where id=? and status='pending'").run(p.id);
       if (!changed.changes) throw Object.assign(new Error('Malipo tayari yameshughulikiwa.'), { status: 409 });
       return p;
@@ -515,9 +517,10 @@ app.post('/api/webhook/pay', (req, res) => {
   try {
     const approve = db.transaction(() => {
       const p = db.prepare("select * from payments where ref=? and status='pending'").get(String(req.body?.ref || ''));
-      const item = p && (VIDEO_PACKAGES[p.plan] || PLANS[p.plan]);
-      if (!p || !item || +req.body?.amount < item.price) throw Object.assign(new Error('Muamala haulingani au tayari umeshughulikiwa.'), { status: 409 });
-      if (VIDEO_PACKAGES[p.plan]) activateVideo(p.user_id, p.plan); else activate(p.user_id, p.plan, 30, p.id);
+      const item = p && (p.plan === 'wallet_topup' ? { name:'Wallet TZS ' + Number(p.amount_tzs || 0).toLocaleString('en-US'), price:Number(p.amount_tzs || 0) } : (VIDEO_PACKAGES[p.plan] || PLANS[p.plan]));
+      if (!p || !item || item.price <= 0 || +req.body?.amount < item.price) throw Object.assign(new Error('Muamala haulingani au tayari umeshughulikiwa.'), { status: 409 });
+      if (p.plan === 'wallet_topup') creditCashWallet(db, p.user_id, Number(p.amount_tzs), 'cash-topup:payment:' + p.id, 'Kuongeza salio kupitia muamala ' + p.ref);
+      else if (VIDEO_PACKAGES[p.plan]) activateVideo(p.user_id, p.plan); else activate(p.user_id, p.plan, 30, p.id);
       const changed = db.prepare("update payments set status='approved' where id=? and status='pending'").run(p.id);
       if (!changed.changes) throw Object.assign(new Error('Malipo tayari yameshughulikiwa.'), { status: 409 });
       return { payment: p, item };
