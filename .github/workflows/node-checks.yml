@@ -14,6 +14,6 @@ jobs:
       - run: npm install
       - run: node --check server.js
       - run: node --check billing.js
-      - name: Run tests when test files exist
-        if: ${{ hashFiles('test/**/*.test.js', 'tests/**/*.test.js', 'test/**/*.spec.js', 'tests/**/*.spec.js', '*.test.js', '*.spec.js') != '' }}
-        run: npm test
+      - name: Run tests when test folders exist
+        run: |
+          if [ -d test ] || [ -d tests ]; then npm test; else echo 'No test folder exists yet; skipping test command.'; fi
