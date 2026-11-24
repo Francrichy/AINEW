@@ -108,3 +108,29 @@ Use a payment adapter, not a direct dependency between the studio and one provid
 - Drafts can be edited, downloaded as text, and saved in the current browser's local storage.
 - This is a planning and writing MVP only. It does not generate audio, singing voices, video clips, or completed films. Local browser storage is not cloud project storage and drafts do not sync between devices.
 - No new provider credentials, paid media provider, database tables, payment flow, or Render service changes are required for this planning MVP.
+
+
+## Implemented Studio milestone — November 24, 2026
+- PR #58 merged the mobile-first Studio workspace to `main`: browser camera recording up to 30 minutes, local video preview, file selection/preview, and download.
+- The browser recording flow is device-local. It does **not** upload, back up, edit, or sync source media to Mlimani cloud. Long recordings use browser storage/memory; 720p is recommended on phones.
+- AI Video still uses the existing provider endpoint and remains limited to 5s/15s. The old in-memory job map is not a durable film-rendering queue.
+- Added a server-side ElevenLabs Music API adapter at `POST /api/studio/music` on the follow-up branch. It uses model `music_v2_5`, MP3 output, and a separate Studio cash-wallet price setting `studio_music_minute_tzs`. The browser never receives the provider key. It is not enabled until an admin sets a positive customer price and Render has `ELEVENLABS_API_KEY`.
+- Music endpoint currently caps a single generation request at 180 seconds for the first release; the upstream API supports longer output, but long-running requests need durable jobs and storage before safely exposing longer tracks.
+- New Admin pricing keys are introduced with zero customer price by default: `studio_music_minute_tzs`, `studio_voice_minute_tzs`, and `studio_video_second_tzs`. Zero means disabled; no new Studio charge is silently activated.
+- Existing chat pricing and wallet are not reused as Studio product pricing. The Music adapter charges the cash wallet under the separate service description after successful provider response. A failed provider request does not debit the wallet.
+
+## Provider and infrastructure decisions to complete before production
+- **Music**: ElevenLabs Music API documents `POST /v1/music`, model IDs including `music_v2_5`, output audio, and music durations from 3 seconds to 10 minutes. The API requires a paid ElevenLabs subscription. Current public API pricing lists approximately USD 0.15 per generated minute; confirm actual account tier and licensing before setting retail prices. Music commercial rights vary by subscription tier; film/TV/game rights require Enterprise terms. Sources: https://elevenlabs.io/docs/api-reference/music/compose and https://elevenlabs.io/pricing/api.
+- **Video**: provider choice must be confirmed before film pricing. Public API prices are usage-based and vary significantly by model/resolution/audio. For illustration, fal lists Kling 2.5 Turbo Pro at USD 0.07/second and Seedance 2.0 at USD 0.3034/second for 720p with audio. A theoretical 30-minute render at those rates would be USD 126 or USD 546.12 respectively for output seconds alone, before retries, storage, audio, assembly and markup. These are illustrations, not a retail quote or a promise that one provider can generate a continuous 30-minute clip. Source: https://fal.ai/explore/text-to-video-apis.
+- **Object storage**: Cloudflare R2 is a candidate for user footage, music and exports. Its public standard storage price is USD 0.015/GB-month with 10 GB-month free tier and no egress fees; request charges also apply. Bucket, API token, CORS, lifecycle and retention policy still need owner setup. Source: https://developers.cloudflare.com/r2/pricing/.
+- **Durable film pipeline**: needs a persistent project/job database, object storage, a queue (e.g. Render Key Value/Valkey), a paid Render background worker, FFmpeg, retries/checkpoints and a billing reservation/refund ledger. Do not add paid Render resources or change the current Render plan without explicit cost approval.
+- **Customer pricing**: Admin must set provider cost, retail price, FX rate, markup, generation limits and cancellation/refund rules after a successful provider test. No placeholder zero price may be bypassed.
+
+## Remaining work before calling Mlimani Studio production-ready
+1. Provision and configure R2 or another S3-compatible object store, then implement authenticated resumable uploads, per-user project library, signed download URLs and deletion/retention.
+2. Add a durable relational project/job store and a queue/worker; the current AINEW app uses SQLite and an ephemeral Render filesystem by default. Do not reuse or alter Mlimani Fleet's PostgreSQL.
+3. Add FFmpeg-based video editing/export: trim, split, combine, overlays, title cards, transitions, audio mixing, subtitles and final MP4 render.
+4. Implement provider-neutral video adapters and durable polling/callbacks. Generate 5–30 second scenes, then assemble films up to 30 minutes only after the user approves a cost estimate.
+5. Add production TTS/voice-over and dubbing with a tested Swahili voice, user consent for voice cloning, and separate Studio voice pricing.
+6. Add Studio project/asset management, script approval, scene regeneration, progress, retry/resume, exports, and audit history.
+7. Run automated tests and provider acceptance tests on Render. Only after successful tests should the branch be merged and the deployment authorized.
