@@ -343,6 +343,34 @@ function activate(userId, plan, days = 30, paymentId = null) {
     db.prepare("update user_subscriptions set status='expired',updated_at=? where user_id=? and status='active'").run(now, userId);
     db.prepare('insert into user_subscriptions(user_id,plan_key,status,starts_at,ends_at,renews_at,auto_renew,payment_id,created_at,updated_at) values(?,?,?,?,?,?,0,?,?,?)')
       .run(userId, plan, 'active', now, endsAt, endsAt, paymentId, now, now);
+
+    // Subscription wallet credits are issued only when a plan is activated.
+    // Replace the previous subscription bucket (never purchased credits) so renewals do not stack.
+    const previous = db.prepare("select service,balance from wallet_balances where user_id=? and bucket='subscription'").all(userId);
+    for (const row of previous) {
+      if (row.balance > 0) {
+        db.prepare('insert into credits_ledger(user_id,service,bucket,entry_type,amount,balance_after,reference,description,created_at) values(?,?,?,?,?,?,?,?,?)')
+          .run(userId, row.service, 'subscription', 'subscription_replaced', -row.balance, 0, 'sub-replace:' + randomUUID(), 'Salio la zamani limebadilishwa wakati wa kuanzisha mpango mpya.', now);
+      }
+      db.prepare("update wallet_balances set balance=0,expires_at=NULL,updated_at=? where user_id=? and service=? and bucket='subscription'")
+        .run(now, userId, row.service);
+    }
+
+    const configured = db.prepare('select chat_credits,video_credits,live_talk_credits,advertisement_credits from subscription_plans where plan_key=?').get(plan);
+    const grants = [
+      ['chat', Number(configured?.chat_credits || 0)],
+      ['video', Number(configured?.video_credits || 0)],
+      ['live_talk', Number(configured?.live_talk_credits || 0)],
+      ['advertisement', Number(configured?.advertisement_credits || 0)]
+    ];
+    for (const [service, amount] of grants) {
+      if (!(amount > 0)) continue;
+      db.prepare(`insert into wallet_balances(user_id,service,bucket,balance,expires_at,updated_at) values(?,?,'subscription',?,?,?)
+        on conflict(user_id,service,bucket) do update set balance=excluded.balance,expires_at=excluded.expires_at,updated_at=excluded.updated_at`)
+        .run(userId, service, amount, endsAt, now);
+      db.prepare('insert into credits_ledger(user_id,service,bucket,entry_type,amount,balance_after,reference,description,created_at) values(?,?,?,?,?,?,?,?,?)')
+        .run(userId, service, 'subscription', 'subscription_credit', amount, amount, 'sub-grant:' + randomUUID(), 'Credits za mpango ' + plan + ' zimeongezwa.', now);
+    }
   });
   tx();
 }
