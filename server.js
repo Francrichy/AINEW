@@ -1016,7 +1016,7 @@ const PLUGIN_NOTE = '\nUna zana za plugins za mtumiaji. Tumia zana inapohitajika
 
 async function orStep(st) {
   const fresh = db.prepare('select credit_used from users where id=?').get(st.u.id);
-  const freeToolMode = st.u.plan === 'free' && !st.cashPayg && !st.walletChat;
+  const freeToolMode = st.u.plan === 'free' && !st.cashPayg && st.freeQuotaAvailable === true && (!st.walletChat || walletAvailable(db, st.u.id, 'chat') <= 0);
   if (!freeToolMode) {
     if (st.cashPayg) {
       if (cashWalletBalance(db, st.u.id) <= 0) throw Object.assign(new Error('Salio la Wallet limeisha. Ongeza salio kuendelea.'), { status: 402 });
@@ -1118,7 +1118,7 @@ app.post('/api/chat', async (req, res) => {
     try {
       const act = await activeTools(u);
       if (act.specs.length) {
-        const out = await agent({ u, plan, tools: act.specs, messages: [{ role: 'system', content: system + PLUGIN_NOTE + act.notes.join(' ') }, ...msgs], step: 0, queue: [], multiplier: durationMultiplier, sessionExpiresAt: studioSessionExpiresAt, walletChat, cashPayg });
+        const out = await agent({ u, plan, tools: act.specs, messages: [{ role: 'system', content: system + PLUGIN_NOTE + act.notes.join(' ') }, ...msgs], step: 0, queue: [], multiplier: durationMultiplier, sessionExpiresAt: studioSessionExpiresAt, walletChat, cashPayg, freeQuotaAvailable: lim !== null && used(k) <= lim });
         req.user = db.prepare('select * from users where id=?').get(u.id);
         return res.json({ ...out, me: meInfo(req), sessionExpiresAt: studioSessionExpiresAt });
       }
