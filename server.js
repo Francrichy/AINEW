@@ -1,4 +1,6 @@
 import express from 'express';
+import { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -645,6 +647,162 @@ app.post('/v1/chat', async (req, res) => {
     const pt = d.usage?.prompt_tokens || 0, ct = d.usage?.completion_tokens || 0;
     res.json(shape(d.choices[0].message.content, { prompt_tokens: pt, completion_tokens: ct, total_tokens: pt + ct, cost_tzs: Math.round(tzs * 100) / 100 }));
   } catch (e) { console.error('api error:', e.message); apiErr(res, e.code === 'INSUFFICIENT_WALLET' ? 402 : 502, e.code === 'INSUFFICIENT_WALLET' ? 'Salio la Chat Wallet halitoshi.' : 'Huduma ina shida kwa sasa. Jaribu tena baadaye.'); }
+});
+
+// ---------- MLIMANI STUDIO: private media library using S3-compatible object storage ----------
+const R2_BUCKET = env.R2_BUCKET || '';
+const R2_ENDPOINT = env.R2_ENDPOINT || '';
+const R2_ACCESS_KEY_ID = env.R2_ACCESS_KEY_ID || '';
+const R2_SECRET_ACCESS_KEY = env.R2_SECRET_ACCESS_KEY || '';
+const studioS3 = R2_BUCKET && R2_ENDPOINT && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY
+  ? new S3Client({ region: 'auto', endpoint: R2_ENDPOINT, forcePathStyle: true, credentials: { accessKeyId: R2_ACCESS_KEY_ID, secretAccessKey: R2_SECRET_ACCESS_KEY } })
+  : null;
+const studioPrefix = userId => 'mlimani-studio/users/' + userId + '/';
+const studioSafeName = value => String(value || 'media').normalize('NFKD').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0,100) || 'media';
+async function readStudioProject(userId, projectId) {
+  if (!studioS3) throw Object.assign(new Error('Cloud storage haijaunganishwa. Admin anahitaji kusanidi Cloudflare R2.'), { status: 503 });
+  if (!/^[a-f0-9-]{36}$/i.test(String(projectId || ''))) throw Object.assign(new Error('Project ID si sahihi.'), { status: 400 });
+  const key = studioPrefix(userId) + 'projects/' + projectId + '.json';
+  try {
+    const obj = await studioS3.send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+    const raw = await obj.Body.transformToString();
+    const project = JSON.parse(raw);
+    if (project.ownerId !== userId) throw Object.assign(new Error('Project haipatikani.'), { status: 404 });
+    return { key, project };
+  } catch (error) {
+    if (error.status) throw error;
+    throw Object.assign(new Error('Project haijapatikana.'), { status: 404 });
+  }
+}
+app.get('/api/studio/storage/status', need, (_req, res) => res.json({ configured: Boolean(studioS3), provider: studioS3 ? 'Cloudflare R2 / S3' : null, maxUploadBytes: 1024 * 1024 * 1024 }));
+app.post('/api/studio/uploads/presign', need, async (req, res) => {
+  if (!studioS3) return res.status(503).json({ error: 'Cloud storage haijaunganishwa. Admin anahitaji kusanidi Cloudflare R2.' });
+  const filename = studioSafeName(req.body?.filename);
+  const contentType = String(req.body?.contentType || '').toLowerCase().split(';')[0];
+  const sizeBytes = Number(req.body?.sizeBytes);
+  const projectType = ['video','music','film','voice','image'].includes(req.body?.projectType) ? req.body.projectType : 'video';
+  const title = String(req.body?.title || filename).trim().slice(0,120);
+  const allowed = /^(video\/(mp4|webm|quicktime|x-matroska)|audio\/(mpeg|mp3|wav|ogg|mp4|webm)|image\/(jpeg|png|webp))$/;
+  if (!allowed.test(contentType)) return res.status(415).json({ error: 'Aina hii ya faili hairuhusiwi. Tumia MP4, WEBM, MOV, MP3, WAV, OGG, JPG, PNG au WEBP.' });
+  if (!Number.isSafeInteger(sizeBytes) || sizeBytes < 1 || sizeBytes > 1024 * 1024 * 1024) return res.status(413).json({ error: 'Faili lazima liwe chini ya GB 1 kwa sasa.' });
+  const projectId = randomUUID();
+  const storageKey = studioPrefix(req.user.id) + 'assets/' + projectId + '/' + filename;
+  try {
+    const uploadUrl = await getSignedUrl(studioS3, new PutObjectCommand({ Bucket: R2_BUCKET, Key: storageKey, ContentType: contentType, Metadata: { owner: String(req.user.id), project: projectId, 'expected-size': String(sizeBytes) } }), { expiresIn: 900 });
+    res.json({ projectId, storageKey, uploadUrl, headers: { 'Content-Type': contentType, 'x-amz-meta-owner': String(req.user.id), 'x-amz-meta-project': projectId, 'x-amz-meta-expected-size': String(sizeBytes) }, expiresIn: 900 });
+  } catch (error) { console.error('Studio upload presign:', error.message); res.status(502).json({ error: 'Imeshindikana kuandaa upload salama.' }); }
+});
+app.post('/api/studio/projects/complete', need, async (req, res) => {
+  if (!studioS3) return res.status(503).json({ error: 'Cloud storage haijaunganishwa.' });
+  const projectId = String(req.body?.projectId || ''), storageKey = String(req.body?.storageKey || '');
+  const prefix = studioPrefix(req.user.id);
+  if (!/^[a-f0-9-]{36}$/i.test(projectId) || !storageKey.startsWith(prefix + 'assets/' + projectId + '/')) return res.status(400).json({ error: 'Project au storage key si sahihi.' });
+  try {
+    const head = await studioS3.send(new HeadObjectCommand({ Bucket: R2_BUCKET, Key: storageKey }));
+    if (String(head.Metadata?.owner || '') !== String(req.user.id) || String(head.Metadata?.project || '') !== projectId) return res.status(403).json({ error: 'Faili hili halimilikiwi na akaunti hii.' });
+    if (Number(head.ContentLength || 0) > 1024 * 1024 * 1024 || Number(head.ContentLength || 0) !== Number(head.Metadata?.['expected-size'] || -1)) { await studioS3.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: storageKey })); return res.status(413).json({ error: 'Ukubwa wa faili hauendani na ombi au unazidi GB 1. Faili limeondolewa.' }); }
+    const project = {
+      id: projectId, ownerId: req.user.id, title: String(req.body?.title || 'Studio project').trim().slice(0,120),
+      type: ['video','music','film','voice','image'].includes(req.body?.type) ? req.body.type : 'video',
+      storageKey, filename: storageKey.split('/').pop(), contentType: head.ContentType || 'application/octet-stream',
+      sizeBytes: Number(head.ContentLength || 0), durationSeconds: Math.max(0, Number(req.body?.durationSeconds) || 0),
+      createdAt: Date.now(), updatedAt: Date.now(), status: 'stored'
+    };
+    await studioS3.send(new PutObjectCommand({ Bucket: R2_BUCKET, Key: prefix + 'projects/' + projectId + '.json', Body: JSON.stringify(project), ContentType: 'application/json', Metadata: { owner: String(req.user.id) } }));
+    res.json({ ok: true, project });
+  } catch (error) { console.error('Studio project save:', error.message); res.status(error.name === 'NotFound' ? 404 : 502).json({ error: 'Imeshindikana kuthibitisha na kuhifadhi video kwenye Studio.' }); }
+});
+app.get('/api/studio/projects', need, async (req, res) => {
+  if (!studioS3) return res.status(503).json({ error: 'Cloud storage haijaunganishwa.' });
+  try {
+    const prefix = studioPrefix(req.user.id) + 'projects/';
+    const listed = await studioS3.send(new ListObjectsV2Command({ Bucket: R2_BUCKET, Prefix: prefix, MaxKeys: 100 }));
+    const projects = [];
+    for (const item of listed.Contents || []) {
+      if (!item.Key?.endsWith('.json')) continue;
+      try { const obj = await studioS3.send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: item.Key })); const p = JSON.parse(await obj.Body.transformToString()); if (p.ownerId === req.user.id) projects.push(p); } catch {}
+    }
+    projects.sort((a,b) => b.createdAt - a.createdAt);
+    res.json({ projects });
+  } catch (error) { console.error('Studio project list:', error.message); res.status(502).json({ error: 'Imeshindikana kupata miradi yako.' }); }
+});
+app.get('/api/studio/projects/:id/download', need, async (req, res) => {
+  try {
+    const { project } = await readStudioProject(req.user.id, req.params.id);
+    const url = await getSignedUrl(studioS3, new GetObjectCommand({ Bucket: R2_BUCKET, Key: project.storageKey, ResponseContentDisposition: 'attachment; filename="' + studioSafeName(project.filename) + '"' }), { expiresIn: 600 });
+    res.json({ url, expiresIn: 600, project });
+  } catch (error) { res.status(error.status || 502).json({ error: error.message || 'Imeshindikana kuandaa download.' }); }
+});
+app.delete('/api/studio/projects/:id', need, async (req, res) => {
+  try {
+    const { key, project } = await readStudioProject(req.user.id, req.params.id);
+    await studioS3.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: project.storageKey }));
+    await studioS3.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+    res.json({ ok: true });
+  } catch (error) { res.status(error.status || 502).json({ error: error.message || 'Imeshindikana kufuta project.' }); }
+});
+
+// ---------- MLIMANI STUDIO: MUSIC GENERATION (separate Studio billing) ----------
+app.get('/api/studio/music/estimate', need, (req, res) => {
+  const durationSeconds = Math.max(15, Math.min(180, Math.round(Number(req.query.durationSeconds) || 60)));
+  const rate = Number(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='studio_music_minute_tzs'").get()?.customer_price || 0);
+  const charge = Math.ceil(durationSeconds / 60) * rate;
+  res.json({ durationSeconds, billedMinutes: Math.ceil(durationSeconds / 60), customerPricePerMinuteTzs: rate, estimatedChargeTzs: charge, walletBalanceTzs: cashWalletBalance(db, req.user.id), enabled: Boolean(env.ELEVENLABS_API_KEY && rate > 0 && cashWalletBalance(db, req.user.id) >= charge) });
+});
+app.post('/api/studio/music', need, async (req, res) => {
+  const prompt = String(req.body?.prompt || '').trim().slice(0, 4000);
+  const durationSeconds = Math.max(15, Math.min(180, Math.round(Number(req.body?.durationSeconds) || 60)));
+  const instrumental = req.body?.instrumental === true;
+  if (prompt.length < 10) return res.status(400).json({ error: 'Andika maelezo ya muziki angalau herufi 10.' });
+  if (BAD.test(prompt)) return res.status(400).json({ error: 'Maelezo haya hayaruhusiwi.' });
+  if (!env.ELEVENLABS_API_KEY) return res.status(503).json({ error: 'Music Generator haijaunganishwa bado. Admin anahitaji kuweka ELEVENLABS_API_KEY kwenye Render.' });
+  const rate = Number(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='studio_music_minute_tzs'").get()?.customer_price || 0);
+  if (!Number.isFinite(rate) || rate <= 0) return res.status(503).json({ error: 'Bei ya Mlimani Studio Music bado haijaidhinishwa na Admin.' });
+  const charge = Math.ceil(durationSeconds / 60) * rate;
+  const expectedCharge = Number(req.body?.expectedChargeTzs);
+  if (!Number.isFinite(expectedCharge) || expectedCharge !== charge) return res.status(409).json({ error: 'Bei imebadilika. Tafadhali angalia makadirio mapya kabla ya kuendelea.', estimatedChargeTzs: charge });
+  if (cashWalletBalance(db, req.user.id) < charge) return res.status(402).json({ error: 'Salio la Wallet halitoshi. Unahitaji TZS ' + charge.toLocaleString('en-US') + ' kwa muziki huu.' });
+  const k = 'studio_music:u' + req.user.id;
+  if (used(k) >= Math.max(1, Number(env.STUDIO_MUSIC_DAILY || 5))) return res.status(429).json({ error: 'Umefikia kikomo cha Music Generator cha leo. Jaribu kesho.' });
+  try {
+    consumeWalletCredits(db, req.user.id, 'cash', charge, 'Mlimani Studio Music reservation (' + durationSeconds + ' sekunde)');
+  } catch (billingError) {
+    return res.status(402).json({ error: 'Salio limebadilika. Tafadhali angalia Wallet yako na ujaribu tena.' });
+  }
+  bump(k);
+  let reserved = true;
+  try {
+    const response = await fetch('https://api.elevenlabs.io/v1/music?output_format=mp3_44100_128', {
+      method: 'POST',
+      headers: { 'xi-api-key': env.ELEVENLABS_API_KEY, 'Content-Type': 'application/json', 'Accept': 'audio/mpeg' },
+      body: JSON.stringify({ prompt, music_length_ms: durationSeconds * 1000, model_id: 'music_v2_5', force_instrumental: instrumental }),
+      signal: AbortSignal.timeout(240000)
+    });
+    const contentType = response.headers.get('content-type') || '';
+    if (!response.ok || !contentType.toLowerCase().includes('audio')) {
+      const detail = (await response.text().catch(() => '')).replace(/\\s+/g, ' ').slice(0, 400);
+      throw new Error('Music provider error ' + response.status + (detail ? ': ' + detail : ''));
+    }
+    const audio = Buffer.from(await response.arrayBuffer());
+    if (!audio.length || audio.length > 35 * 1024 * 1024) throw new Error('Faili ya muziki si sahihi au ni kubwa mno.');
+    reserved = false; // Provider succeeded; the reserved amount is now the final charge.
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Length': String(audio.length),
+      'Content-Disposition': 'attachment; filename="mlimani-studio-music.mp3"',
+      'Cache-Control': 'private, no-store',
+      'X-Studio-Charged-Tzs': String(charge)
+    });
+    return res.send(audio);
+  } catch (error) {
+    if (reserved) {
+      try { creditCashWallet(db, req.user.id, charge, 'studio-music-refund:' + randomUUID(), 'Refund ya Mlimani Studio Music iliyoshindwa'); }
+      catch (refundError) { console.error('Studio music refund FAILED:', refundError.message); }
+    }
+    bump(k, -1);
+    console.error('Mlimani Studio Music:', error.message);
+    return res.status(502).json({ error: 'Imeshindikana kutengeneza muziki kwa sasa. Salio limerudishwa ikiwa provider ameshindwa. ' + error.message.slice(0, 250) });
+  }
 });
 
 // ---------- video (kulipia, inakata mkopo) ----------
