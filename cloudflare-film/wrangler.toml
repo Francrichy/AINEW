@@ -1,6 +1,7 @@
 name = "mlimani-film-orchestrator"
 main = "src/index.js"
 compatibility_date = "2026-11-25"
+compatibility_flags = ["nodejs_compat"]
 
 [[r2_buckets]]
 binding = "FILM_MEDIA"
