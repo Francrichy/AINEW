@@ -13,7 +13,7 @@ const providerDefinitions = [
   { id: 'runway', name: 'Runway', services: ['video_generation', 'motion'], key: 'RUNWAY_API_KEY', integration: 'active', description: 'Text-to-video and motion task adapter is available; Admin-approved pricing is required.' },
   { id: 'luma', name: 'Luma', services: ['video_generation', 'motion'], key: 'LUMA_AGENTS_API_KEY', integration: 'active', description: 'Ray video generation and motion task adapter is available; Admin-approved pricing is required.' },
   { id: 'heygen', name: 'HeyGen', services: ['avatar_video', 'avatar_library'], key: 'HEYGEN_API_KEY', integration: 'active', description: 'Avatar and talking-photo video adapter plus avatar/voice catalog are available; Admin-approved pricing is required.' },
-  { id: 'fal', name: 'fal.ai', services: ['voice_generation', 'music_generation', 'speech_to_text', 'speech_recognition', 'video_generation', 'image_generation', 'image_editing', 'animation', 'motion', 'avatar_video', 'talking_photo'], key: 'FAL_API_KEY', integration: 'planned', description: 'Central media model aggregator; adapter rollout and per-model pricing are being prepared. Existing providers remain available until each task is tested.' },
+  { id: 'fal', name: 'fal.ai', services: ['voice_generation', 'music_generation', 'speech_to_text', 'speech_recognition', 'video_generation', 'image_generation', 'image_editing', 'animation', 'motion', 'avatar_video', 'talking_photo'], key: 'FAL_API_KEY', serviceRequiredEnv: { image_generation: ['FAL_IMAGE_MODEL','FAL_IMAGE_INPUT_TEMPLATE'], image_editing: ['FAL_IMAGE_MODEL','FAL_IMAGE_INPUT_TEMPLATE'], video_generation: ['FAL_VIDEO_MODEL','FAL_VIDEO_INPUT_TEMPLATE'], music_generation: ['FAL_MUSIC_MODEL','FAL_MUSIC_INPUT_TEMPLATE'], voice_generation: ['FAL_VOICE_MODEL','FAL_VOICE_INPUT_TEMPLATE'], speech_to_text: ['FAL_SPEECH_MODEL','FAL_SPEECH_INPUT_TEMPLATE'], speech_recognition: ['FAL_SPEECH_MODEL','FAL_SPEECH_INPUT_TEMPLATE'], animation: ['FAL_ANIMATION_MODEL','FAL_ANIMATION_INPUT_TEMPLATE'], motion: ['FAL_MOTION_MODEL','FAL_MOTION_INPUT_TEMPLATE'], avatar_video: ['FAL_AVATAR_VIDEO_MODEL','FAL_AVATAR_VIDEO_INPUT_TEMPLATE'], talking_photo: ['FAL_AVATAR_VIDEO_MODEL','FAL_AVATAR_VIDEO_INPUT_TEMPLATE'] }, integration: 'active', description: 'fal.ai queue adapter is implemented for image, video, music, voice, speech, animation, motion and talking-avatar tasks. Each task still needs its model, input template and Admin-approved price.' },
   { id: 'did', name: 'D-ID', services: ['avatar_video', 'talking_photo'], key: 'DID_API_KEY', integration: 'planned', description: 'Talking-photo provider integration planned.' }
 ];
 
@@ -41,7 +41,8 @@ export function buildAiProviderCatalog(env = process.env) {
       || provider.id === 'runway' && String(env.STUDIO_MOTION_PROVIDER || 'runway').toLowerCase() === 'runway'
       || provider.id === 'luma' && String(env.STUDIO_MOTION_PROVIDER || 'runway').toLowerCase() === 'luma'
       || provider.id === 'replicate' && String(env.STUDIO_ANIMATION_PROVIDER || 'replicate').toLowerCase() === 'replicate';
-    const ready = provider.integration === 'active' && credentialConfigured && (provider.requiredEnv || []).every(key => Boolean(env[key]));
+    const taskReady = provider.serviceRequiredEnv ? Object.fromEntries(Object.entries(provider.serviceRequiredEnv).map(([service, keys]) => [service, credentialConfigured && keys.every(key => Boolean(env[key]))])) : null;
+    const ready = provider.integration === 'active' && credentialConfigured && (provider.requiredEnv || []).every(key => Boolean(env[key])) && (!taskReady || Object.values(taskReady).some(Boolean));
     return {
       id: provider.id,
       name: provider.name,
@@ -49,6 +50,7 @@ export function buildAiProviderCatalog(env = process.env) {
       credentialConfigured,
       credentialName: provider.key,
       integrationStatus: provider.integration,
+      serviceReady: taskReady,
       ready,
       selected: Boolean(selected && ready),
       description: provider.description
@@ -56,12 +58,12 @@ export function buildAiProviderCatalog(env = process.env) {
   });
   const services = serviceDefinitions.map(service => {
     const providers = configured.filter(provider => provider.services.includes(service.id));
-    const readyProviders = providers.filter(provider => provider.ready);
+    const readyProviders = providers.filter(provider => provider.serviceReady ? Boolean(provider.serviceReady[service.id]) : provider.ready);
     return {
       ...service,
       providers,
       available: readyProviders.length > 0,
-      activeProviderIds: readyProviders.filter(provider => provider.selected).map(provider => provider.id)
+      activeProviderIds: readyProviders.filter(provider => provider.selected || Boolean(provider.serviceReady?.[service.id])).map(provider => provider.id)
     };
   });
   return {

@@ -35,6 +35,13 @@ small,.muted{color:var(--muted)}.status{display:inline-block;border-radius:999px
 <div class="row"><button id="checkLiveAvatar" type="button">Kagua LiveAvatar sasa</button></div>
 <div id="liveAvatarCheck" class="service muted" role="status">Bado haijakaguliwa.</div>
 </section>
+<section class="panel">
+<h2>fal.ai · Central Media API</h2>
+<p class="muted">Adapter ya Queue API imejengwa. Kila huduma inahitaji model ID, input template ya model hiyo na bei iliyoidhinishwa kabla ya kuwa tayari. Hakuna generation inayowashwa kwa kuweka API key pekee.</p>
+<div class="row"><button id="checkFal" type="button">Angalia usanidi wa fal.ai</button></div>
+<div id="falStatus" class="service muted" role="status">Bado haijakaguliwa.</div>
+<p class="hint">Weka FAL_API_KEY na variables za model/template kwenye Render → Environment. Usitume API key hapa. Bei za fal.ai zinawekwa kwenye Admin → Pricing; bei ikiwa TZS 0 huduma inabaki imezimwa.</p>
+</section>
 <section class="panel"><h2>Jinsi ya kuunganisha API mpya</h2>
 <div class="hint">Usiweke API key kwenye GitHub, kwenye ukurasa huu, au kwenye ujumbe wa kawaida. Weka key kwenye Render → Environment kama secret, kisha redeploy baada ya code kuwa tayari.</div>
 <ol><li>Fungua akaunti ya provider husika na pata API key.</li><li>Weka variable iliyoonyeshwa kwenye kadi ya provider kwenye Render Environment.</li><li>Hakikisha integration imeandikwa na kujaribiwa; kuweka key pekee hakutoshi.</li><li>Thibitisha gharama, bei ya mteja, matumizi na refund kabla ya kuwasha kwa wateja.</li></ol>
@@ -74,6 +81,18 @@ async function checkLiveAvatar(){
  }catch(e){out.textContent='Hitilafu: '+e.message}
 }
 $('checkLiveAvatar').addEventListener('click',checkLiveAvatar);
+async function checkFal(){
+ const out=$('falStatus');out.textContent='Inakagua usanidi...';
+ try{
+  const r=await fetch('/api/admin/fal/status',{headers:{'x-admin-key':$('adminKey').value}});
+  const d=await r.json();if(!r.ok)throw new Error(d.error||'Imeshindikana kukagua fal.ai.');
+  const rows=['API key: '+(d.keyConfigured?'IMEWEKWA':'HAIJAWEKWA')];
+  (d.tasks||[]).forEach(t=>rows.push(t.label+': '+(t.ready?'READY':'HAIJAWEKWA KAMILI')+' · Model '+(t.modelConfigured?'ipo':'haipo')+' · Template '+(t.templateConfigured?'ipo':'haipo')+' · Bei '+(t.priceConfigured?'imewekwa':'haijaidhinishwa')+' · '+t.modelVariable+' / '+t.templateVariable+' / '+t.priceKey));
+  out.textContent=rows.join(' | ');
+ }catch(e){out.textContent=e.message}
+}
+$('checkFal').addEventListener('click',checkFal);
+
 $('load').addEventListener('click',load);
 $('adminKey').addEventListener('keydown',e=>{if(e.key==='Enter')load()});
 </script></body></html>

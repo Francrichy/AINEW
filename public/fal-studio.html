@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="sw">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><title>Mlimani · fal.ai Media Studio</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:#000;color:#f5f5f5}
+*{box-sizing:border-box}body{margin:0;background:#000;color:#f5f5f5;min-height:100vh}
+header{padding:16px 5%;border-bottom:1px solid #222;display:flex;align-items:center;justify-content:space-between;gap:12px}
+a{color:#ddd;text-decoration:none}a:hover{color:#fff}.brand{font-weight:850;letter-spacing:.12em}.brand span{color:#888}
+main{max-width:850px;margin:auto;padding:26px 18px 60px}h1{font-size:clamp(25px,5vw,38px);margin:0 0 8px}p{color:#aaa;line-height:1.55}
+.panel{background:#090909;border:1px solid #242424;border-radius:18px;padding:20px;margin:18px 0}
+label{display:block;font-weight:700;margin:14px 0 7px;color:#ddd}
+input,select,textarea{width:100%;background:#111;color:#fff;border:1px solid #383838;border-radius:10px;padding:12px;font:inherit}
+textarea{min-height:115px;resize:vertical}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+button{background:#eee;color:#080808;border:0;border-radius:10px;padding:12px 17px;font-weight:800;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#191919;color:#eee;border:1px solid #383838}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.status{border:1px solid #303030;background:#111;border-radius:12px;padding:13px;margin-top:14px;color:#ddd;white-space:pre-wrap;overflow-wrap:anywhere}
+.muted{color:#888;font-size:.9rem}.hidden{display:none!important}
+#result img,#result video,#result audio{max-width:100%;width:100%;margin-top:12px;border-radius:12px;background:#111}
+#result pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#ccc;background:#111;padding:12px;border-radius:10px}
+@media(max-width:600px){header{padding:14px 16px}main{padding:20px 12px 40px}.panel{padding:14px}.grid{grid-template-columns:1fr}.actions button{width:100%}}
+</style>
+</head>
+<body>
+<header><a class="brand" href="/"><span>MLIMANI</span> LABS</a><nav><a href="/studio.html">Live Studio</a> · <a href="/provider-admin.html">Provider Admin</a></nav></header>
+<main>
+<h1>Media Studio · fal.ai</h1>
+<p>Sehemu moja ya kutengeneza picha, video, muziki, sauti, transcription, animation, motion na talking-avatar. Huduma itaonekana tayari tu baada ya Admin kuweka model, template na bei.</p>
+<section class="panel">
+<label for="task">Chagua huduma</label>
+<select id="task">
+<option value="image">Image Studio · Picha</option><option value="video">Video Studio · Video</option>
+<option value="music">Music Studio · Muziki</option><option value="voice">Voice Studio · Sauti / TTS</option>
+<option value="speech">Speech Recognition · Sauti kwenda maandishi</option><option value="animation">Animation Studio</option>
+<option value="motion">Motion Studio</option><option value="avatar_video">Avatar Video · Talking Photo</option>
+</select>
+<div id="promptWrap"><label for="prompt">Maelezo / Prompt / Script</label><textarea id="prompt" placeholder="Eleza unachotaka kutengeneza..."></textarea></div>
+<div class="grid">
+<div id="durationWrap"><label for="duration">Muda (sekunde)</label><input id="duration" type="number" min="1" max="600" value="5"></div>
+<div><label for="ratio">Uwiano wa picha/video</label><select id="ratio"><option>16:9</option><option>9:16</option><option>1:1</option><option>4:5</option><option>3:2</option><option>2:3</option></select></div>
+</div>
+<div id="imageWrap" class="hidden"><label for="imageUrl">Kiungo cha picha (HTTPS)</label><input id="imageUrl" type="url" placeholder="https://..."></div>
+<div id="audioWrap" class="hidden"><label for="audioUrl">Kiungo cha sauti (HTTPS)</label><input id="audioUrl" type="url" placeholder="https://..."></div>
+<div id="voiceWrap" class="hidden"><label for="voiceId">Voice ID (kama model inahitaji)</label><input id="voiceId" placeholder="Voice ID"></div>
+<div class="grid"><div><label for="language">Lugha</label><select id="language"><option value="sw">Kiswahili</option><option value="en">English</option></select></div></div>
+<div class="actions"><button id="estimate" type="button" class="secondary">Kagua bei</button><button id="generate" type="button" disabled>Tengeneza</button></div>
+<div id="status" class="status" role="status">Inasubiri makadirio ya bei.</div>
+<div id="result"></div>
+</section>
+<p class="muted">Matumizi ya fal.ai yanaweza kuwa na gharama kwa kila modeli. Mlimani itakata Wallet baada ya kuonyesha makadirio na kuthibitisha bei. Usipakie picha ya mtu bila ruhusa yake.</p>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let estimate=null,activeJob=null;
+const task=$('task');
+function fields(){
+ const t=task.value;
+ $('promptWrap').classList.toggle('hidden',t==='speech');
+ $('audioWrap').classList.toggle('hidden',t!=='speech');
+ $('imageWrap').classList.toggle('hidden',!['animation','motion','avatar_video'].includes(t));
+ $('voiceWrap').classList.toggle('hidden',!['voice','avatar_video'].includes(t));
+ $('durationWrap').classList.toggle('hidden',t==='image'||t==='animation');
+ $('result').replaceChildren();estimate=null;$('generate').disabled=true;
+ $('status').textContent='Kagua bei kabla ya kuanza.';
+}
+task.addEventListener('change',fields);
+$('estimate').addEventListener('click',async()=>{
+ $('status').textContent='Inakagua model, template, bei na salio...';$('generate').disabled=true;estimate=null;
+ try{
+  const r=await fetch('/api/studio/fal/'+encodeURIComponent(task.value)+'/estimate?durationSeconds='+encodeURIComponent($('duration').value));
+  const d=await r.json();if(!r.ok)throw new Error(d.error||'Makadirio hayakupatikana.');
+  estimate=d;
+  $('status').textContent='Provider: fal.ai\nModel: '+(d.modelConfigured?'imewekwa':'haijawekwa')+'\nInput template: '+(d.templateConfigured?'imewekwa':'haijawekwa')+'\nBei kwa unit: TZS '+Number(d.customerPricePerUnitTzs).toLocaleString()+'\nUnits: '+d.units+'\nJumla: TZS '+Number(d.estimatedChargeTzs).toLocaleString()+'\nWallet: TZS '+Number(d.walletBalanceTzs).toLocaleString()+'\n'+(d.enabled?'Unaweza kuendelea.':'Huduma bado haijawa tayari au salio/bei haitoshi.');
+  $('generate').disabled=!d.enabled;
+ }catch(e){$('status').textContent=e.message}
+});
+$('generate').addEventListener('click',async()=>{
+ if(!estimate||!estimate.enabled)return;
+ $('generate').disabled=true;$('status').textContent='Inatuma ombi kwa fal.ai...';$('result').replaceChildren();
+ const body={prompt:$('prompt').value,text:$('prompt').value,durationSeconds:Number($('duration').value),aspectRatio:$('ratio').value,imageUrl:$('imageUrl').value,audioUrl:$('audioUrl').value,voiceId:$('voiceId').value,language:$('language').value,expectedChargeTzs:estimate.estimatedChargeTzs};
+ try{
+  const r=await fetch('/api/studio/fal/'+encodeURIComponent(task.value)+'/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json();if(!r.ok)throw new Error(d.error||'Ombi limeshindwa.');
+  activeJob=d.jobId;$('status').textContent='Ombi limepokelewa.\nJob ID: '+activeJob+'\nHali: '+d.status+'\nInasubiri fal.ai...';
+  await poll(activeJob);
+ }catch(e){$('status').textContent=e.message;$('generate').disabled=false}
+});
+async function poll(id){
+ for(let i=0;i<180;i++){
+  await new Promise(resolve=>setTimeout(resolve,5000));
+  const r=await fetch('/api/studio/fal/jobs/'+encodeURIComponent(id));const d=await r.json();
+  if(!r.ok)throw new Error(d.error||'Imeshindikana kufuatilia kazi.');
+  $('status').textContent='Job ID: '+id+'\nHali: '+d.status+'\nMalipo: '+d.billingStatus+'\n'+(d.error||'');
+  if(d.status==='COMPLETED'){
+   showResult(d);$('generate').disabled=false;return;
+  }
+  if(d.status==='FAILED'){showResult(d);$('generate').disabled=false;return}
+ }
+ $('status').textContent+=' \nKazi bado inaendelea. Unaweza kufuatilia tena baadaye kwa Job ID: '+id;
+ $('generate').disabled=false;
+}
+function showResult(d){
+ $('result').replaceChildren();
+ if(d.outputUrl){
+  const url=d.outputUrl;
+  let el;
+  if(task.value==='video'||task.value==='animation'||task.value==='motion'||task.value==='avatar_video'){el=document.createElement('video');el.controls=true}
+  else if(task.value==='music'||task.value==='voice'){el=document.createElement('audio');el.controls=true}
+  else {el=document.createElement('img');el.alt='Matokeo ya fal.ai'}
+  el.src=url;$('result').append(el);
+  const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Fungua au pakua matokeo';a.style.display='block';a.style.marginTop='12px';$('result').append(a);
+ }
+ if(d.result){const pre=document.createElement('pre');pre.textContent=JSON.stringify(d.result,null,2);$('result').append(pre)}
+}
+fields();
+</script>
+</body></html>

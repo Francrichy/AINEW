@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url';
 import { initializeBilling, registerBillingRoutes, syncBillingPlans, walletModeEnabled, walletAvailable, consumeWalletCredits, cashWalletBalance, creditCashWallet } from './billing.js';
 import { registerFilmJobRoutes } from './film-jobs.js';
 import { buildAiProviderCatalog } from './ai-provider-registry.js';
+import { registerStudioFalRoutes } from './studio-fal-adapter.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const env = process.env;
@@ -579,6 +580,7 @@ app.get('/api/admin/liveavatar/check', admin, async (_req, res) => {
   }
 });
 registerBillingRoutes(app, { db, need, admin, plans: PLANS, onPricingChange: (key, value) => { if (key === 'markup_multiplier') MARKUP = Math.max(3.5, value); if (key === 'usd_tzs' && value > 0) USD_TZS = value; } });
+registerStudioFalRoutes(app, { db, need, admin, env, cashWalletBalance, consumeWalletCredits, creditCashWallet });
 app.get('/api/admin/payments', admin, (_req, res) => res.json(db.prepare("select p.*,u.email,u.phone as uphone,u.name from payments p join users u on u.id=p.user_id where status='pending' order by p.id desc").all()));
 app.get('/api/admin/stats', admin, (_req, res) => res.json({
   users: db.prepare('select count(*) c from users').get().c,
