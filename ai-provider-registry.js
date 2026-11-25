@@ -13,6 +13,7 @@ const providerDefinitions = [
   { id: 'runway', name: 'Runway', services: ['video_generation', 'motion'], key: 'RUNWAY_API_KEY', integration: 'active', description: 'Text-to-video and motion task adapter is available; Admin-approved pricing is required.' },
   { id: 'luma', name: 'Luma', services: ['video_generation', 'motion'], key: 'LUMA_AGENTS_API_KEY', integration: 'active', description: 'Ray video generation and motion task adapter is available; Admin-approved pricing is required.' },
   { id: 'heygen', name: 'HeyGen', services: ['avatar_video', 'avatar_library'], key: 'HEYGEN_API_KEY', integration: 'active', description: 'Avatar and talking-photo video adapter plus avatar/voice catalog are available; Admin-approved pricing is required.' },
+  { id: 'fal', name: 'fal.ai', services: ['voice_generation', 'music_generation', 'speech_to_text', 'speech_recognition', 'video_generation', 'image_generation', 'image_editing', 'animation', 'motion', 'avatar_video', 'talking_photo'], key: 'FAL_API_KEY', integration: 'planned', description: 'Central media model aggregator; adapter rollout and per-model pricing are being prepared. Existing providers remain available until each task is tested.' },
   { id: 'did', name: 'D-ID', services: ['avatar_video', 'talking_photo'], key: 'DID_API_KEY', integration: 'planned', description: 'Talking-photo provider integration planned.' }
 ];
 
