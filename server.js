@@ -928,14 +928,14 @@ app.post('/api/video', need, (req, res) => {
         const payload = { model: OPENROUTER_VIDEO_MODEL, prompt: qualityPrompt, duration, aspect_ratio: aspectRatio,
           resolution: env.OPENROUTER_VIDEO_RESOLUTION || '720p', generate_audio: env.OPENROUTER_VIDEO_AUDIO === 'true' };
         if (referenceUrl) payload.input_references = [{ type: 'image_url', image_url: { url: referenceUrl } }];
-        const submitted = await fetch(OR_URL.replace(/\\/+$/, '') + '/videos', { method: 'POST',
+        const submitted = await fetch(OR_URL.replace(/\/+$/, '') + '/videos', { method: 'POST',
           headers: { Authorization: `Bearer ${OR_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(30000) });
         const submittedData = await submitted.json().catch(() => ({}));
         if (!submitted.ok || !submittedData.id || !submittedData.polling_url) {
           const detail = String(submittedData.error?.message || submittedData.error || submittedData.message || 'Ombi halikukubaliwa.').slice(0, 400);
           throw new Error('OpenRouter: ' + detail);
         }
-        const pollingUrl = new URL(submittedData.polling_url, OR_URL.replace(/\\/+$/, '') + '/').toString();
+        const pollingUrl = new URL(submittedData.polling_url, OR_URL.replace(/\/+$/, '') + '/').toString();
         const deadline = Date.now() + 12 * 60 * 1000;
         let completed = null;
         while (Date.now() < deadline) {
@@ -947,7 +947,7 @@ app.post('/api/video', need, (req, res) => {
           if (['failed', 'cancelled', 'expired'].includes(state.status)) throw new Error('OpenRouter video ' + state.status + ': ' + String(state.error || 'Sababu haikutolewa.').slice(0, 300));
         }
         if (!completed) throw new Error('OpenRouter bado inatengeneza video baada ya dakika 12. Jaribu tena baadaye.');
-        const contentUrl = completed.unsigned_urls?.[0] || (OR_URL.replace(/\\/+$/, '') + '/videos/' + encodeURIComponent(submittedData.id) + '/content?index=0');
+        const contentUrl = completed.unsigned_urls?.[0] || (OR_URL.replace(/\/+$/, '') + '/videos/' + encodeURIComponent(submittedData.id) + '/content?index=0');
         const downloaded = await fetch(contentUrl, { headers: { Authorization: `Bearer ${OR_KEY}` }, signal: AbortSignal.timeout(120000) });
         const ct = downloaded.headers.get('content-type') || 'video/mp4';
         if (!downloaded.ok || !ct.startsWith('video/')) throw new Error('OpenRouter imeshindwa kurudisha faili la video (HTTP ' + downloaded.status + ').');
