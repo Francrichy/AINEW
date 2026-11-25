@@ -541,7 +541,21 @@ button:focus-visible,a:focus-visible{outline:3px solid var(--mlimani-gold-bright
  .live-hero-avatar-picker .avatar[data-avatar="Ethan"]{right:1%!important;bottom:8%!important}
 }
 
-</style></head><body><header class="studio-header"><a class="studio-wordmark" href="/" aria-label="Mlimani Labs">MLIMANI <span>LABS</span></a><nav class="studio-nav" aria-label="Studio tools"><a href="/production-studio.html?mode=video">Video Creator</a><a href="/production-studio.html?mode=music">Music Generator</a><a href="/production-studio.html?mode=film">Film Studio</a><a href="#featuredAvatarChoices">Avatar Library</a></nav><div class="studio-header-actions"><a href="/guide.html">Resources</a><a href="/">Mlimani Labs ↗</a></div></header><main>
+
+ /* Avatar Library is a real, visible section; keep featured Mlimani faces first */
+ .live-avatar-library{display:block!important;margin:24px 0 18px;padding:20px;border:1px solid #343126;border-radius:20px;background:#111313;color:#f5f2e9}
+ .live-avatar-library h3{margin:0 0 6px;color:#f5f2e9}
+ .live-avatar-library .note{color:#bdb9af}
+ .avatar-library-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:14px}
+ .avatar-library-grid .avatar{display:flex;flex-direction:column;gap:7px;min-width:0;padding:9px;border:1px solid #49463d;border-radius:14px;background:#1b1d1b;color:#fff;text-align:left}
+ .avatar-library-grid .avatar-art{display:block;width:100%;aspect-ratio:4/3;max-height:190px;object-fit:cover;border-radius:9px;background:#292b28}
+ .avatar-library-grid .avatar[aria-pressed=true]{border:2px solid #f2a900;box-shadow:0 0 0 2px #f2a90033}
+ .avatar-library-subtitle{margin:18px 0 6px;font-weight:750;color:#f2a900}
+ .live-hero-main-avatar img{transition:opacity .18s ease,transform .18s ease}
+ .live-hero-main-avatar img.avatar-promoted{transform:scale(1.025)}
+ @media(max-width:560px){.live-avatar-library{padding:14px}.avatar-library-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.avatar-library-grid .avatar-art{max-height:145px}}
+
+</style></head><body><header class="studio-header"><a class="studio-wordmark" href="/" aria-label="Mlimani Labs">MLIMANI <span>LABS</span></a><nav class="studio-nav" aria-label="Studio tools"><a href="/production-studio.html?mode=video">Video Creator</a><a href="/production-studio.html?mode=music">Music Generator</a><a href="/production-studio.html?mode=film">Film Studio</a><a href="#avatarLibrary">Avatar Library</a></nav><div class="studio-header-actions"><a href="/guide.html">Resources</a><a href="/">Mlimani Labs ↗</a></div></header><main>
 <section class="lab-home" aria-label="Mlimani Labs creative studio">
  <div class="lab-topline"><span class="lab-brandmark">M</span><span>MLIMANI LABS</span><span class="lab-topline-divider"></span><span class="lab-kicker">AI LIVE EXPERIENCE</span></div>
  <div class="lab-hero live-hero">
@@ -559,6 +573,15 @@ button:focus-visible,a:focus-visible{outline:3px solid var(--mlimani-gold-bright
   </div>
  </div>
  </section>
+<section class="live-avatar-library" id="avatarLibrary" aria-labelledby="avatarLibraryHeading">
+ <h3 id="avatarLibraryHeading">Avatar Library</h3>
+ <p class="note">Chagua mhusika atakayeonekana kwenye picha kubwa na kutumika kwenye Live Talk. Ethan na Ngina ni avatars wakuu wa Mlimani.</p>
+ <div class="avatar-library-subtitle">Mlimani Featured Avatars</div>
+ <div id="featuredAvatarLibraryGrid" class="avatar-library-grid" aria-label="Mlimani featured avatars"></div>
+ <div class="avatar-library-subtitle">Avatars kutoka kwa watoa huduma</div>
+ <p class="note" id="liveAvatarLibraryStatus">Ingia kwenye akaunti ili kupakia avatars zinazopatikana.</p>
+ <div id="liveAvatarCatalogGrid" class="avatar-library-grid" aria-label="Provider avatars"></div>
+</section>
 <div id="chatFields" class="hidden"><label>Muda wa mazungumzo</label><div class="duration"><button data-duration="normal" aria-pressed="true">Muda wa kawaida</button><button data-duration="extended" aria-pressed="false">Muda mrefu</button></div><p class="note" id="durationNote">Muda wa kawaida wa mazungumzo.</p>
 <div class="chatlog" id="chatlog" aria-live="polite"><div class="bubble assistant">Habari! Mimi ni Mlimani Labs. Unaweza kuniuliza swali lolote. Nitakusaidia kwa Kiswahili.</div></div><label for="chatInput">Andika ujumbe wako</label><textarea id="chatInput" placeholder="Andika swali lako hapa..."></textarea><div class="actions"><button class="primary" id="sendChat">Tuma</button><button class="light" id="downloadChat">Pakua mazungumzo</button><button class="light" id="clearChat">Anza mazungumzo mapya</button></div></div>
 <div id="liveFields" class="hidden">
@@ -634,16 +657,25 @@ async function selectStudioAvatar(b){
  const selectedImage=b.querySelector('.avatar-art');
  if(heroImage&&selectedImage){
   const nextImage=selectedImage.currentSrc||selectedImage.getAttribute('src');
-  if(nextImage)heroImage.setAttribute('src',nextImage);
-  heroImage.alt=avatar;
+  if(nextImage){heroImage.src=nextImage;heroImage.classList.add('avatar-promoted');}
+  heroImage.alt=avatar;heroImage.dataset.selectedAvatar=avatar;
  }
- const featured=$('#featuredAvatarChoices [data-avatar]');
- featured.forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+ const featured=$('#featuredAvatarChoices [data-avatar],#featuredAvatarLibraryGrid [data-avatar],#liveAvatarCatalogGrid [data-avatar]');
+ featured.forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.avatar===avatar&&(x.dataset.avatarId||null)===selectedLiveAvatarId)));
  const title=$('#liveTitle'),status=$('#liveStatus'),callButton=$('#continueStudio');
  if(title)title.textContent=avatar+' yuko tayari kuzungumza nawe';
  if(status)status.textContent=avatar+' amechaguliwa. Bonyeza Start Call kuanza mazungumzo.';
  if(callButton)callButton.textContent='▶ Start Call';
 }
+// Keep Ethan and Ngina visible as the first two cards in Avatar Library.
+(()=>{
+ const target=$('#featuredAvatarLibraryGrid');if(!target)return;
+ $('#featuredAvatarChoices [data-avatar]').sort((a,b)=>(a.dataset.avatar==='Ethan'?-1:1)-(b.dataset.avatar==='Ethan'?-1:1)).forEach(source=>{
+  const card=source.cloneNode(true);
+  card.addEventListener('click',event=>{event.preventDefault();selectStudioAvatar(card);});
+  target.append(card);
+ });
+})();
 $('#featuredAvatarChoices [data-avatar]').forEach(b=>b.addEventListener('click',event=>{
  event.preventDefault();
  selectStudioAvatar(b);
@@ -666,10 +698,10 @@ $('#productImage').addEventListener('change',e=>{
 $('#liveCatalogStatus').textContent='Ethan na Ngina wako juu. Avatars nyingine zitaonekana hapa ikiwa akaunti ya LiveAvatar inaziruhusu.';
 async function loadLiveAvatarLibrary(){
  const status=$('#liveAvatarLibraryStatus'),grid=$('#liveAvatarCatalogGrid');
- if(!status||status.dataset.loaded==='yes')return;
+ if(!status||!grid||status.dataset.loaded==='yes')return;
  status.textContent='Tunatafuta avatars zinazopatikana...';
  const token=localStorage.getItem('t')||'';
- if(!token){status.textContent='Ingia kwenye akaunti kwanza ili kuona maktaba ya avatars.';return;}
+ if(!token){status.textContent='Ingia kwenye akaunti ili kuona avatars za watoa huduma. Ethan na Ngina wanapatikana hapo juu.';return;}
  try{
   const response=await fetch('/api/liveavatar/catalog',{headers:{Authorization:'Bearer '+token}});
   const data=await response.json().catch(()=>({}));
