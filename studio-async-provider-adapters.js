@@ -242,6 +242,7 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
     }
   });
 
+  app.get('/api/studio/avatar-video/estimate', need, (req, res) => {
     const seconds = Math.max(5, Math.min(600, Math.round(Number(req.query.durationSeconds) || 30)));
     const rate = getPrice('studio_avatar_video_second_tzs');
     const charge = seconds * rate;
