@@ -139,7 +139,7 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
         error: data.failure_reason || data.failure_code || null
       };
     }
-    const video = data.data || data;
+    const video = data.data?.video || data.data || data;
     const status = String(video.status || 'pending').toLowerCase();
     return {
       status: ['completed', 'success', 'succeeded'].includes(status) ? 'completed' : ['failed', 'error', 'cancelled', 'canceled'].includes(status) ? 'failed' : 'processing',
@@ -212,7 +212,7 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
         fetch('https://api.heygen.com/v3/voices', { headers: { 'X-Api-Key': env.HEYGEN_API_KEY }, signal: AbortSignal.timeout(30000) })
       ]);
       const [avatarData, voiceData] = await Promise.all([parseBody(avatarResponse), parseBody(voiceResponse)]);
-      const avatarRows = Array.isArray(avatarData.data) ? avatarData.data : avatarData.data?.looks || avatarData.data?.avatars || avatarData.looks || avatarData.avatars || [];
+      const avatarRows = Array.isArray(avatarData.data) ? avatarData.data : avatarData.data?.looks || avatarData.data?.avatar_looks || avatarData.data?.avatars || avatarData.looks || avatarData.avatar_looks || avatarData.avatars || [];
       const voiceRows = Array.isArray(voiceData.data) ? voiceData.data : voiceData.data?.voices || voiceData.voices || [];
       const avatars = avatarRows.map(item => ({ id: item.id || item.avatar_id || item.look_id, name: item.name || item.avatar_name || 'HeyGen Avatar', previewImageUrl: item.preview_image_url || item.preview_image || null, defaultVoiceId: item.default_voice_id || null })).filter(item => item.id);
       const voices = voiceRows.map(item => ({ id: item.voice_id || item.id, name: item.name || 'HeyGen Voice', language: item.language || item.language_code || null })).filter(item => item.id);
@@ -263,7 +263,7 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
         VALUES(?,?,?,'avatar_video',?,?,?,'reserved','submitting',?,?)`)
         .run(id, req.user.id, 'heygen', script, seconds, charge, stamp, stamp);
       const created = await createHeyGen(input);
-      const video = created.data || created;
+      const video = created.data?.video || created.data || created;
       const providerJobId = video.video_id || video.id;
       if (!providerJobId) throw new Error('HeyGen hakurudisha Video ID.');
       db.prepare('UPDATE studio_async_jobs SET provider_job_id=?,status=?,updated_at=? WHERE id=?')
