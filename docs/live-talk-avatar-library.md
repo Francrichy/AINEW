@@ -10,7 +10,7 @@
 
 - The Studio requests the authenticated LiveAvatar catalog from the server.
 - The server combines provider public avatars and avatars belonging to the connected LiveAvatar account.
-- Only catalog entries reported as READY are offered.
+- Only catalog entries reported as ACTIVE or READY are offered.
 - A selected avatar ID is sent to the server; the server checks that it is still present and READY in the account catalog before creating a session.
 - The LiveAvatar API key stays on the server. It must never be sent to browser code.
 - Production Live Talk sessions use the existing Mlimani minute-pricing and wallet checks.
