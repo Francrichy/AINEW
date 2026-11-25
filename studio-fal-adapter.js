@@ -77,7 +77,7 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
     const cfg=config(req.params.task);
     const secs=Math.max(1,Math.min(600,Math.round(+req.query.durationSeconds||5))),rate=price(t[2]);
     const units=t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1,charge=units*rate;
-    res.json({provider:'fal.ai',task:req.params.task,modelConfigured:!!cfg.model,templateConfigured:!!cfg.template,durationSeconds:secs,units,unit:t[4],customerPricePerUnitTzs:rate,estimatedChargeTzs:charge,walletBalanceTzs:cashWalletBalance(db,req.user.id),enabled:!!(key()&&env[t[0]]&&env[t[1]]&&rate>0&&cashWalletBalance(db,req.user.id)>=charge)});
+    res.json({provider:'fal.ai',task:req.params.task,modelConfigured:!!cfg.model,templateConfigured:!!cfg.template,durationSeconds:secs,units,unit:t[4],customerPricePerUnitTzs:rate,estimatedChargeTzs:charge,walletBalanceTzs:cashWalletBalance(db,req.user.id),enabled:!!(key()&&cfg.model&&cfg.template&&rate>0&&cashWalletBalance(db,req.user.id)>=charge)});
   });
   app.post('/api/studio/fal/:task/jobs',need,async(req,res)=>{
     const taskId=req.params.task,t=TASKS[taskId];if(!t)return res.status(404).json({error:'Task haijulikani.'});
