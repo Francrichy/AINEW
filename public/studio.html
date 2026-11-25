@@ -541,6 +541,20 @@ button:focus-visible,a:focus-visible{outline:3px solid var(--mlimani-gold-bright
  .live-hero-avatar-picker .avatar[data-avatar="Ethan"]{right:1%!important;bottom:8%!important}
 }
 
+
+ /* Avatar Library is a real, visible section; keep featured Mlimani faces first */
+ .live-avatar-library{display:block!important;margin:24px 0 18px;padding:20px;border:1px solid #343126;border-radius:20px;background:#111313;color:#f5f2e9}
+ .live-avatar-library h3{margin:0 0 6px;color:#f5f2e9}
+ .live-avatar-library .note{color:#bdb9af}
+ .avatar-library-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:14px}
+ .avatar-library-grid .avatar{display:flex;flex-direction:column;gap:7px;min-width:0;padding:9px;border:1px solid #49463d;border-radius:14px;background:#1b1d1b;color:#fff;text-align:left}
+ .avatar-library-grid .avatar-art{display:block;width:100%;aspect-ratio:4/3;max-height:190px;object-fit:cover;border-radius:9px;background:#292b28}
+ .avatar-library-grid .avatar[aria-pressed=true]{border:2px solid #f2a900;box-shadow:0 0 0 2px #f2a90033}
+ .avatar-library-subtitle{margin:18px 0 6px;font-weight:750;color:#f2a900}
+ .live-hero-main-avatar img{transition:opacity .18s ease,transform .18s ease}
+ .live-hero-main-avatar img.avatar-promoted{transform:scale(1.025)}
+ @media(max-width:560px){.live-avatar-library{padding:14px}.avatar-library-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.avatar-library-grid .avatar-art{max-height:145px}}
+
 </style></head><body><header class="studio-header"><a class="studio-wordmark" href="/" aria-label="Mlimani Labs">MLIMANI <span>LABS</span></a><nav class="studio-nav" aria-label="Studio tools"><a href="/production-studio.html?mode=video">Video Creator</a><a href="/production-studio.html?mode=music">Music Generator</a><a href="/production-studio.html?mode=film">Film Studio</a><a href="#featuredAvatarChoices">Avatar Library</a></nav><div class="studio-header-actions"><a href="/guide.html">Resources</a><a href="/">Mlimani Labs ↗</a></div></header><main>
 <section class="lab-home" aria-label="Mlimani Labs creative studio">
  <div class="lab-topline"><span class="lab-brandmark">M</span><span>MLIMANI LABS</span><span class="lab-topline-divider"></span><span class="lab-kicker">AI LIVE EXPERIENCE</span></div>
