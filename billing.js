@@ -1,6 +1,7 @@
 import express from 'express';
 import { randomUUID } from 'crypto';
 import { registerStudioProviderRoutes } from './studio-provider-adapters.js';
+import { registerStudioAsyncProviderRoutes } from './studio-async-provider-adapters.js';
 
 const DEFAULT_PRICING = [
   ['chat', 'Chat', 'chat', 'per_1000_tokens', 0, 0, 'TZS', 'Gharama na bei bado hazijathibitishwa'],
@@ -21,6 +22,8 @@ const DEFAULT_PRICING = [
   ['studio_voice_minute_tzs', 'Mlimani Studio Voice-over kwa dakika', 'studio_voice', 'per_minute', 0, 0, 'TZS', 'Bei ya mteja kwa dakika ya sauti; weka baada ya kuthibitisha gharama za provider.'],
   ['studio_video_second_tzs', 'Mlimani Studio AI Video kwa sekunde', 'studio_video', 'per_second', 0, 0, 'TZS', 'Bei ya mteja kwa sekunde; bei ya AI video haijawashwa mpaka Admin athibitishe gharama.'],
   ['studio_film_minute_tzs', 'Mlimani Studio Film kwa dakika', 'studio_film', 'per_minute', 0, 0, 'TZS', 'Bei ya filamu kwa dakika; huduma itabaki imezimwa mpaka Admin athibitishe gharama na bei za provider.'],
+  ['studio_motion_second_tzs', 'Mlimani Motion Studio kwa sekunde', 'studio_motion', 'per_second', 0, 0, 'TZS', 'Bei ya mteja kwa sekunde; weka baada ya kuthibitisha gharama za Runway/Luma.'],
+  ['studio_avatar_video_second_tzs', 'Mlimani Avatar Video kwa sekunde', 'studio_avatar_video', 'per_second', 0, 0, 'TZS', 'Bei ya mteja kwa sekunde; weka baada ya kuthibitisha gharama za HeyGen.'],
 ];
 
 const DEFAULT_PLANS = [
@@ -192,6 +195,7 @@ export function syncBillingPlans(db, plans) {
 
 export function registerBillingRoutes(app, { db, need, admin, plans: runtimePlans, onPricingChange }) {
   registerStudioProviderRoutes(app, { db, need, env: process.env, cashWalletBalance, consumeWalletCredits, creditCashWallet });
+  registerStudioAsyncProviderRoutes(app, { db, need, env: process.env, cashWalletBalance, consumeWalletCredits, creditCashWallet });
   const router = express.Router();
   router.get('/wallet', need, (req, res) => {
     const balances = db.prepare('SELECT service,bucket,balance,expires_at,updated_at FROM wallet_balances WHERE user_id=? ORDER BY service,bucket').all(req.user.id);
