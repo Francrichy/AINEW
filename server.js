@@ -244,7 +244,7 @@ setInterval(() => {
 app.get('/api/liveavatar/catalog', need, async (_req, res) => {
   try {
     const catalog = await liveAvatarCatalog();
-    res.json({ connected: true, sandboxAvatarId: LIVEAVATAR_SANDBOX_AVATAR, ...catalog });
+    res.json({ connected: true, ...catalog });
   } catch (error) {
     res.status(502).json({ connected: false, error: error.message });
   }
