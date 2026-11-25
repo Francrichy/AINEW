@@ -67,6 +67,10 @@ async function checkLiveAvatar(){
    'Sauti ya English: '+(d.englishVoiceAvailable?'IPO':'HAIPO'),
    'Context IDs: '+d.contextIds
   ].join(' · ');
+  if(Array.isArray(d.availableAvatars)&&d.availableAvatars.length){
+   const heading=document.createElement('p');heading.textContent='Orodha ya avatars na IDs zake (chagua ID ya Ethan/Ngina):';out.appendChild(document.createElement('br'));out.appendChild(heading);
+   d.availableAvatars.forEach(a=>{const row=document.createElement('div');row.className='service';row.textContent=[a.name||'Avatar',a.id,'Hali: '+(a.status||'unknown'),a.gender||''].filter(Boolean).join(' · ');out.appendChild(row)});
+  }
  }catch(e){out.textContent='Hitilafu: '+e.message}
 }
 $('checkLiveAvatar').addEventListener('click',checkLiveAvatar);
