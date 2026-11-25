@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto';
 
+const DEFAULT_REPLICATE_ANIMATION_MODEL = 'minimax/video-01-live';
+const DEFAULT_REPLICATE_ANIMATION_TEMPLATE = JSON.stringify({ prompt: '{{prompt}}', first_frame_image: '{{imageUrl}}', prompt_optimizer: true });
+
 export function buildReplicateInput(templateText, variables) {
   if (typeof templateText !== 'string' || templateText.length < 2 || templateText.length > 12000) {
     throw new Error('REPLICATE_ANIMATION_INPUT_TEMPLATE haijawekwa vizuri.');
@@ -41,7 +44,7 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
     VALUES(?,?,?,?,0,0,'TZS',?,?)`).run(key, label, service, unit, notes, now());
   ensurePrice('studio_motion_second_tzs', 'Mlimani Motion Studio kwa sekunde', 'studio_motion', 'per_second', 'Bei ya mteja kwa sekunde; weka baada ya kuthibitisha gharama za Runway/Luma.');
   ensurePrice('studio_avatar_video_second_tzs', 'Mlimani Avatar Video kwa sekunde', 'studio_avatar_video', 'per_second', 'Bei ya mteja kwa sekunde; weka baada ya kuthibitisha gharama za HeyGen.');
-  ensurePrice('studio_animation_tzs', 'Mlimani Animation Studio kwa kazi', 'studio_animation', 'per_animation', 'Bei ya mteja kwa animation moja; weka baada ya kuchagua model na kuthibitisha gharama za Replicate.');
+  ensurePrice('studio_animation_tzs', 'Mlimani Animation Studio kwa kazi', 'studio_animation', 'per_animation', 'Bei ya mteja kwa animation moja; default model minimax/video-01-live ina gharama ya provider kwa kila video.');
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS studio_async_jobs (
@@ -132,10 +135,15 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
   }
 
   async function createReplicate(input) {
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
+    const model = String(env.REPLICATE_ANIMATION_MODEL || DEFAULT_REPLICATE_ANIMATION_MODEL).trim();
+    const version = String(env.REPLICATE_ANIMATION_VERSION || '').trim();
+    const useVersion = Boolean(version && !env.REPLICATE_ANIMATION_MODEL);
+    const endpoint = useVersion ? 'https://api.replicate.com/v1/predictions' : 'https://api.replicate.com/v1/models/' + model + '/predictions';
+    const body = useVersion ? { version, input } : { input };
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + env.REPLICATE_API_TOKEN, 'Content-Type': 'application/json', Prefer: 'wait=1', 'Cancel-After': '10m' },
-      body: JSON.stringify({ version: env.REPLICATE_ANIMATION_VERSION, input }),
+      body: JSON.stringify(body),
       signal: AbortSignal.timeout(60000)
     });
     return parseBody(response);
@@ -252,7 +260,10 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
 
   app.get('/api/studio/animation/estimate', need, (req, res) => {
     const rate = getPrice('studio_animation_tzs');
-    const configured = Boolean(env.REPLICATE_API_TOKEN && /^[a-f0-9]{64}$/i.test(String(env.REPLICATE_ANIMATION_VERSION || '')) && env.REPLICATE_ANIMATION_INPUT_TEMPLATE);
+    const model = String(env.REPLICATE_ANIMATION_MODEL || DEFAULT_REPLICATE_ANIMATION_MODEL).trim();
+    const version = String(env.REPLICATE_ANIMATION_VERSION || '').trim();
+    const modelConfigured = /^[a-z0-9-]+\/[a-z0-9-]+$/i.test(model) || /^[a-f0-9]{64}$/i.test(version);
+    const configured = Boolean(env.REPLICATE_API_TOKEN && modelConfigured);
     res.json({ provider: 'Replicate', customerPricePerAnimationTzs: rate, estimatedChargeTzs: rate, walletBalanceTzs: cashWalletBalance(db, req.user.id), configured, enabled: Boolean(configured && rate > 0 && cashWalletBalance(db, req.user.id) >= rate) });
   });
 
@@ -261,9 +272,12 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
     const imageUrl = String(req.body?.imageUrl || '').trim().slice(0, 2000);
     const duration = [5, 10].includes(Number(req.body?.durationSeconds)) ? Number(req.body.durationSeconds) : 5;
     const aspectRatio = ['16:9', '9:16', '1:1'].includes(req.body?.aspectRatio) ? req.body.aspectRatio : '1:1';
+    const model = String(env.REPLICATE_ANIMATION_MODEL || DEFAULT_REPLICATE_ANIMATION_MODEL).trim();
     const version = String(env.REPLICATE_ANIMATION_VERSION || '').trim();
-    if (!env.REPLICATE_API_TOKEN || !/^[a-f0-9]{64}$/i.test(version) || !env.REPLICATE_ANIMATION_INPUT_TEMPLATE) return res.status(503).json({ error: 'Replicate animation bado haijasanidiwa. Admin aweke token, model version na input template.' });
+    const modelConfigured = /^[a-z0-9-]+\/[a-z0-9-]+$/i.test(model) || /^[a-f0-9]{64}$/i.test(version);
+    if (!env.REPLICATE_API_TOKEN || !modelConfigured) return res.status(503).json({ error: 'Replicate animation bado haijasanidiwa. Admin aweke API token na model sahihi.' });
     if (prompt.length < 8) return res.status(400).json({ error: 'Andika maelezo ya animation angalau herufi 8.' });
+    if (model === DEFAULT_REPLICATE_ANIMATION_MODEL && !imageUrl) return res.status(400).json({ error: 'Default model ya animation inahitaji picha ya kuanzia yenye HTTPS link.' });
     if (imageUrl) {
       if (req.body?.consentConfirmed !== true) return res.status(400).json({ error: 'Thibitisha kuwa una ruhusa ya kutumia picha hii na mtu aliye kwenye picha ameridhia.' });
       try { const url = new URL(imageUrl); if (url.protocol !== 'https:') throw new Error('bad protocol'); } catch { return res.status(400).json({ error: 'Picha lazima iwe na kiungo salama cha HTTPS.' }); }
@@ -271,7 +285,7 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
     const charge = getPrice('studio_animation_tzs');
     if (Number(req.body?.expectedChargeTzs) !== charge || charge <= 0) return res.status(409).json({ error: 'Bei haijaidhinishwa au imebadilika. Kagua makadirio mapya.' });
     let input;
-    try { input = buildReplicateInput(env.REPLICATE_ANIMATION_INPUT_TEMPLATE, { prompt, imageUrl, durationSeconds: duration, aspectRatio }); }
+    try { input = buildReplicateInput(env.REPLICATE_ANIMATION_INPUT_TEMPLATE || DEFAULT_REPLICATE_ANIMATION_TEMPLATE, { prompt, imageUrl, durationSeconds: duration, aspectRatio }); }
     catch (error) { return res.status(503).json({ error: error.message }); }
     const id = randomUUID();
     try { reserve(req.user.id, charge, 'Mlimani Animation Studio reservation ' + id); }
