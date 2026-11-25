@@ -26,6 +26,12 @@ export function makeInput(templateText,vars) {
 }
 export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance,consumeWalletCredits,creditCashWallet}) {
   const now=()=>Date.now(), key=()=>env.FAL_API_KEY||env.FAL_KEY;
+  db.exec(`CREATE TABLE IF NOT EXISTS studio_fal_config(task TEXT PRIMARY KEY,model TEXT NOT NULL DEFAULT '',input_template TEXT NOT NULL DEFAULT '',updated_at INTEGER NOT NULL)`);
+  const config = task => {
+    const row=db.prepare('SELECT model,input_template FROM studio_fal_config WHERE task=?').get(task);
+    const t=TASKS[task];
+    return { model:row?.model || env[t[0]] || '', template:row?.input_template || env[t[1]] || '' };
+  };
   const price=k=>Number(db.prepare('SELECT customer_price FROM admin_pricing WHERE config_key=?').get(k)?.customer_price||0);
   for(const [id,t] of Object.entries(TASKS)){
     const [,,p,label,unit]=t;
@@ -38,22 +44,50 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
   const root=model=>'https://queue.fal.run/'+modelPath(model);
   const outputUrl=d=>[d?.video?.url,d?.audio?.url,d?.image?.url,d?.url,d?.images?.[0]?.url,d?.videos?.[0]?.url,d?.audios?.[0]?.url,d?.data?.url].find(x=>typeof x==='string'&&x.startsWith('https://'))||null;
   const view=j=>({jobId:j.id,task:j.task,status:j.status,outputUrl:j.output_url||null,result:j.result_json?JSON.parse(j.result_json):null,chargedTzs:j.charge_tzs,billingStatus:j.billing_status,error:j.error||null});
-  app.get('/api/admin/fal/status',admin,(_q,res)=>res.json({keyConfigured:!!key(),tasks:Object.entries(TASKS).map(([id,t])=>({id,modelVariable:t[0],modelConfigured:!!env[t[0]],templateVariable:t[1],templateConfigured:!!env[t[1]],priceKey:t[2],priceConfigured:price(t[2])>0,ready:!!(key()&&env[t[0]]&&env[t[1]]&&price(t[2])>0)}))}));
+  const modelPresets = {
+    image:['fal-ai/flux/schnell','fal-ai/flux/dev','fal-ai/flux-pro'],
+    video:['kling/v4/text-to-video','fal-ai/veo3','fal-ai/minimax/video-01'],
+    music:['fal-ai/lyria2','fal-ai/minimax-music'],
+    voice:['fal-ai/elevenlabs/tts','fal-ai/minimax/speech-2.6-hd'],
+    speech:['fal-ai/whisper','fal-ai/elevenlabs/speech-to-text'],
+    animation:['fal-ai/wan-i2v','fal-ai/minimax/video-01-live'],
+    motion:['fal-ai/kling-video/v2.1/standard/motion-control'],
+    avatar_video:['fal-ai/heygen/avatar-video']
+  };
+  app.get('/api/admin/fal/config',admin,(_q,res)=>{
+    res.set('Cache-Control','no-store');
+    res.json({tasks:Object.entries(TASKS).map(([id,t])=>({id,label:t[3],model:config(id).model,template:config(id).template,modelVariable:t[0],templateVariable:t[1],priceKey:t[2],presets:modelPresets[id]||[]}))});
+  });
+  app.post('/api/admin/fal/config',admin,(req,res)=>{
+    const task=String(req.body?.task||''), t=TASKS[task];
+    if(!t)return res.status(400).json({error:'Huduma ya fal.ai haijulikani.'});
+    const model=String(req.body?.model||'').trim(), template=String(req.body?.template||'').trim();
+    try {
+      modelPath(model);
+      if(!template || template.length>20000)throw fail('Weka input template ya JSON isiyozidi 20KB.');
+      makeInput(template,{prompt:'test',durationSeconds:5,aspectRatio:'16:9',audioUrl:'https://example.com/audio.mp3',imageUrl:'https://example.com/image.jpg',voiceId:'test',language:'sw'});
+    } catch(e) { return res.status(400).json({error:e.message}); }
+    db.prepare(`INSERT INTO studio_fal_config(task,model,input_template,updated_at) VALUES(?,?,?,?)
+      ON CONFLICT(task) DO UPDATE SET model=excluded.model,input_template=excluded.input_template,updated_at=excluded.updated_at`).run(task,model,template,now());
+    res.json({ok:true,task,model,templateSaved:true});
+  });
+  app.get('/api/admin/fal/status',admin,(_q,res)=>res.json({keyConfigured:!!key(),tasks:Object.entries(TASKS).map(([id,t])=>{const c=config(id);return {id,label:t[3],modelVariable:t[0],modelConfigured:!!c.model,templateVariable:t[1],templateConfigured:!!c.template,priceKey:t[2],priceConfigured:price(t[2])>0,ready:!!(key()&&c.model&&c.template&&price(t[2])>0)}})}));
   app.get('/api/studio/fal/:task/estimate',need,(req,res)=>{
     const t=TASKS[req.params.task];if(!t)return res.status(404).json({error:'Task haijulikani.'});
+    const cfg=config(req.params.task);
     const secs=Math.max(1,Math.min(600,Math.round(+req.query.durationSeconds||5))),rate=price(t[2]);
     const units=t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1,charge=units*rate;
-    res.json({provider:'fal.ai',task:req.params.task,modelConfigured:!!env[t[0]],templateConfigured:!!env[t[1]],durationSeconds:secs,units,unit:t[4],customerPricePerUnitTzs:rate,estimatedChargeTzs:charge,walletBalanceTzs:cashWalletBalance(db,req.user.id),enabled:!!(key()&&env[t[0]]&&env[t[1]]&&rate>0&&cashWalletBalance(db,req.user.id)>=charge)});
+    res.json({provider:'fal.ai',task:req.params.task,modelConfigured:!!cfg.model,templateConfigured:!!cfg.template,durationSeconds:secs,units,unit:t[4],customerPricePerUnitTzs:rate,estimatedChargeTzs:charge,walletBalanceTzs:cashWalletBalance(db,req.user.id),enabled:!!(key()&&cfg.model&&cfg.template&&rate>0&&cashWalletBalance(db,req.user.id)>=charge)});
   });
   app.post('/api/studio/fal/:task/jobs',need,async(req,res)=>{
     const taskId=req.params.task,t=TASKS[taskId];if(!t)return res.status(404).json({error:'Task haijulikani.'});
     let model,input,secs,charge,id;
     try{
-      model=String(env[t[0]]||'');const path=root(model);if(!key())throw fail('FAL_API_KEY haijawekwa kwenye Render.',503);if(!env[t[1]])throw fail('Admin aweke input template: '+t[1],503);
+      const cfg=config(taskId);model=String(cfg.model||'');const path=root(model);if(!key())throw fail('FAL_API_KEY haijawekwa kwenye Render.',503);if(!cfg.template)throw fail('Admin aweke input template kwenye Provider Management.',503);
       const prompt=String(req.body?.prompt||req.body?.text||'').trim().slice(0,6000);secs=Math.max(1,Math.min(600,Math.round(+req.body?.durationSeconds||5)));
       const vars={prompt,durationSeconds:secs,aspectRatio:['16:9','9:16','1:1','4:5','3:2','2:3'].includes(req.body?.aspectRatio)?req.body.aspectRatio:'16:9',audioUrl:https(req.body?.audioUrl,'Audio URL'),imageUrl:https(req.body?.imageUrl,'Image URL'),voiceId:String(req.body?.voiceId||'').slice(0,200),language:['sw','en'].includes(req.body?.language)?req.body.language:''};
       for(const v of t[5])if(!vars[v])throw fail(v==='audioUrl'?'Weka audio URL ya HTTPS.':'Andika prompt kwanza.');
-      input=makeInput(env[t[1]],vars);if(JSON.stringify(input).length>20000)throw fail('Input ni kubwa mno.',413);
+      input=makeInput(cfg.template,vars);if(JSON.stringify(input).length>20000)throw fail('Input ni kubwa mno.',413);
       const rate=price(t[2]),units=t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1;charge=units*rate;
       const dailyJobs=db.prepare('SELECT COUNT(*) AS n FROM studio_fal_jobs WHERE user_id=? AND created_at>?').get(req.user.id,now()-86400000).n;
       if(dailyJobs>=Math.max(1,Number(env.FAL_DAILY_JOBS||20)))throw fail('Umefikia kikomo cha kazi za fal.ai kwa saa 24. Jaribu baadaye.',429);

@@ -40,7 +40,12 @@ small,.muted{color:var(--muted)}.status{display:inline-block;border-radius:999px
 <p class="muted">Adapter ya Queue API imejengwa. Kila huduma inahitaji model ID, input template ya model hiyo na bei iliyoidhinishwa kabla ya kuwa tayari. Hakuna generation inayowashwa kwa kuweka API key pekee.</p>
 <div class="row"><button id="checkFal" type="button">Angalia usanidi wa fal.ai</button></div>
 <div id="falStatus" class="service muted" role="status">Bado haijakaguliwa.</div>
-<p class="hint">Weka FAL_API_KEY na variables za model/template kwenye Render → Environment. Usitume API key hapa. Bei za fal.ai zinawekwa kwenye Admin → Pricing; bei ikiwa TZS 0 huduma inabaki imezimwa.</p>
+<p class="hint">FAL_API_KEY inabaki salama kwenye Render Environment. Model na templates zinabadilishwa hapa chini. Bei zinabadilishwa kwenye <a href="/billing-admin.html">Admin → Pricing</a>. Bei ikiwa TZS 0 huduma inabaki imezimwa.</p>
+</section>
+<section class="panel">
+<h2>fal.ai · Model na Input Template</h2>
+<p class="muted">Chagua model au andika Model ID maalumu. Rekebisha JSON template kulingana na API schema ya model. Mipangilio inahifadhiwa kwenye database ya Mlimani; huhitaji kurudi Render Environment kila unapobadilisha model.</p>
+<div id="falConfigList" class="grid"><p class="muted">Ingia kama Admin ili kupakia mipangilio.</p></div>
 </section>
 <section class="panel"><h2>Jinsi ya kuunganisha API mpya</h2>
 <div class="hint">Usiweke API key kwenye GitHub, kwenye ukurasa huu, au kwenye ujumbe wa kawaida. Weka key kwenye Render → Environment kama secret, kisha redeploy baada ya code kuwa tayari.</div>
@@ -57,7 +62,7 @@ function render(data){
  $('providers').innerHTML='';
  (data.providers||[]).forEach(p=>{const d=document.createElement('article');d.className='provider';const h=document.createElement('h3');h.textContent=p.name;const st=document.createElement('div');st.innerHTML=tag(p);const desc=document.createElement('p');desc.textContent=p.description;const key=document.createElement('code');key.textContent=p.credentialName||'API key variable haijaainishwa';const caps=document.createElement('p');caps.textContent='Huduma: '+(p.services||[]).join(', ');d.append(h,st,desc,key,caps);$('providers').append(d)});
 }
-async function load(){ $('message').textContent='Inapakia...';try{const r=await fetch('/api/admin/ai/providers',{headers:{'x-admin-key':$('adminKey').value}});const d=await r.json();if(!r.ok)throw new Error(d.error||'Imeshindikana kuingia.');render(d);$('message').textContent='Taarifa zimesasishwa · '+new Date(d.generatedAt).toLocaleString('sw-TZ')}catch(e){$('message').textContent=e.message}}
+async function load(){ $('message').textContent='Inapakia...';try{const r=await fetch('/api/admin/ai/providers',{headers:{'x-admin-key':$('adminKey').value}});const d=await r.json();if(!r.ok)throw new Error(d.error||'Imeshindikana kuingia.');render(d);$('message').textContent='Taarifa zimesasishwa · '+new Date(d.generatedAt).toLocaleString('sw-TZ');loadFalConfig()}catch(e){$('message').textContent=e.message}}
 async function checkLiveAvatar(){
  const out=$('liveAvatarCheck');out.textContent='Inakagua API key, avatars na voices...';
  try{
@@ -81,6 +86,42 @@ async function checkLiveAvatar(){
  }catch(e){out.textContent='Hitilafu: '+e.message}
 }
 $('checkLiveAvatar').addEventListener('click',checkLiveAvatar);
+ 
+const falDefaults={
+ image:{model:'fal-ai/flux/schnell',template:{prompt:'{{prompt}}',image_size:'landscape_4_3',num_images:1,output_format:'jpeg',enable_safety_checker:true}},
+ video:{model:'kling/v4/text-to-video',template:{prompt:'{{prompt}}',duration:'{{durationSeconds}}',aspect_ratio:'{{aspectRatio}}',resolution:'720p'}},
+ music:{model:'fal-ai/lyria2',template:{prompt:'{{prompt}}'}},
+ voice:{model:'fal-ai/elevenlabs/tts',template:{text:'{{prompt}}',voice:'Rachel',language_code:'en'}},
+ speech:{model:'fal-ai/whisper',template:{audio_url:'{{audioUrl}}'}},
+ animation:{model:'fal-ai/wan-i2v',template:{prompt:'{{prompt}}',image_url:'{{imageUrl}}'}},
+ motion:{model:'fal-ai/kling-video/v2.1/standard/motion-control',template:{prompt:'{{prompt}}',image_url:'{{imageUrl}}'}},
+ avatar_video:{model:'fal-ai/heygen/avatar-video',template:{text:'{{prompt}}',image_url:'{{imageUrl}}'}}
+};
+async function loadFalConfig(){
+ const root=$('falConfigList');root.textContent='Inapakia model na templates...';
+ try{
+  const r=await fetch('/api/admin/fal/config',{headers:{'x-admin-key':$('adminKey').value}}),d=await r.json();if(!r.ok)throw Error(d.error||'Imeshindikana kupakia.');
+  root.innerHTML='';
+  (d.tasks||[]).forEach(t=>{
+   const card=document.createElement('article');card.className='provider';
+   const title=document.createElement('h3');title.textContent=t.label+' · '+t.id;
+   const modelLabel=document.createElement('label');modelLabel.textContent='Chagua model';
+   const select=document.createElement('select');select.style.cssText='width:100%;padding:11px;border:1px solid #cbd6cb;border-radius:9px;margin:6px 0';
+   const choices=[...new Set([...(t.presets||[]),t.model].filter(Boolean))];
+   choices.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;select.append(o)});
+   const custom=document.createElement('option');custom.value='__custom__';custom.textContent='Model nyingine (andika mwenyewe)';select.append(custom);
+   const model=document.createElement('input');model.placeholder='fal.ai Model ID';model.value=t.model||'';model.style.cssText='width:100%;margin:5px 0 10px';
+   select.value=choices.includes(t.model)?t.model:'__custom__';model.hidden=select.value!=='__custom__';
+   select.onchange=()=>{model.hidden=select.value!=='__custom__';if(!model.hidden)model.value=select.value};
+   model.oninput=()=>{if(select.value!=='__custom__')select.value='__custom__'};
+   const templateLabel=document.createElement('label');templateLabel.textContent='Input template (JSON) — tumia {{prompt}}, {{imageUrl}}, {{audioUrl}}, {{durationSeconds}}, {{aspectRatio}}, {{voiceId}}, {{language}}';
+   const area=document.createElement('textarea');area.rows=9;area.style.cssText='width:100%;font:12px/1.45 ui-monospace,monospace;padding:10px;border:1px solid #cbd6cb;border-radius:9px';area.value=t.template||JSON.stringify(falDefaults[t.id]?.template||{},null,2);
+   const save=document.createElement('button');save.textContent='Hifadhi model na template';save.onclick=async()=>{save.disabled=true;try{const x=await fetch('/api/admin/fal/config',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':$('adminKey').value},body:JSON.stringify({task:t.id,model:model.value.trim(),template:area.value})}),j=await x.json();if(!x.ok)throw Error(j.error||'Imeshindikana kuhifadhi');$('falStatus').textContent=t.label+': model na template zimehifadhiwa. Kagua bei kwenye Admin → Pricing.';save.textContent='Imehifadhiwa ✓'}catch(e){$('falStatus').textContent=e.message}finally{save.disabled=false}};
+   card.append(title,modelLabel,select,model,templateLabel,area,document.createElement('br'),save);root.append(card);
+  });
+ }catch(e){root.textContent=e.message}
+}
+
 async function checkFal(){
  const out=$('falStatus');out.textContent='Inakagua usanidi...';
  try{
@@ -88,7 +129,7 @@ async function checkFal(){
   const d=await r.json();if(!r.ok)throw new Error(d.error||'Imeshindikana kukagua fal.ai.');
   const rows=['API key: '+(d.keyConfigured?'IMEWEKWA':'HAIJAWEKWA')];
   (d.tasks||[]).forEach(t=>rows.push(t.label+': '+(t.ready?'READY':'HAIJAWEKWA KAMILI')+' · Model '+(t.modelConfigured?'ipo':'haipo')+' · Template '+(t.templateConfigured?'ipo':'haipo')+' · Bei '+(t.priceConfigured?'imewekwa':'haijaidhinishwa')+' · '+t.modelVariable+' / '+t.templateVariable+' / '+t.priceKey));
-  out.textContent=rows.join(' | ');
+  out.textContent=rows.join(' | ');loadFalConfig();
  }catch(e){out.textContent=e.message}
 }
 $('checkFal').addEventListener('click',checkFal);
