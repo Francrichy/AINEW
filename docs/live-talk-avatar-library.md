@@ -4,7 +4,8 @@
 
 - Ethan and Ngina remain the two featured Mlimani characters at the top of the Studio selection.
 - Their production avatar IDs are configured separately with `LIVEAVATAR_ETHAN_AVATAR_ID` and `LIVEAVATAR_NGINA_AVATAR_ID` in the Render environment.
-- If a production ID is not configured, the existing sandbox fallback is used. Sandbox output is a provider demo avatar, not the final Mlimani likeness.
+- Live Talk defaults to Tanzanian Swahili (`sw`); English (`en`) is available as the second language.
+- The language is selected before choosing Ethan or Ngina, and is sent to the server when the session is created.
 
 ## Additional Live Talk avatars
 
@@ -34,6 +35,14 @@ Optional production character IDs:
 - `LIVEAVATAR_NGINA_AVATAR_ID`
 
 No new paid Cloudflare resources are required for this feature. Provider Live Talk credits and any custom-avatar subscription or slot are separate costs. Keep production pricing disabled until the provider account, avatar IDs, voices, Kiswahili quality and wallet billing have been tested end to end.
+
+## Tanzanian Swahili-first Live Talk
+
+- The Studio language selector defaults to `sw` (Tanzanian Swahili) and offers `en` (English).
+- The Swahili context instructs the assistant to use natural standard Tanzanian Swahili, an East African accent, clear numbers and names, and avoid unnecessary code-switching.
+- Voice selection prefers a voice explicitly tagged Swahili. A multilingual voice may be used as a fallback with a visible warning so Admin can test pronunciation.
+- An English-only voice is never silently selected for a Swahili session. If the connected LiveAvatar account has no Swahili or multilingual voice, the session is stopped with a clear setup message.
+- HeyGen documents Swahili (Kenya and Tanzania) among supported platform voice languages. Actual LiveAvatar account voice availability and pronunciation must still be tested before production.
 
 ## Real-human Live Talk requirement
 

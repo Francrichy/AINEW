@@ -50,6 +50,10 @@ test('Live Talk keeps Ethan and Ngina featured and supports provider avatar sele
   assert.match(html, /avatarId:selectedLiveAvatarId/);
   assert.match(server, /requestedAvatarId/);
   assert.match(server, /selectedAvatar = catalog\.avatars\.find/);
+  assert.match(html, /id="liveLanguage"/);
+  assert.match(html, /liveLanguage/);
+  assert.match(server, /Never substitute an English-only voice/);
+  assert.match(server, /Kiswahili sanifu cha Tanzania/);
   assert.match(server, /Avatar uliyochagua haipatikani au haiko tayari/);
 });
 

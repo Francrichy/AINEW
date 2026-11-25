@@ -173,7 +173,7 @@ async function liveAvatarContext(character, language) {
   const promise = (async () => {
     const isSwahili = language === 'sw';
     const prompt = isSwahili
-      ? 'Wewe ni ' + character + ', msaidizi wa AI wa Mlimani Studio. Zungumza kwa Kiswahili sanifu, cha kawaida na chenye urafiki. Sikiliza swali lote kabla ya kujibu. Jibu kwa ufupi lakini kwa manufaa, uliza ufafanuzi inapohitajika, na usibuni taarifa. Jitambulishe kama ' + character + '. Wewe ni AI, usijidai kuwa binadamu. Unasaidia kuhusu biashara, elimu, kilimo, huduma kwa wateja na matumizi ya Mlimani.'
+      ? 'Wewe ni ' + character + ', msaidizi wa AI wa Mlimani Studio. Lugha yako kuu ni Kiswahili sanifu cha Tanzania (lafudhi ya Afrika Mashariki), cha kawaida, fasaha na chenye urafiki. Jibu kwa Kiswahili isipokuwa mtumiaji aombe Kiingereza. Epuka kuchanganya lugha bila sababu; tumia misemo ya kawaida ya Tanzania kwa kiasi na tamka majina na namba kwa uwazi. Sikiliza swali lote kabla ya kujibu. Jibu kwa ufupi lakini kwa manufaa, uliza ufafanuzi inapohitajika, na usibuni taarifa. Jitambulishe kama ' + character + '. Wewe ni AI, usijidai kuwa binadamu. Unasaidia kuhusu biashara, elimu, kilimo, huduma kwa wateja na matumizi ya Mlimani.'
       : 'You are ' + character + ', the friendly AI assistant for Mlimani Studio. Listen carefully, answer naturally and helpfully, ask clarifying questions when needed, and never invent facts. Identify yourself as ' + character + '. Be transparent that you are an AI assistant.';
     const opening_text = isSwahili ? 'Habari! Mimi ni ' + character + '. Karibu Mlimani Studio. Unaweza kuniuliza swali lolote.' : 'Hello! I am ' + character + ' from Mlimani Studio. What can I help you with today?';
     const result = await liveAvatarRequest('/v1/contexts', { method: 'POST', body: JSON.stringify({ name: 'Mlimani ' + character + ' ' + language, prompt, opening_text }) });
@@ -301,17 +301,14 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
       return value === 'en' || value.startsWith('en-') || value.includes('english');
     });
     const multilingualCandidates = catalog.voices.filter(v => voiceLanguage(v).includes('multilingual'));
-    const englishCandidates = language === 'sw' ? catalog.voices.filter(v => {
-      const value = voiceLanguage(v);
-      return value === 'en' || value.startsWith('en-') || value.includes('english');
-    }) : [];
+    // Never substitute an English-only voice for a Swahili conversation.
     const preferredCandidates = voiceCandidates.length ? voiceCandidates
-      : (language === 'sw' ? [...multilingualCandidates, ...englishCandidates] : []);
+      : (language === 'sw' ? multilingualCandidates : []);
     const voice = (voiceGender ? preferredCandidates.find(v => String(v.gender || '').toLowerCase() === voiceGender) : null) || preferredCandidates[0];
     const voiceFallback = language === 'sw' && !voiceCandidates.length && Boolean(voice?.id);
     if (!voice?.id) {
       throw new Error(language === 'sw'
-        ? 'Hakuna sauti ya Kiswahili, lugha nyingi, au English inayopatikana kwenye akaunti hii ya LiveAvatar.'
+        ? 'Hakuna sauti ya Kiswahili au sauti ya lugha nyingi inayopatikana kwenye akaunti hii ya LiveAvatar. Admin ahakikishe voice inayounga mkono Kiswahili imeongezwa.'
         : 'Hakuna sauti ya English inayopatikana kwenye akaunti hii ya LiveAvatar.');
     }
     const contextId = await liveAvatarContext(requestedCharacter || 'Mlimani Presenter', language);
@@ -342,7 +339,7 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
       voiceName: voice.name || voice.id,
       language,
       voiceFallback,
-      voiceNotice: voiceFallback ? 'Sauti ya Kiswahili haikupatikana; mfumo umetumia sauti mbadala. Matamshi ya Kiswahili yanaweza kutofautiana.' : null,
+      voiceNotice: voiceFallback ? 'Sauti maalum ya Kiswahili haikupatikana; mfumo umetumia sauti ya lugha nyingi. Tafadhali hakiki matamshi kabla ya kuitumia kwa wateja.' : null,
       sandbox: !production,
       maxSessionDuration,
       billingSessionId,
