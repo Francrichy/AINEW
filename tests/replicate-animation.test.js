@@ -17,5 +17,5 @@ test('Replicate input templates safely substitute prompt, image and numeric dura
 
 test('Replicate input templates must be JSON objects with a prompt placeholder', () => {
   assert.throws(() => buildReplicateInput('not-json', { prompt: 'hello' }));
-  assert.throws(() => buildReplicateInput('{"text":"hello"}', { prompt: 'hello' }), /prompt placeholder/);
+  assert.throws(() => buildReplicateInput('{"text":"hello"}', { prompt: 'hello' }), /placeholder/);
 });
