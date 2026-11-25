@@ -12,6 +12,15 @@ const TASKS = {
 };
 const fail = (message,status=400) => Object.assign(new Error(message),{status});
 const json = async r => { const d=await r.json().catch(()=>({})); if(!r.ok) throw fail(String(d.detail||d.message||d.error||'fal.ai HTTP '+r.status).slice(0,500),r.status); return d; };
+export function normalizeSupplierPrice(task,unit,unitPrice,exchangeRate) {
+  const factors={image:{image:1,images:1},video:{second:5,seconds:5},music:{minute:1,minutes:1,second:60,seconds:60},voice:{minute:1,minutes:1,second:60,seconds:60},speech:{minute:1,minutes:1,second:60,seconds:60},animation:{request:1,requests:1,generation:1,generations:1},motion:{second:1,seconds:1},avatar_video:{second:1,seconds:1}};
+  const normalized=String(unit||'').toLowerCase().trim(),factor=factors[task]?.[normalized];
+  const price=Number(unitPrice),fx=Number(exchangeRate);
+  if(!factor)throw fail('Unit ya fal.ai ni '+normalized+'; haiwezi kulinganishwa salama na kipimo cha Mlimani. Badili model au weka bei kwa mkono.',422);
+  if(!Number.isFinite(price)||price<=0||!Number.isFinite(fx)||fx<=0)throw fail('Bei ya supplier au kiwango cha USD/TZS si sahihi.',422);
+  const providerCost=Math.round(price*factor*fx*1000000)/1000000;
+  return {providerCost,customerPrice:Math.round(providerCost*3.5*1000000)/1000000,factor,unit:normalized};
+}
 export const modelPath = model => {
   const m=String(model||'').trim();
   if(!/^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*){1,5}$/i.test(m)) throw fail('Admin hajaweka model ID sahihi ya fal.ai.',503);
@@ -70,6 +79,31 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
     db.prepare(`INSERT INTO studio_fal_config(task,model,input_template,updated_at) VALUES(?,?,?,?)
       ON CONFLICT(task) DO UPDATE SET model=excluded.model,input_template=excluded.input_template,updated_at=excluded.updated_at`).run(task,model,template,now());
     res.json({ok:true,task,model,templateSaved:true});
+  });
+  // Sync live supplier price and convert it into the app's billing unit before applying x3.5.
+  app.get('/api/admin/fal/pricing/:task',admin,async(req,res)=>{
+    const task=String(req.params.task||''),t=TASKS[task];
+    if(!t)return res.status(404).json({error:'Huduma ya fal.ai haijulikani.'});
+    const model=String(config(task).model||'').trim();
+    if(!model)return res.status(409).json({error:'Chagua na hifadhi model kwanza.'});
+    if(!key())return res.status(503).json({error:'FAL_API_KEY haijawekwa kwenye Render.'});
+    const fx=Number(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='usd_tzs'").get()?.customer_price||0);
+    if(!Number.isFinite(fx)||fx<=0)return res.status(409).json({error:'Weka kiwango halali cha USD/TZS kwenye Billing Admin kwanza.'});
+    try{
+      const url='https://api.fal.ai/v1/models/pricing?endpoint_id='+encodeURIComponent(model);
+      const response=await fetch(url,{headers:{Authorization:'Key '+key(),Accept:'application/json'},signal:AbortSignal.timeout(20000)});
+      const data=await json(response);
+      const item=(data.prices||[]).find(x=>String(x.endpoint_id||'')===model)||(data.prices||[])[0];
+      if(!item||!Number.isFinite(Number(item.unit_price))||Number(item.unit_price)<=0)throw fail('fal.ai haijarudisha bei halali ya model hii.',404);
+      const unit=String(item.unit||'').toLowerCase().trim(),currency=String(item.currency||'').toUpperCase();
+      if(currency!=='USD')throw fail('Sarafu ya supplier ni '+(currency||'haijulikani')+'. Auto-conversion inahitaji bei ya USD.',422);
+      const normalized=normalizeSupplierPrice(task,unit,item.unit_price,fx);
+      const providerCost=normalized.providerCost,customerPrice=normalized.customerPrice,factor=normalized.factor;
+      const stamp=now(),priceKey=t[2];
+      const note=('fal.ai live price · '+model+' · USD '+item.unit_price+'/'+unit+' · FX '+fx+' TZS/USD · unit factor '+factor+' · synced '+new Date(stamp).toISOString()).slice(0,500);
+      db.prepare("UPDATE admin_pricing SET provider_cost=?,customer_price=?,currency='TZS',notes=?,updated_at=? WHERE config_key=?").run(providerCost,customerPrice,note,stamp,priceKey);
+      res.json({ok:true,task,model,sourceUnit:unit,sourceUnitPrice:Number(item.unit_price),currency:'USD',exchangeRate:fx,billingUnit:t[4],unitFactor:factor,providerCostTzs:providerCost,customerPriceTzs:customerPrice,markup:3.5,priceKey,updatedAt:stamp});
+    }catch(e){res.status(e.status||502).json({error:'Imeshindikana kupata bei ya fal.ai: '+e.message.slice(0,350)});}
   });
   app.get('/api/admin/fal/status',admin,(_q,res)=>res.json({keyConfigured:!!key(),tasks:Object.entries(TASKS).map(([id,t])=>{const c=config(id);return {id,label:t[3],modelVariable:t[0],modelConfigured:!!c.model,templateVariable:t[1],templateConfigured:!!c.template,priceKey:t[2],priceConfigured:price(t[2])>0,ready:!!(key()&&c.model&&c.template&&price(t[2])>0)}})}));
   app.get('/api/studio/fal/:task/estimate',need,(req,res)=>{
