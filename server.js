@@ -14,7 +14,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const env = process.env;
 const OR_KEY = env.OPENROUTER_API_KEY;
 const JWT_SECRET = env.JWT_SECRET || 'badilisha-hii';
-let MARKUP = Math.max(4, +(env.MARKUP || 4)); // bei ya matumizi = gharama halisi x4; hairuhusu chini ya x4
+let MARKUP = Math.max(3.5, +(env.MARKUP || 3.5)); // bei ya matumizi = gharama halisi x3.5; hairuhusu chini ya x3.5
 let USD_TZS = +(env.USD_TZS || 2600);
 const FREE_DAILY = +(env.FREE_DAILY || 6);
 const ANON_DAILY = +(env.ANON_DAILY || 3);
@@ -78,9 +78,11 @@ try { db.exec('ALTER TABLE payments ADD COLUMN amount_tzs REAL'); } catch {}
 try { db.exec("ALTER TABLE live_talk_sessions ADD COLUMN billing_mode TEXT NOT NULL DEFAULT 'legacy'"); } catch {}
 try { db.exec('ALTER TABLE live_talk_sessions ADD COLUMN unit_price_tzs REAL NOT NULL DEFAULT 0'); } catch {}
 initializeBilling(db);
+// Move the previous default x4 markup to the requested x3.5 default once; preserve custom values thereafter.
+db.prepare("UPDATE admin_pricing SET customer_price=3.5, notes='Gharama ya supplier ×3.5; inaweza kubadilishwa na Admin.' WHERE config_key='markup_multiplier' AND customer_price=4 AND notes LIKE '%x4%'").run();
 syncBillingPlans(db, PLANS);
 const savedBillingSettings = Object.fromEntries(db.prepare("SELECT config_key,customer_price FROM admin_pricing WHERE config_key IN ('markup_multiplier','usd_tzs')").all().map(x => [x.config_key, Number(x.customer_price)]));
-if (Number.isFinite(savedBillingSettings.markup_multiplier) && savedBillingSettings.markup_multiplier > 0) MARKUP = Math.max(4, savedBillingSettings.markup_multiplier);
+if (Number.isFinite(savedBillingSettings.markup_multiplier) && savedBillingSettings.markup_multiplier > 0) MARKUP = Math.max(3.5, savedBillingSettings.markup_multiplier);
 if (Number.isFinite(savedBillingSettings.usd_tzs) && savedBillingSettings.usd_tzs > 0) USD_TZS = savedBillingSettings.usd_tzs;
 
 const BASE = `Wewe ni Mlimani AI, msaidizi wa akili bandia anayezungumza Kiswahili sanifu kwa ustadi (pia unaelewa Kiingereza). Jibu kwa adabu na kwa usahihi. ` +
@@ -534,7 +536,7 @@ app.post('/api/wallet/topup', need, (req, res) => {
   res.json({ ok:1, message:'Ombi la kuongeza salio limepokelewa. Salio litaongezwa baada ya Admin kuthibitisha malipo.' });
 });
 const admin = (req, res, next) => env.ADMIN_KEY && req.headers['x-admin-key'] === env.ADMIN_KEY ? next() : res.status(403).json({ error: 'Hapana.' });
-registerBillingRoutes(app, { db, need, admin, plans: PLANS, onPricingChange: (key, value) => { if (key === 'markup_multiplier') MARKUP = Math.max(4, value); if (key === 'usd_tzs' && value > 0) USD_TZS = value; } });
+registerBillingRoutes(app, { db, need, admin, plans: PLANS, onPricingChange: (key, value) => { if (key === 'markup_multiplier') MARKUP = Math.max(3.5, value); if (key === 'usd_tzs' && value > 0) USD_TZS = value; } });
 app.get('/api/admin/payments', admin, (_req, res) => res.json(db.prepare("select p.*,u.email,u.phone as uphone,u.name from payments p join users u on u.id=p.user_id where status='pending' order by p.id desc").all()));
 app.get('/api/admin/stats', admin, (_req, res) => res.json({
   users: db.prepare('select count(*) c from users').get().c,
