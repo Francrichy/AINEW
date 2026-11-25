@@ -22,7 +22,7 @@
 <div class="status" id="imageEstimate">Makadirio ya bei yatapakiwa.</div><button class="action" id="makeImage">Tengeneza picha</button><img id="imageResult" class="hidden" alt="Picha iliyotengenezwa"></section>
 </main>
 <script>
-const $=id=>document.getElementById(id), token=()=>localStorage.getItem('mlimani_token')||localStorage.getItem('token')||'';
+const $=id=>document.getElementById(id), token=()=>localStorage.t||localStorage.getItem('mlimani_token')||localStorage.getItem('token')||'';
 async function api(url,options={}){const r=await fetch(url,{...options,headers:{...(options.headers||{}),Authorization:'Bearer '+token()}});if(!r.ok){let d={};try{d=await r.json()}catch{}throw Error(d.error||'Huduma haikufanya kazi.')}return r}
 function status(el,text,kind=''){el.textContent=text;el.className='status '+kind}
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));['voice','speech','image'].forEach(id=>$(id).classList.toggle('hidden',id!==b.dataset.tab))});
