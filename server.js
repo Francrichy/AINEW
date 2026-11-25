@@ -256,17 +256,15 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
     const catalog = await liveAvatarCatalog();
     const requestedAvatarId = String(req.body?.avatarId || '').trim();
     let character = requestedCharacter || 'Mlimani Presenter';
-    let avatarId = LIVEAVATAR_SANDBOX_AVATAR;
+    let avatarId = null;
     let selectedAvatar = null;
-    let production = false;
+    const production = true;
     if (requestedCharacter) {
       const configuredAvatarId = env['LIVEAVATAR_' + requestedCharacter.toUpperCase() + '_AVATAR_ID'] || '';
-      production = Boolean(configuredAvatarId);
-      if (production) {
-        avatarId = String(configuredAvatarId);
-        selectedAvatar = catalog.avatars.find(a => String(a.id) === avatarId && ['READY', 'ACTIVE'].includes(String(a.status).toUpperCase()));
-        if (!selectedAvatar) return res.status(503).json({ error: 'Avatar maalum ya Mlimani (' + requestedCharacter + ') bado haijaunganishwa au haiko tayari kwenye LiveAvatar.' });
-      }
+      if (!configuredAvatarId) return res.status(503).json({ error: 'Avatar halisi ya ' + requestedCharacter + ' bado haijaunganishwa. Admin ataunganisha avatar yake maalumu kabla ya Live Talk kuwashwa.' });
+      avatarId = String(configuredAvatarId);
+      selectedAvatar = catalog.avatars.find(a => String(a.id) === avatarId && ['READY', 'ACTIVE'].includes(String(a.status).toUpperCase()));
+      if (!selectedAvatar) return res.status(503).json({ error: 'Avatar halisi ya Mlimani (' + requestedCharacter + ') bado haiko tayari kwenye LiveAvatar.' });
     } else {
       if (!requestedAvatarId) return res.status(400).json({ error: 'Chagua avatar kutoka kwenye maktaba ya Live Talk.' });
       selectedAvatar = catalog.avatars.find(a => String(a.id) === requestedAvatarId && ['READY', 'ACTIVE'].includes(String(a.status).toUpperCase()));
