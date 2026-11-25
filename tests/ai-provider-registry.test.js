@@ -52,7 +52,7 @@ test('Studio provider readiness is separate from API-key presence', () => {
   }
   const replicate = catalog.providers.find(p => p.id === 'replicate');
   assert.equal(replicate.credentialConfigured, true);
-  assert.equal(replicate.integrationStatus, 'planned');
+  assert.equal(replicate.integrationStatus, 'active');
   assert.equal(replicate.ready, false);
   assert.equal(catalog.services.find(s => s.id === 'animation').available, false);
   assert.equal(catalog.services.find(s => s.id === 'motion').available, false);
@@ -75,4 +75,17 @@ test('Runway, Luma and HeyGen readiness follows credentials and keeps animation 
   assert.equal(catalog.services.find(s => s.id === 'avatar_video').available, true);
   assert.equal(catalog.services.find(s => s.id === 'avatar_library').available, true);
   assert.equal(catalog.services.find(s => s.id === 'animation').available, false);
+});
+
+test('Replicate Animation becomes available only after model version and input template are configured', () => {
+  const catalog = buildAiProviderCatalog({
+    REPLICATE_API_TOKEN: 'replicate-secret',
+    REPLICATE_ANIMATION_VERSION: 'a'.repeat(64),
+    REPLICATE_ANIMATION_INPUT_TEMPLATE: '{"prompt":"{{prompt}}","num_frames":16}'
+  });
+  const replicate = catalog.providers.find(p => p.id === 'replicate');
+  assert.equal(replicate.credentialConfigured, true);
+  assert.equal(replicate.integrationStatus, 'active');
+  assert.equal(replicate.ready, true);
+  assert.equal(catalog.services.find(s => s.id === 'animation').available, true);
 });
