@@ -468,7 +468,19 @@ body{background:#080808!important}
 }
 @media(prefers-reduced-motion:reduce){.live-hero-main-avatar img{transition:none!important}}
 
-</style></head><body><header class="studio-header"><a class="studio-wordmark" href="/" aria-label="Mlimani Labs">MLIMANI <span>LABS</span></a><nav class="studio-nav" aria-label="Studio tools"><a href="#videoCreatorCard">Video Creator</a><a href="#musicGeneratorCard">Music Generator</a><a href="#filmStudioCard">Film Studio</a><a href="#avatarLibrary">Avatar Library</a></nav><div class="studio-header-actions"><a href="/guide.html">Resources</a><a href="/">Mlimani Labs ↗</a></div></header><main>
+
+/* Keep the homepage focused on the Live Avatar experience */
+.lab-home{padding-bottom:24px!important}
+.live-hero-avatar-picker{z-index:5!important}
+.live-hero-main-avatar{z-index:1!important}
+.live-hero-avatar-picker .hero-avatar-picker{z-index:6!important}
+.live-hero-avatar-picker .avatar{cursor:pointer!important;touch-action:manipulation;pointer-events:auto!important}
+#featuredAvatarChoices .avatar-art{pointer-events:none!important}
+#featuredAvatarChoices .avatar strong,#featuredAvatarChoices .avatar small{pointer-events:none!important}
+#featuredAvatarChoices .avatar[aria-pressed=true]{outline:3px solid #fff!important;outline-offset:4px}
+@media(hover:hover){#featuredAvatarChoices .avatar:hover{transform:translateY(-3px)!important}}
+
+</style></head><body><header class="studio-header"><a class="studio-wordmark" href="/" aria-label="Mlimani Labs">MLIMANI <span>LABS</span></a><nav class="studio-nav" aria-label="Studio tools"><a href="/production-studio.html?mode=video">Video Creator</a><a href="/production-studio.html?mode=music">Music Generator</a><a href="/production-studio.html?mode=film">Film Studio</a><a href="#featuredAvatarChoices">Avatar Library</a></nav><div class="studio-header-actions"><a href="/guide.html">Resources</a><a href="/">Mlimani Labs ↗</a></div></header><main>
 <section class="lab-home" aria-label="Mlimani Labs creative studio">
  <div class="lab-topline"><span class="lab-brandmark">M</span><span>MLIMANI LABS</span><span class="lab-topline-divider"></span><span class="lab-kicker">AI LIVE EXPERIENCE</span></div>
  <div class="lab-hero live-hero">
@@ -485,15 +497,7 @@ body{background:#080808!important}
    <div class="live-hero-camera-icon" aria-hidden="true">▣</div>
   </div>
  </div>
- <div class="lab-section-head"><div><span class="lab-kicker">MLIMANI WORKSPACE</span><h3>Vitu vingine unavyoweza kuunda</h3></div><span class="lab-caption">Studio zako sehemu moja</span></div>
- <div class="lab-grid">
-  <article class="lab-card lab-card-video" id="videoCreatorCard"><div class="lab-card-top"><span class="lab-icon">▣</span><span class="lab-tag">VIDEO</span></div><h3>Video Creator</h3><p>Andaa matangazo na video fupi za bidhaa, huduma na mitandao ya kijamii.</p><button type="button" data-lab-launch="video">Fungua AI Video Creator <span>↗</span></button><a href="/production-studio.html?mode=record">Rekodi au pakia video yako <span>↗</span></a></article>
-  <article class="lab-card lab-card-music" id="musicGeneratorCard"><div class="lab-card-top"><span class="lab-icon">♫</span><span class="lab-tag">MUSIC</span></div><h3>Music Generator</h3><p>Andaa maneno ya wimbo, mtindo wa muziki na maelekezo ya sauti.</p><a href="/production-studio.html?mode=music">Fungua Music Studio <span>↗</span></a></article>
-  <article class="lab-card lab-card-film" id="filmStudioCard"><div class="lab-card-top"><span class="lab-icon">▤</span><span class="lab-tag">FILM</span></div><h3>Film Studio</h3><p>Panga hadithi, wahusika na scenes za filamu ndefu hadi dakika 30.</p><a href="/production-studio.html?mode=film">Fungua Film Studio <span>↗</span></a></article>
- </div>
- <div class="live-avatar-library" id="avatarLibrary"><h3>Avatar Library</h3><p class="note">Ethan na Ngina ni wahusika wakuu. Avatar nyingine zitaonekana ikiwa zinapatikana kwenye akaunti yako.</p><div id="liveAvatarLibraryStatus" class="note">Inasubiri akaunti kuonyesha avatars nyingine.</div><div class="choices" id="liveAvatarCatalogGrid"></div></div>
- <div class="lab-footer"><span class="lab-footer-dot"></span> Live Talk hutumia huduma ya video ya moja kwa moja. Gharama na muda hutegemea bei zilizowekwa kwenye akaunti yako.</div>
-</section>
+ </section>
 <div id="chatFields" class="hidden"><label>Muda wa mazungumzo</label><div class="duration"><button data-duration="normal" aria-pressed="true">Muda wa kawaida</button><button data-duration="extended" aria-pressed="false">Muda mrefu</button></div><p class="note" id="durationNote">Muda wa kawaida wa mazungumzo.</p>
 <div class="chatlog" id="chatlog" aria-live="polite"><div class="bubble assistant">Habari! Mimi ni Mlimani Labs. Unaweza kuniuliza swali lolote. Nitakusaidia kwa Kiswahili.</div></div><label for="chatInput">Andika ujumbe wako</label><textarea id="chatInput" placeholder="Andika swali lako hapa..."></textarea><div class="actions"><button class="primary" id="sendChat">Tuma</button><button class="light" id="downloadChat">Pakua mazungumzo</button><button class="light" id="clearChat">Anza mazungumzo mapya</button></div></div>
 <div id="liveFields" class="hidden">
@@ -545,7 +549,7 @@ body{background:#080808!important}
 <label for="format">Muundo wa video</label><select id="format"><option value="9:16">9:16 — TikTok / Reels</option><option value="16:9">16:9 — YouTube / Presentation</option><option value="1:1">1:1 — Social media</option></select>
 <p class="note">Script ya AI hutumia Chat credits. Video ya sekunde 15 hutumia Matangazo credits zilizowekwa na Admin; kama akaunti haina Matangazo Wallet, hutumia Video credits 3. Video ya sekunde 30 bado haijawezeshwa. Picha ya bidhaa hutumwa kwa muda kama reference image kwenye tangazo la sekunde 15 tu; huondolewa baada ya kutumika au dakika 10. Ethan/Ngina ni maelekezo ya mhusika tu; mwonekano na sauti zao halisi havijahakikishwa.</p><div class="actions"><button class="primary" id="createVideo">Tengeneza video</button></div><div class="status" id="videoProviderStatus">Jaza taarifa kisha bonyeza Tengeneza video sasa.</div><video id="generatedVideo" class="hidden" controls playsinline style="width:100%;max-height:420px;border-radius:16px;background:#111;margin-top:12px"></video><div class="actions"><button type="button" class="secondary hidden" id="downloadGeneratedVideo">Pakua video</button></div>
 </div>
-<div class="status" id="status">Live Talk inakuwezesha kuzungumza na msaidizi wa Mlimani kwa sauti na kusikia majibu. Tengeneza Video hukuwezesha kuunda video fupi ya sekunde 5 au 15 kwa kutumia salio lako la Video au Matangazo.</div><div class="actions"><button class="secondary" id="back">Rudi Mlimani Labs</button></div>
+<div class="status" id="status" aria-live="polite"></div><div class="actions"><button class="secondary" id="back">Rudi Mlimani Labs</button></div>
 <p class="note">Ngina na Ethan ni wahusika wa AI. Kamera/microphone zitaombwa ruhusa tu Live Talk itakapowashwa. Mazungumzo hayatapakuliwa mpaka uchague kitufe cha kupakua.</p>
 </section></main>
 <script>
@@ -560,18 +564,29 @@ function addBubble(role,text){const d=document.createElement('div');d.className=
 function transcript(){return history.map(m=>(m.role==='user'?'WEWE':'MLIMANI LABS')+':\n'+m.content).join('\n\n')}
 async function selectStudioAvatar(b){
  if(liveAvatarSession||liveAvatarStarting){
-  $('#liveStatus').textContent='Maliza mazungumzo ya sasa kabla ya kubadilisha avatar.';
+  const status=$('#liveStatus');if(status)status.textContent='Maliza mazungumzo ya sasa kabla ya kubadilisha avatar.';
   return;
  }
  avatar=b.dataset.avatar;
  selectedLiveAvatarId=b.dataset.avatarId||null;
- const heroImage=$('#liveHeroAvatar'),selectedImage=b.querySelector('.avatar-art');if(heroImage&&selectedImage){heroImage.src=selectedImage.src;heroImage.alt=avatar;}
- $('[data-avatar]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
- $('#liveTitle').textContent=avatar+' yuko tayari kuzungumza nawe';
- $('#liveStatus').textContent=avatar+' amechaguliwa. Bonyeza Piga Video Call kuanza mazungumzo.';
- $('#continueStudio').textContent='▶ Piga Video Call na '+avatar;
+ const heroImage=$('#liveHeroAvatar');
+ const selectedImage=b.querySelector('.avatar-art');
+ if(heroImage&&selectedImage){
+  const nextImage=selectedImage.currentSrc||selectedImage.getAttribute('src');
+  if(nextImage)heroImage.setAttribute('src',nextImage);
+  heroImage.alt=avatar;
+ }
+ const featured=$('#featuredAvatarChoices [data-avatar]');
+ featured.forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+ const title=$('#liveTitle'),status=$('#liveStatus'),callButton=$('#continueStudio');
+ if(title)title.textContent=avatar+' yuko tayari kuzungumza nawe';
+ if(status)status.textContent=avatar+' amechaguliwa. Bonyeza Start Call kuanza mazungumzo.';
+ if(callButton)callButton.textContent='▶ Start Call';
 }
-$('[data-avatar]').forEach(b=>b.addEventListener('click',()=>selectStudioAvatar(b)));
+$('#featuredAvatarChoices [data-avatar]').forEach(b=>b.addEventListener('click',event=>{
+ event.preventDefault();
+ selectStudioAvatar(b);
+}));
 
 $('#sendChat').textContent='Ongea na '+avatar;
 $$('[data-age]').forEach(b=>b.addEventListener('click',()=>{age=b.dataset.age;$$('[data-age]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));}));
