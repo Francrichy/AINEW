@@ -334,6 +334,60 @@ main{max-width:920px;padding:20px 24px 60px;text-align:center}
 #videoCreatorCard,#musicGeneratorCard,#filmStudioCard,#avatarLibrary{scroll-margin-top:22px}
 @media(max-width:900px){.studio-header{flex-wrap:wrap;gap:12px}.studio-nav{order:3;width:100%;justify-content:flex-start;overflow-x:auto;padding:8px 0 11px;scrollbar-width:none}.studio-nav::-webkit-scrollbar{display:none}.studio-nav a{font-size:.82rem}.studio-nav a:after{bottom:-6px}.studio-header-actions{margin-left:auto}}
 @media(max-width:520px){.studio-header{min-height:0;padding:12px 14px}.studio-wordmark{font-size:.9rem}.studio-header-actions{gap:9px}.studio-header-actions a{font-size:.72rem}.studio-header-actions a:last-child{padding:8px 10px}.studio-nav{gap:19px}.studio-nav a{font-size:.78rem}}
+
+
+/* Clean editorial layout following the reference site's white canvas, typography and generous spacing */
+html,body{background:#fff!important;color:#172b3b}
+body{background:#fff!important}
+.studio-header{background:#fff;border-bottom:1px solid #edf0f2;box-shadow:none}
+.studio-wordmark{color:#172b3b}
+.studio-nav a{color:#536879}
+.studio-nav a:hover{color:#1d4f70}
+.studio-nav a:after{background:#1d4f70}
+.lab-home{max-width:1240px;margin:0 auto;padding:clamp(14px,3vw,34px);background:#fff;border:0;border-radius:0;box-shadow:none}
+.lab-topline{color:#263f52}
+.lab-brandmark{background:#183b55}
+.lab-kicker{color:#718292}
+.live-hero{grid-template-columns:minmax(0,1.12fr) minmax(280px,.88fr);gap:clamp(28px,5vw,72px);padding:clamp(26px,4.8vw,64px) 0 48px;border-radius:0;background:#fff;color:#172b3b;box-shadow:none;border-bottom:1px solid #edf0f2;overflow:visible}
+.live-hero .lab-eyebrow{color:#61798b}
+.live-hero .lab-hero-copy h2{color:#172b3b;font-family:Georgia,serif;font-weight:500;letter-spacing:-.045em;line-height:1.04}
+.live-hero .lab-intro{color:#657789;line-height:1.75}
+.live-hero .live-language-choice{background:#f7f9fa;border:1px solid #e7edf1;border-radius:14px}
+.live-hero .live-language-choice label{color:#263f52}
+.live-hero .live-language-choice select{border-color:#dbe3e8;color:#263f52}
+.live-hero .live-language-choice .note{color:#7a8b98}
+.hero-avatar-picker .avatar{background:#f7f9fa;border:1px solid #e2e9ee;color:#263f52}
+.hero-avatar-picker .avatar:hover{background:#f0f4f7}
+.hero-avatar-picker .avatar[aria-pressed=true]{border:1px solid #6f8da5;background:#edf3f7;box-shadow:0 0 0 3px #557b9820}
+.hero-avatar-picker .avatar strong{color:#203c52}
+.hero-avatar-picker .avatar small{color:#718292}
+#continueStudio{background:#1d4f70;color:#fff;box-shadow:0 8px 20px #1d4f7020}
+#continueStudio:hover{box-shadow:0 12px 25px #1d4f7028}
+.live-hero .lab-caption{color:#718292}
+.live-hero-art{min-height:380px;border:1px solid #e8edf0;border-radius:20px;background:linear-gradient(145deg,#f7f9fa,#edf2f5);box-shadow:none}
+.live-art-pill{background:#e5edf2;color:#39586f}
+.live-art-pill i{background:#4c9a70;box-shadow:0 0 0 5px #4c9a7020}
+.live-art-orbit{border-color:#b9cbd7;background:radial-gradient(circle,#b9cbd744,#b9cbd70a 65%,transparent 66%)}
+.live-art-orbit:before,.live-art-orbit:after{border-color:#b9cbd766}
+.live-art-core{background:linear-gradient(145deg,#315f7c,#1d4f70);color:#fff;box-shadow:0 12px 30px #1d4f7028}
+.live-art-orbit span{background:#d9ebe0;color:#23533a}
+.live-hero-art>strong{color:#203c52}
+.live-hero-art>small{color:#718292}
+.live-art-wave i{background:#5c86a0}
+.lab-section-head h3{color:#203c52;font-family:Georgia,serif;font-weight:500;font-size:1.6rem}
+.lab-card{border:1px solid #e8edf0;border-radius:16px;background:#fff;box-shadow:0 8px 24px #203c5209}
+.lab-card:hover{box-shadow:0 14px 30px #203c5212}
+.lab-card .lab-icon{background:#eef3f6;color:#315f7c}
+.lab-card h3{color:#203c52}
+.lab-card p{color:#718292}
+.lab-card button,.lab-card>a{color:#315f7c}
+.lab-card button{background:#1d4f70;color:#fff}
+.lab-card.soon button{background:#edf1f4;color:#718091}
+.live-avatar-library{background:#f8fafb;border-color:#e8edf0;border-radius:16px}
+.live-avatar-library h3{color:#203c52}
+#liveAvatarCatalogGrid .avatar{background:#fff;border-color:#e2e9ee}
+.lab-footer{color:#81909a}
+@media(max-width:760px){.live-hero{grid-template-columns:1fr;padding:24px 0 30px;gap:20px}.live-hero-art{min-height:250px}.lab-home{padding:14px}.studio-nav{order:3}}
 </style></head><body><header class="studio-header"><a class="studio-wordmark" href="/" aria-label="Mlimani Labs">MLIMANI <span>LABS</span></a><nav class="studio-nav" aria-label="Studio tools"><a href="#videoCreatorCard">Video Creator</a><a href="#musicGeneratorCard">Music Generator</a><a href="#filmStudioCard">Film Studio</a><a href="#avatarLibrary">Avatar Library</a></nav><div class="studio-header-actions"><a href="/guide.html">Resources</a><a href="/">Mlimani Labs ↗</a></div></header><main>
 <section class="lab-home" aria-label="Mlimani Labs creative studio">
  <div class="lab-topline"><span class="lab-brandmark">M</span><span>MLIMANI LABS</span><span class="lab-topline-divider"></span><span class="lab-kicker">AI LIVE EXPERIENCE</span></div>
