@@ -57,3 +57,22 @@ test('Studio provider readiness is separate from API-key presence', () => {
   assert.equal(catalog.services.find(s => s.id === 'animation').available, false);
   assert.equal(catalog.services.find(s => s.id === 'motion').available, false);
 });
+
+test('Runway, Luma and HeyGen readiness follows credentials and keeps animation planned', () => {
+  const catalog = buildAiProviderCatalog({
+    RUNWAY_API_KEY: 'runway-secret',
+    LUMA_AGENTS_API_KEY: 'luma-secret',
+    HEYGEN_API_KEY: 'heygen-secret',
+    STUDIO_MOTION_PROVIDER: 'luma'
+  });
+  for (const id of ['runway', 'luma', 'heygen']) {
+    const provider = catalog.providers.find(p => p.id === id);
+    assert.equal(provider.integrationStatus, 'active');
+    assert.equal(provider.ready, true);
+  }
+  assert.equal(catalog.providers.find(p => p.id === 'luma').selected, true);
+  assert.equal(catalog.services.find(s => s.id === 'motion').available, true);
+  assert.equal(catalog.services.find(s => s.id === 'avatar_video').available, true);
+  assert.equal(catalog.services.find(s => s.id === 'avatar_library').available, true);
+  assert.equal(catalog.services.find(s => s.id === 'animation').available, false);
+});
