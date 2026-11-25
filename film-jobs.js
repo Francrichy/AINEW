@@ -133,7 +133,7 @@ export function registerFilmJobRoutes(app, { db, need, env, cashWalletBalance, c
     try {
       const config = workerConfig(env);
       if (!config) return json(res, 503, { error: 'Muunganisho wa Film Worker haupo.' });
-      const manifest = await workerFetch(config, '/jobs/' + encodeURIComponent(job.worker_job_id));
+      const manifest = await workerFetch(config, '/jobs/' + encodeURIComponent(job.worker_job_id) + '?ownerId=' + encodeURIComponent(String(req.user.id)));
       const status = String(manifest.status || 'working');
       if (status === 'completed' && job.status !== 'completed') {
         db.prepare("UPDATE studio_film_jobs SET status='completed',updated_at=? WHERE id=?").run(Date.now(), job.id);
@@ -166,7 +166,7 @@ export function registerFilmJobRoutes(app, { db, need, env, cashWalletBalance, c
     if (!job?.worker_job_id) return json(res, 404, { error: 'Filamu bado haijakamilika.' });
     try {
       const config = workerConfig(env);
-      const result = await workerFetch(config, '/jobs/' + encodeURIComponent(job.worker_job_id) + '/download');
+      const result = await workerFetch(config, '/jobs/' + encodeURIComponent(job.worker_job_id) + '/download?ownerId=' + encodeURIComponent(String(req.user.id)));
       return res.json({ url: result.url, expiresIn: result.expiresIn || 600 });
     } catch (error) {
       return json(res, error.status || 502, { error: 'Imeshindikana kuandaa kiungo cha kupakua filamu.' });
