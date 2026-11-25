@@ -52,3 +52,31 @@ test('Live Talk keeps Ethan and Ngina featured and supports provider avatar sele
   assert.match(server, /selectedAvatar = catalog\.avatars\.find/);
   assert.match(server, /Avatar uliyochagua haipatikani au haiko tayari/);
 });
+
+test('AI Video offers quality tiers with upfront estimates and Admin-controlled prices', () => {
+  const html = readFileSync(path.join('public', 'production-studio.html'), 'utf8');
+  const server = readFileSync('server.js', 'utf8');
+  const billing = readFileSync('billing.js', 'utf8');
+  assert.match(html, /id="videoAvatarQuality"/);
+  assert.match(html, /value="realistic"/);
+  assert.match(html, /value="stylized"/);
+  assert.match(html, /value="cartoon"/);
+  assert.match(html, /getVideoEstimate\(\)/);
+  assert.match(html, /expectedChargeTzs:estimate\.estimatedChargeTzs/);
+  assert.match(server, /app\.get\('\/api\/video\/estimate'/);
+  assert.match(server, /video_realistic_5s_tzs/);
+  assert.match(server, /video_stylized_5s_tzs/);
+  assert.match(server, /video_cartoon_5s_tzs/);
+  assert.match(server, /VISUAL AVATAR QUALITY/);
+  assert.match(billing, /AI Video – Avatar halisi/);
+  assert.match(billing, /AI Video – Avatar ya mtindo/);
+  assert.match(billing, /AI Video – Katuni/);
+});
+
+test('Live Talk uses realistic provider avatars and does not fall back to sandbox', () => {
+  const server = readFileSync('server.js', 'utf8');
+  assert.match(server, /LIVEAVATAR_REAL_HUMAN_AVATAR_IDS/);
+  assert.match(server, /appearance: 'real-human'/);
+  assert.match(server, /Avatar halisi ya .*bado haijaunganishwa/);
+  assert.doesNotMatch(server, /let avatarId = LIVEAVATAR_SANDBOX_AVATAR/);
+});
