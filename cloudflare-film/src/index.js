@@ -204,7 +204,7 @@ export default {
       return json({ jobId, status: "queued", totalScenes: payload.scenes.length }, 202);
     }
 
-    const downloadMatch = url.pathname.match(/^\\/jobs\\/([a-zA-Z0-9-]+)\\/download$/);
+    const downloadMatch = url.pathname.match(/^\/jobs\/([a-zA-Z0-9-]+)\/download$/);
     if (request.method === "GET" && downloadMatch) {
       const manifest = await readManifest(env.FILM_MEDIA, downloadMatch[1]);
       if (!manifest || String(manifest.ownerId) !== String(url.searchParams.get("ownerId") || "")) return json({ error: "Kazi haipo." }, 404);
@@ -221,7 +221,7 @@ export default {
       return json({ url: signedUrl, expiresIn });
     }
 
-    const match = url.pathname.match(/^\\/jobs\\/([a-zA-Z0-9-]+)$/);
+    const match = url.pathname.match(/^\/jobs\/([a-zA-Z0-9-]+)$/);
     if (request.method === "GET" && match) {
       const manifest = await readManifest(env.FILM_MEDIA, match[1]);
       if (!manifest || String(manifest.ownerId) !== String(url.searchParams.get("ownerId") || "")) return json({ error: "Kazi haipo." }, 404);
