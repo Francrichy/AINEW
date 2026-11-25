@@ -389,7 +389,7 @@ async function loadLiveAvatarLibrary(){
   const response=await fetch('/api/liveavatar/catalog',{headers:{Authorization:'Bearer '+token}});
   const data=await response.json().catch(()=>({}));
   if(!response.ok||!data.connected)throw new Error(data.error||'Maktaba ya avatars haipatikani kwa sasa.');
-  const rows=(data.avatars||[]).filter(item=>item&&item.id&&String(item.status||'READY').toUpperCase()==='READY'&&!['ethan','ngina'].includes(String(item.name||'').trim().toLowerCase()));
+  const rows=(data.avatars||[]).filter(item=>item&&item.id&&['READY','ACTIVE'].includes(String(item.status||'READY').toUpperCase())&&!['ethan','ngina'].includes(String(item.name||'').trim().toLowerCase()));
   if(!rows.length){status.textContent='Kwa sasa hakuna avatar nyingine iliyo tayari kwenye akaunti hii. Ethan na Ngina bado wanapatikana juu.';status.dataset.loaded='yes';return;}
   rows.slice(0,30).forEach(item=>{
    const button=document.createElement('button');button.type='button';button.className='avatar';button.dataset.avatar=String(item.name||'Mlimani Presenter').slice(0,70);button.dataset.avatarId=String(item.id);button.setAttribute('aria-pressed','false');
