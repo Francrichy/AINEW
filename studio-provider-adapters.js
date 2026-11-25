@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import express from 'express';
 
 const jsonError = async response => {
   const data = await response.json().catch(() => ({}));
@@ -7,18 +8,18 @@ const jsonError = async response => {
 };
 
 export function estimateVoiceMinutes(text) {
-  const words = String(text || '').trim().split(/\\s+/).filter(Boolean).length;
+  const words = String(text || '').trim().split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.ceil(words / 150));
 }
 
 export function registerStudioProviderRoutes(app, { db, need, env, cashWalletBalance, consumeWalletCredits, creditCashWallet }) {
   const now = () => Date.now();
   const price = key => Number(db.prepare('SELECT customer_price FROM admin_pricing WHERE config_key=?').get(key)?.customer_price || 0);
-  const ensurePrice = (key, label, service, notes) => db.prepare(`INSERT OR IGNORE INTO admin_pricing
+  const ensurePrice = (key, label, service, unit, notes) => db.prepare(`INSERT OR IGNORE INTO admin_pricing
     (config_key,label,service,unit,provider_cost,customer_price,currency,notes,updated_at)
-    VALUES(?,?,?,'per_minute',0,0,'TZS',?,?)`).run(key, label, service, notes, now());
-  ensurePrice('studio_speech_minute_tzs', 'Mlimani Studio Speech Recognition kwa dakika', 'studio_speech', 'Bei ya mteja kwa dakika ya audio; weka baada ya kuthibitisha gharama za Deepgram na ubora wa Kiswahili.');
-  ensurePrice('studio_image_tzs', 'Mlimani Studio Image kwa picha', 'studio_image', 'Bei ya mteja kwa picha; weka baada ya kuthibitisha gharama za Stability AI.');
+    VALUES(?,?,?,?,0,0,'TZS',?,?)`).run(key, label, service, unit, notes, now());
+  ensurePrice('studio_speech_minute_tzs', 'Mlimani Studio Speech Recognition kwa dakika', 'studio_speech', 'per_minute', 'Bei ya mteja kwa dakika ya audio; weka baada ya kuthibitisha gharama za Deepgram na ubora wa Kiswahili.');
+  ensurePrice('studio_image_tzs', 'Mlimani Studio Image kwa picha', 'studio_image', 'per_image', 'Bei ya mteja kwa picha; weka baada ya kuthibitisha gharama za Stability AI.');
 
   const reserve = (userId, amount, description) => {
     if (!(amount > 0)) throw Object.assign(new Error('Bei ya huduma haijaidhinishwa na Admin.'), { status: 503 });
@@ -79,11 +80,11 @@ export function registerStudioProviderRoutes(app, { db, need, env, cashWalletBal
     res.json({ durationSeconds: seconds, billedMinutes: minutes, customerPricePerMinuteTzs: rate, estimatedChargeTzs: charge, walletBalanceTzs: cashWalletBalance(db, req.user.id), enabled: Boolean(env.DEEPGRAM_API_KEY && rate > 0 && cashWalletBalance(db, req.user.id) >= charge), provider: 'Deepgram' });
   });
 
-  app.post('/api/studio/speech/transcribe', need, async (req, res) => {
+  app.post('/api/studio/speech/transcribe', express.raw({ type: ['audio/*', 'video/*', 'application/octet-stream'], limit: '25mb' }), need, async (req, res) => {
     if (!Buffer.isBuffer(req.body) || !req.body.length) return res.status(400).json({ error: 'Pakia faili la sauti kwanza.' });
     if (req.body.length > 25 * 1024 * 1024) return res.status(413).json({ error: 'Faili lisizidi MB 25 kwa sasa.' });
     const contentType = String(req.headers['content-type'] || '').split(';')[0].toLowerCase();
-    if (!/^(audio\\/(mpeg|mp3|wav|webm|ogg|mp4|m4a|flac)|video\\/(mp4|webm|quicktime)|application\\/octet-stream)$/.test(contentType)) return res.status(415).json({ error: 'Aina ya faili hairuhusiwi. Tumia MP3, WAV, M4A, WEBM au MP4.' });
+    if (!/^(audio\/(mpeg|mp3|wav|webm|ogg|mp4|m4a|flac)|video\/(mp4|webm|quicktime)|application\/octet-stream)$/.test(contentType)) return res.status(415).json({ error: 'Aina ya faili hairuhusiwi. Tumia MP3, WAV, M4A, WEBM au MP4.' });
     if (!env.DEEPGRAM_API_KEY) return res.status(503).json({ error: 'Deepgram haijaunganishwa. Admin aweke DEEPGRAM_API_KEY kwenye Render.' });
     const expectedSeconds = Math.round(Number(req.headers['x-audio-duration-seconds']) || 0);
     if (!Number.isFinite(expectedSeconds) || expectedSeconds < 1 || expectedSeconds > 600) return res.status(400).json({ error: 'Muda wa sauti lazima uwe kati ya sekunde 1 na 600.' });
