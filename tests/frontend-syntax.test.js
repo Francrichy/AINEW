@@ -5,7 +5,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 
 test('main customer pages include mobile viewport and responsive layout', () => {
-  for (const page of ['index.html', 'studio.html', 'guide.html']) {
+  for (const page of ['index.html', 'studio.html', 'guide.html', 'provider-admin.html']) {
     const html = readFileSync(path.join('public', page), 'utf8');
     assert.match(html, /<meta\s+name=["']viewport["']/i, page + ' must define a mobile viewport');
     assert.match(html, /@media\s*\(/i, page + ' must include responsive styles');

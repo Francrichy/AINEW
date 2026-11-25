@@ -41,6 +41,7 @@ export function buildAiProviderCatalog(env = process.env) {
       name: provider.name,
       services: provider.services,
       credentialConfigured,
+      credentialName: provider.key,
       integrationStatus: provider.integration,
       ready,
       selected: Boolean(selected && ready),

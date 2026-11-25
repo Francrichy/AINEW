@@ -545,6 +545,7 @@ app.post('/api/wallet/topup', need, (req, res) => {
   res.json({ ok:1, message:'Ombi la kuongeza salio limepokelewa. Salio litaongezwa baada ya Admin kuthibitisha malipo.' });
 });
 const admin = (req, res, next) => env.ADMIN_KEY && req.headers['x-admin-key'] === env.ADMIN_KEY ? next() : res.status(403).json({ error: 'Hapana.' });
+app.get('/api/admin/ai/providers', admin, (_req, res) => res.json(buildAiProviderCatalog(env)));
 registerBillingRoutes(app, { db, need, admin, plans: PLANS, onPricingChange: (key, value) => { if (key === 'markup_multiplier') MARKUP = Math.max(3.5, value); if (key === 'usd_tzs' && value > 0) USD_TZS = value; } });
 app.get('/api/admin/payments', admin, (_req, res) => res.json(db.prepare("select p.*,u.email,u.phone as uphone,u.name from payments p join users u on u.id=p.user_id where status='pending' order by p.id desc").all()));
 app.get('/api/admin/stats', admin, (_req, res) => res.json({

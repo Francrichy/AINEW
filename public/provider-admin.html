@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="sw">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><title>Mlimani AI Provider Management</title>
+<style>
+:root{color-scheme:light;--green:#164b32;--gold:#e5a900;--paper:#f5f7f3;--ink:#1d2b22;--muted:#64736a}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+header{background:var(--green);color:white;padding:22px 18px}header .wrap,main{max-width:1050px;margin:auto}h1{font-size:clamp(22px,4vw,30px);margin:0 0 5px}header p{margin:0;color:#d8e7dd}
+main{padding:18px}.panel{background:white;border:1px solid #e0e7df;border-radius:16px;padding:16px;margin-bottom:15px;box-shadow:0 3px 14px #193c2510}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row input{flex:1;min-width:220px}
+input{padding:12px;border:1px solid #cbd6cb;border-radius:10px;font:inherit}button,.link{border:0;border-radius:10px;padding:11px 15px;background:var(--gold);font-weight:750;color:#172116;cursor:pointer;text-decoration:none}
+small,.muted{color:var(--muted)}.status{display:inline-block;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:750;background:#edf1ed;color:#435047}
+.status.ready{background:#dff4e5;color:#176334}.status.key{background:#fff1cf;color:#795300}.status.planned{background:#e9edf3;color:#45566c}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:12px}
+.provider{border:1px solid #e2e8e2;border-radius:13px;padding:14px;min-width:0}.provider h3{margin:0 0 5px;font-size:17px}.provider p{margin:8px 0;color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.provider code{font-size:12px;background:#f1f4f1;padding:4px 6px;border-radius:6px;overflow-wrap:anywhere}
+.service{padding:10px 0;border-bottom:1px solid #edf0ed}.service:last-child{border:0}
+#message{margin-top:8px;color:#a33}.hint{background:#fff8e6;border-left:4px solid var(--gold);padding:12px;border-radius:8px}
+@media(max-width:560px){main{padding:12px}.panel{padding:13px}.row input{min-width:100%}.row button{width:100%}}
+</style></head>
+<body>
+<header><div class="wrap"><h1>Mlimani AI · Provider Management</h1><p>Angalia huduma, API providers na hali ya miunganisho sehemu moja.</p></div></header>
+<main>
+<section class="panel">
+<h2>Ingia kama Admin</h2>
+<p class="muted">Tumia ADMIN_KEY iliyohifadhiwa kwenye Render. Ufunguo hautatumwa wala kuhifadhiwa kwenye ukurasa huu zaidi ya ombi la sasa.</p>
+<div class="row"><input id="adminKey" type="password" autocomplete="current-password" placeholder="Weka ADMIN_KEY"><button id="load">Angalia hali</button><a class="link" href="/admin.html">Rudi Admin</a></div><div id="message" role="status"></div>
+</section>
+<section class="panel"><h2>Muhtasari wa huduma</h2><div id="services" class="muted">Inasubiri kuingia kwa Admin.</div></section>
+<section class="panel"><h2>Watoa huduma (Providers)</h2><p class="muted">“API key ipo” haimaanishi kuwa integration imekamilika. Huduma itaoneshwa tayari tu pale adapter yake inapokuwa imejengwa na kuwekwa active.</p><div id="providers" class="grid"><p class="muted">Hakuna taarifa bado.</p></div></section>
+<section class="panel"><h2>Jinsi ya kuunganisha API mpya</h2>
+<div class="hint">Usiweke API key kwenye GitHub, kwenye ukurasa huu, au kwenye ujumbe wa kawaida. Weka key kwenye Render → Environment kama secret, kisha redeploy baada ya code kuwa tayari.</div>
+<ol><li>Fungua akaunti ya provider husika na pata API key.</li><li>Weka variable iliyoonyeshwa kwenye kadi ya provider kwenye Render Environment.</li><li>Hakikisha integration imeandikwa na kujaribiwa; kuweka key pekee hakutoshi.</li><li>Thibitisha gharama, bei ya mteja, matumizi na refund kabla ya kuwasha kwa wateja.</li></ol>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'');
+function tag(p){if(p.ready&&p.selected)return '<span class="status ready">Active · Selected</span>';if(p.ready)return '<span class="status ready">Ready · Not selected</span>';if(p.credentialConfigured&&p.integrationStatus!=='active')return '<span class="status planned">Key exists · Integration planned</span>';if(p.integrationStatus==='planned')return '<span class="status planned">Planned</span>';return '<span class="status key">Needs API key</span>'}
+function render(data){
+ $('services').innerHTML='';
+ (data.services||[]).forEach(s=>{const d=document.createElement('div');d.className='service';const n=document.createElement('strong');n.textContent=s.name+' — '+(s.available?'Available':'Not ready');const p=document.createElement('div');p.className='muted';p.textContent=s.description+' · Providers: '+(s.providers||[]).map(x=>x.name).join(', ');d.append(n,p);$('services').append(d)});
+ $('providers').innerHTML='';
+ (data.providers||[]).forEach(p=>{const d=document.createElement('article');d.className='provider';const h=document.createElement('h3');h.textContent=p.name;const st=document.createElement('div');st.innerHTML=tag(p);const desc=document.createElement('p');desc.textContent=p.description;const key=document.createElement('code');key.textContent=p.credentialName||'API key variable haijaainishwa';const caps=document.createElement('p');caps.textContent='Huduma: '+(p.services||[]).join(', ');d.append(h,st,desc,key,caps);$('providers').append(d)});
+}
+async function load(){ $('message').textContent='Inapakia...';try{const r=await fetch('/api/admin/ai/providers',{headers:{'x-admin-key':$('adminKey').value}});const d=await r.json();if(!r.ok)throw new Error(d.error||'Imeshindikana kuingia.');render(d);$('message').textContent='Taarifa zimesasishwa · '+new Date(d.generatedAt).toLocaleString('sw-TZ')}catch(e){$('message').textContent=e.message}}
+$('load').addEventListener('click',load);
+$('adminKey').addEventListener('keydown',e=>{if(e.key==='Enter')load()});
+</script></body></html>
