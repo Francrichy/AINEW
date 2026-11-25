@@ -404,6 +404,8 @@ async function loadLiveAvatarLibrary(){
  }catch(error){status.textContent=error.message+' Unaweza kuendelea kutumia Ethan au Ngina.';}
 }
 
+loadLiveAvatarLibrary();
+
 function resetLiveControls(message){
  liveAvatarSession=null;
  const video=$('#liveAvatarVideo');
