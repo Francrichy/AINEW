@@ -10,9 +10,9 @@ const providerDefinitions = [
   { id: 'deepgram', name: 'Deepgram', services: ['speech_to_text', 'speech_recognition'], key: 'DEEPGRAM_API_KEY', integration: 'active', description: 'Pre-recorded audio transcription adapter is available; language support must be verified per account/model.' },
   { id: 'replicate', name: 'Replicate', services: ['animation'], key: 'REPLICATE_API_TOKEN', integration: 'planned', description: 'Animation and model-based image generation integration planned.' },
   { id: 'stability', name: 'Stability AI', services: ['image_generation', 'image_editing'], key: 'STABILITY_API_KEY', integration: 'active', description: 'Stable Image Core generation adapter is available; an approved per-image price is required.' },
-  { id: 'runway', name: 'Runway', services: ['video_generation', 'motion'], key: 'RUNWAY_API_KEY', integration: 'planned', description: 'Video and motion integration planned.' },
-  { id: 'luma', name: 'Luma', services: ['video_generation', 'motion'], key: 'LUMA_API_KEY', integration: 'planned', description: 'Video and motion integration planned.' },
-  { id: 'heygen', name: 'HeyGen', services: ['avatar_video', 'avatar_library'], key: 'HEYGEN_API_KEY', integration: 'planned', description: 'Avatar video provider integration planned.' },
+  { id: 'runway', name: 'Runway', services: ['video_generation', 'motion'], key: 'RUNWAY_API_KEY', integration: 'active', description: 'Text-to-video and motion task adapter is available; Admin-approved pricing is required.' },
+  { id: 'luma', name: 'Luma', services: ['video_generation', 'motion'], key: 'LUMA_AGENTS_API_KEY', integration: 'active', description: 'Ray video generation and motion task adapter is available; Admin-approved pricing is required.' },
+  { id: 'heygen', name: 'HeyGen', services: ['avatar_video', 'avatar_library'], key: 'HEYGEN_API_KEY', integration: 'active', description: 'Avatar and talking-photo video adapter plus avatar/voice catalog are available; Admin-approved pricing is required.' },
   { id: 'did', name: 'D-ID', services: ['avatar_video', 'talking_photo'], key: 'DID_API_KEY', integration: 'planned', description: 'Talking-photo provider integration planned.' }
 ];
 
@@ -35,7 +35,9 @@ export function buildAiProviderCatalog(env = process.env) {
     const credentialConfigured = Boolean(env[provider.key]);
     const selected = provider.id === 'pollinations' && videoChoice === 'pollinations'
       || provider.id === 'openrouter-video' && videoChoice === 'openrouter'
-      || ['liveavatar', 'elevenlabs', 'cartesia', 'deepgram', 'stability', 'openrouter-chat'].includes(provider.id);
+      || ['liveavatar', 'elevenlabs', 'cartesia', 'deepgram', 'stability', 'heygen', 'openrouter-chat'].includes(provider.id)
+      || provider.id === 'runway' && String(env.STUDIO_MOTION_PROVIDER || 'runway').toLowerCase() === 'runway'
+      || provider.id === 'luma' && String(env.STUDIO_MOTION_PROVIDER || 'runway').toLowerCase() === 'luma';
     const ready = provider.integration === 'active' && credentialConfigured;
     return {
       id: provider.id,
