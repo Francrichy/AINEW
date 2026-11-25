@@ -63,7 +63,7 @@ export function buildAiProviderCatalog(env = process.env) {
       ...service,
       providers,
       available: readyProviders.length > 0,
-      activeProviderIds: readyProviders.filter(provider => provider.selected).map(provider => provider.id)
+      activeProviderIds: readyProviders.filter(provider => provider.selected || Boolean(provider.serviceReady?.[service.id])).map(provider => provider.id)
     };
   });
   return {
