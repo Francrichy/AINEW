@@ -12,6 +12,18 @@ services:
         value: https://www.mlimani.net
       - key: OPENROUTER_API_KEY
         sync: false
+      - key: POLLINATIONS_API_KEY
+        sync: false
+      - key: VIDEO_PROVIDER
+        value: pollinations
+      - key: OPENROUTER_VIDEO_MODEL
+        value: bytedance/seedance-2.0
+      - key: LIVEAVATAR_API_KEY
+        sync: false
+      - key: LIVEAVATAR_ETHAN_AVATAR_ID
+        sync: false
+      - key: LIVEAVATAR_NGINA_AVATAR_ID
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: ADMIN_KEY
