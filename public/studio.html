@@ -704,7 +704,7 @@ async function selectStudioAvatar(b){
   if(nextImage){heroImage.src=nextImage;heroImage.classList.add('avatar-promoted');}
   heroImage.alt=avatar;heroImage.dataset.selectedAvatar=avatar;
  }
- const featured=$('#featuredAvatarChoices [data-avatar],#featuredAvatarLibraryGrid [data-avatar],#liveAvatarCatalogGrid [data-avatar]');
+ const featured=$$('#featuredAvatarChoices [data-avatar],#featuredAvatarLibraryGrid [data-avatar],#liveAvatarCatalogGrid [data-avatar]');
  featured.forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.avatar===avatar&&(x.dataset.avatarId||null)===selectedLiveAvatarId)));
  const title=$('#liveTitle'),status=$('#liveStatus'),callButton=$('#continueStudio');
  if(title)title.textContent=avatar+' yuko tayari kuzungumza nawe';
@@ -720,7 +720,7 @@ async function selectStudioAvatar(b){
   target.append(card);
  });
 })();
-$('#featuredAvatarChoices [data-avatar]').forEach(b=>b.addEventListener('click',event=>{
+$$('#featuredAvatarChoices [data-avatar]').forEach(b=>b.addEventListener('click',event=>{
  event.preventDefault();
  selectStudioAvatar(b);
 }));
@@ -729,7 +729,7 @@ $('#sendChat').textContent='Ongea na '+avatar;
 $$('[data-age]').forEach(b=>b.addEventListener('click',()=>{age=b.dataset.age;$$('[data-age]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));}));
 $$('[data-duration]').forEach(b=>b.addEventListener('click',()=>{durationTier=b.dataset.duration;$$('[data-duration]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#durationNote').textContent=durationTier==='extended'?'Muda mrefu wa mazungumzo umechaguliwa.':'Muda wa kawaida wa mazungumzo.';}));
 $$('[data-mode]').forEach(b=>b.addEventListener('click',async()=>{const next=b.dataset.mode;if(next===mode)return;if(liveAvatarStarting){liveAvatarCancelRequested=true;}else if(liveAvatarSession){try{await liveAvatarSession.stop();}catch{}resetLiveControls('Umebadilisha huduma.');}mode=next;$$('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#chatFields').classList.add('hidden');$('#liveFields').classList.add('hidden');$('#videoFields').classList.add('hidden');$('#continueStudio').classList.remove('hidden');$('#continueStudio').disabled=false;$('#continueStudio').textContent=mode==='live'?'Anza kuzungumza':'Endelea na tangazo';$('#selectionHint').textContent=mode==='live'?'Chagua Ethan au Ngina, kisha anza mazungumzo ya video.':'Chagua Ethan au Ngina, kisha endelea kuweka maelezo ya tangazo.';if(mode==='video')refreshVideoWallet();}));
-$('[data-vtype]').forEach(b=>b.addEventListener('click',()=>{videoType=b.dataset.vtype;adScriptApproved=false;$('#recordPresenterVideo').disabled=true;$('[data-vtype]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#marketingFields').classList.toggle('hidden',videoType!=='marketing');$('#newsFields').classList.toggle('hidden',videoType!=='news');$('#approveAdScript').disabled=!currentStudioScript();}));
+$$('[data-vtype]').forEach(b=>b.addEventListener('click',()=>{videoType=b.dataset.vtype;adScriptApproved=false;$('#recordPresenterVideo').disabled=true;$$('[data-vtype]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#marketingFields').classList.toggle('hidden',videoType!=='marketing');$('#newsFields').classList.toggle('hidden',videoType!=='news');$('#approveAdScript').disabled=!currentStudioScript();}));
 $('#productImage').addEventListener('change',e=>{
  const file=e.target.files?.[0];
  if(!file){$('#productPreview').classList.add('hidden');return;}
