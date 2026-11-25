@@ -22,7 +22,7 @@ jobs:
         run: node --check server.js
       - name: Check Studio browser JavaScript syntax
         run: |
-          node --input-type=module -e "import fs from 'node:fs'; import vm from 'node:vm'; const html = fs.readFileSync('public/production-studio.html', 'utf8'); const scripts = [...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/gi)].map(m => m[1]); if (!scripts.length) throw new Error('No inline Studio script found'); for (const script of scripts) new vm.Script(script); console.log('Studio inline JavaScript syntax OK');"
+          node --input-type=module -e "import fs from 'node:fs'; import vm from 'node:vm'; const paths = ['public/production-studio.html', 'public/studio-tools.html']; for (const path of paths) { const html = fs.readFileSync(path, 'utf8'); const scripts = [...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/gi)].map(m => m[1]); if (!scripts.length) throw new Error('No inline Studio script found in ' + path); for (const script of scripts) new vm.Script(script); } console.log('Studio inline JavaScript syntax OK');"
       - name: Run Node test suite when test folders exist
         run: |
           if [ -d test ] || [ -d tests ]; then npm test; else echo 'No test folder exists yet; skipping test command.'; fi

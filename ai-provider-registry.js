@@ -2,14 +2,14 @@
 // This reports configuration and integration readiness only; it never exposes secrets.
 const providerDefinitions = [
   { id: 'liveavatar', name: 'LiveAvatar', services: ['live_avatar', 'live_call', 'avatar_library'], key: 'LIVEAVATAR_API_KEY', integration: 'active', description: 'Live avatars, real-time calls and avatar catalog.' },
-  { id: 'pollinations', name: 'Pollinations', services: ['image_generation', 'video_generation'], key: 'POLLINATIONS_API_KEY', integration: 'active', description: 'Current video generation adapter.' },
+  { id: 'pollinations', name: 'Pollinations', services: ['image_generation', 'video_generation'], key: 'POLLINATIONS_API_KEY', integration: 'active', description: 'Current short-video generation adapter.' },
   { id: 'openrouter-video', name: 'OpenRouter Video', services: ['video_generation'], key: 'OPENROUTER_API_KEY', integration: 'active', description: 'Asynchronous video generation adapter; model pricing may apply.' },
   { id: 'openrouter-chat', name: 'OpenRouter', services: ['chat', 'text_generation'], key: 'OPENROUTER_API_KEY', integration: 'active', description: 'Text and chat model routing.' },
   { id: 'elevenlabs', name: 'ElevenLabs', services: ['music_generation'], key: 'ELEVENLABS_API_KEY', integration: 'active', description: 'Music generation adapter is available in Mlimani Studio.' },
-  { id: 'cartesia', name: 'Cartesia', services: ['voice_generation', 'voice_cloning'], key: 'CARTESIA_API_KEY', integration: 'planned', description: 'Low-latency voice integration planned.' },
-  { id: 'deepgram', name: 'Deepgram', services: ['speech_to_text', 'speech_recognition'], key: 'DEEPGRAM_API_KEY', integration: 'planned', description: 'Speech recognition integration planned.' },
-  { id: 'replicate', name: 'Replicate', services: ['image_generation', 'animation'], key: 'REPLICATE_API_TOKEN', integration: 'planned', description: 'Image and animation provider integration planned.' },
-  { id: 'stability', name: 'Stability AI', services: ['image_generation', 'image_editing'], key: 'STABILITY_API_KEY', integration: 'planned', description: 'Image generation and editing integration planned.' },
+  { id: 'cartesia', name: 'Cartesia', services: ['voice_generation'], key: 'CARTESIA_API_KEY', integration: 'active', description: 'Text-to-speech adapter is available; a valid voice ID and approved price are required.' },
+  { id: 'deepgram', name: 'Deepgram', services: ['speech_to_text', 'speech_recognition'], key: 'DEEPGRAM_API_KEY', integration: 'active', description: 'Pre-recorded audio transcription adapter is available; language support must be verified per account/model.' },
+  { id: 'replicate', name: 'Replicate', services: ['animation'], key: 'REPLICATE_API_TOKEN', integration: 'planned', description: 'Animation and model-based image generation integration planned.' },
+  { id: 'stability', name: 'Stability AI', services: ['image_generation', 'image_editing'], key: 'STABILITY_API_KEY', integration: 'active', description: 'Stable Image Core generation adapter is available; an approved per-image price is required.' },
   { id: 'runway', name: 'Runway', services: ['video_generation', 'motion'], key: 'RUNWAY_API_KEY', integration: 'planned', description: 'Video and motion integration planned.' },
   { id: 'luma', name: 'Luma', services: ['video_generation', 'motion'], key: 'LUMA_API_KEY', integration: 'planned', description: 'Video and motion integration planned.' },
   { id: 'heygen', name: 'HeyGen', services: ['avatar_video', 'avatar_library'], key: 'HEYGEN_API_KEY', integration: 'planned', description: 'Avatar video provider integration planned.' },
@@ -35,7 +35,7 @@ export function buildAiProviderCatalog(env = process.env) {
     const credentialConfigured = Boolean(env[provider.key]);
     const selected = provider.id === 'pollinations' && videoChoice === 'pollinations'
       || provider.id === 'openrouter-video' && videoChoice === 'openrouter'
-      || provider.id === 'openrouter-chat';
+      || ['liveavatar', 'elevenlabs', 'cartesia', 'deepgram', 'stability', 'openrouter-chat'].includes(provider.id);
     const ready = provider.integration === 'active' && credentialConfigured;
     return {
       id: provider.id,
