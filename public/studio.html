@@ -573,6 +573,15 @@ button:focus-visible,a:focus-visible{outline:3px solid var(--mlimani-gold-bright
   </div>
  </div>
  </section>
+<section class="live-avatar-library" id="avatarLibrary" aria-labelledby="avatarLibraryHeading">
+ <h3 id="avatarLibraryHeading">Avatar Library</h3>
+ <p class="note">Chagua mhusika atakayeonekana kwenye picha kubwa na kutumika kwenye Live Talk. Ethan na Ngina ni avatars wakuu wa Mlimani.</p>
+ <div class="avatar-library-subtitle">Mlimani Featured Avatars</div>
+ <div id="featuredAvatarLibraryGrid" class="avatar-library-grid" aria-label="Mlimani featured avatars"></div>
+ <div class="avatar-library-subtitle">Avatars kutoka kwa watoa huduma</div>
+ <p class="note" id="liveAvatarLibraryStatus">Ingia kwenye akaunti ili kupakia avatars zinazopatikana.</p>
+ <div id="liveAvatarCatalogGrid" class="avatar-library-grid" aria-label="Provider avatars"></div>
+</section>
 <div id="chatFields" class="hidden"><label>Muda wa mazungumzo</label><div class="duration"><button data-duration="normal" aria-pressed="true">Muda wa kawaida</button><button data-duration="extended" aria-pressed="false">Muda mrefu</button></div><p class="note" id="durationNote">Muda wa kawaida wa mazungumzo.</p>
 <div class="chatlog" id="chatlog" aria-live="polite"><div class="bubble assistant">Habari! Mimi ni Mlimani Labs. Unaweza kuniuliza swali lolote. Nitakusaidia kwa Kiswahili.</div></div><label for="chatInput">Andika ujumbe wako</label><textarea id="chatInput" placeholder="Andika swali lako hapa..."></textarea><div class="actions"><button class="primary" id="sendChat">Tuma</button><button class="light" id="downloadChat">Pakua mazungumzo</button><button class="light" id="clearChat">Anza mazungumzo mapya</button></div></div>
 <div id="liveFields" class="hidden">
@@ -648,16 +657,25 @@ async function selectStudioAvatar(b){
  const selectedImage=b.querySelector('.avatar-art');
  if(heroImage&&selectedImage){
   const nextImage=selectedImage.currentSrc||selectedImage.getAttribute('src');
-  if(nextImage)heroImage.setAttribute('src',nextImage);
-  heroImage.alt=avatar;
+  if(nextImage){heroImage.src=nextImage;heroImage.classList.add('avatar-promoted');}
+  heroImage.alt=avatar;heroImage.dataset.selectedAvatar=avatar;
  }
- const featured=$('#featuredAvatarChoices [data-avatar]');
- featured.forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+ const featured=$('#featuredAvatarChoices [data-avatar],#featuredAvatarLibraryGrid [data-avatar],#liveAvatarCatalogGrid [data-avatar]');
+ featured.forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.avatar===avatar&&(x.dataset.avatarId||null)===selectedLiveAvatarId)));
  const title=$('#liveTitle'),status=$('#liveStatus'),callButton=$('#continueStudio');
  if(title)title.textContent=avatar+' yuko tayari kuzungumza nawe';
  if(status)status.textContent=avatar+' amechaguliwa. Bonyeza Start Call kuanza mazungumzo.';
  if(callButton)callButton.textContent='▶ Start Call';
 }
+// Keep Ethan and Ngina visible as the first two cards in Avatar Library.
+(()=>{
+ const target=$('#featuredAvatarLibraryGrid');if(!target)return;
+ $$('#featuredAvatarChoices [data-avatar]').forEach(source=>{
+  const card=source.cloneNode(true);
+  card.addEventListener('click',event=>{event.preventDefault();selectStudioAvatar(card);});
+  target.append(card);
+ });
+})();
 $('#featuredAvatarChoices [data-avatar]').forEach(b=>b.addEventListener('click',event=>{
  event.preventDefault();
  selectStudioAvatar(b);
@@ -680,10 +698,10 @@ $('#productImage').addEventListener('change',e=>{
 $('#liveCatalogStatus').textContent='Ethan na Ngina wako juu. Avatars nyingine zitaonekana hapa ikiwa akaunti ya LiveAvatar inaziruhusu.';
 async function loadLiveAvatarLibrary(){
  const status=$('#liveAvatarLibraryStatus'),grid=$('#liveAvatarCatalogGrid');
- if(!status||status.dataset.loaded==='yes')return;
+ if(!status||!grid||status.dataset.loaded==='yes')return;
  status.textContent='Tunatafuta avatars zinazopatikana...';
  const token=localStorage.getItem('t')||'';
- if(!token){status.textContent='Ingia kwenye akaunti kwanza ili kuona maktaba ya avatars.';return;}
+ if(!token){status.textContent='Ingia kwenye akaunti ili kuona avatars za watoa huduma. Ethan na Ngina wanapatikana hapo juu.';return;}
  try{
   const response=await fetch('/api/liveavatar/catalog',{headers:{Authorization:'Bearer '+token}});
   const data=await response.json().catch(()=>({}));
