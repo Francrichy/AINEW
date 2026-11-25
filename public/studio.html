@@ -555,6 +555,20 @@ button:focus-visible,a:focus-visible{outline:3px solid var(--mlimani-gold-bright
  .live-hero-main-avatar img.avatar-promoted{transform:scale(1.025)}
  @media(max-width:560px){.live-avatar-library{padding:14px}.avatar-library-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.avatar-library-grid .avatar-art{max-height:145px}}
 
+
+/* Mlimani Studio: pure black visual theme; remove decorative colored heading rules */
+html,body,body::before,body::after{background:#000!important;background-image:none!important;color:#f5f5f5!important}
+body{--forest:#f2f2f2;--leaf:#777;--gold:#d9d9d9;--cream:#080808;--ink:#f5f5f5;--muted:#a6a6a6}
+header,header strong,header a{background:#000!important;color:#f2f2f2!important;border-color:#333!important}
+main{background:#000!important}
+.panel,.live-config,.avatar,.modes button,.status,.chatlog,.live-fields,.video-fields{background:#080808!important;color:#f2f2f2!important;border-color:#292929!important;box-shadow:none!important}
+h1,h2,h3,h4,label,.avatar strong,.avatar small,.note,.lead,p,small{color:#e8e8e8}
+input,textarea,select{background:#101010!important;color:#f5f5f5!important;border-color:#383838!important}
+button,.primary,.secondary,.light,.modes button{background:#171717!important;color:#f5f5f5!important;border:1px solid #383838!important;box-shadow:none!important}
+button[aria-pressed=true],.modes button[aria-pressed=true],.avatar[aria-pressed=true]{background:#202020!important;border-color:#777!important;color:#fff!important}
+.preview{background:#090909!important;border:1px solid #292929!important}
+h1::after,h2::after,h3::after,h4::after,.heading::after,.title::after,.section-title::after{content:none!important;display:none!important;background:none!important;border:0!important;box-shadow:none!important}
+
 </style></head><body><header class="studio-header"><a class="studio-wordmark" href="/" aria-label="Mlimani Labs">MLIMANI <span>LABS</span></a><nav class="studio-nav" aria-label="Studio tools"><a href="/production-studio.html?mode=video">Video Creator</a><a href="/production-studio.html?mode=music">Music Generator</a><a href="/production-studio.html?mode=film">Film Studio</a><a href="#avatarLibrary">Avatar Library</a></nav><div class="studio-header-actions"><a href="/guide.html">Resources</a><a href="/">Mlimani Labs ↗</a></div></header><main>
 <section class="lab-home" aria-label="Mlimani Labs creative studio">
  <div class="lab-topline"><span class="lab-brandmark">M</span><span>MLIMANI LABS</span><span class="lab-topline-divider"></span><span class="lab-kicker">AI LIVE EXPERIENCE</span></div>
