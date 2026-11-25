@@ -514,14 +514,41 @@ button:focus-visible,a:focus-visible{outline:3px solid var(--mlimani-gold-bright
  .studio-nav a:after{background:var(--mlimani-gold)!important}
 }
 
+
+/* Compact hero requested: smaller headline and visible Ethan/Ngina portraits */
+.live-hero{border-bottom:0!important;padding-top:clamp(28px,4vw,54px)!important;padding-bottom:10px!important}
+.live-hero .lab-eyebrow{font-size:.62rem!important;letter-spacing:.13em!important}
+.live-hero .lab-hero-copy h2{font-size:clamp(1.75rem,3.6vw,3rem)!important;line-height:1.08!important;margin:10px auto 9px!important;letter-spacing:-.04em!important}
+.live-hero .lab-intro{max-width:480px!important;font-size:.9rem!important;line-height:1.45!important}
+.live-hero .lab-caption{display:none!important}
+.live-hero .lab-hero-actions{margin-top:16px!important}
+.live-hero-art{width:min(100%,760px)!important;min-height:clamp(280px,38vw,430px)!important;margin:22px auto 0!important;border:0!important;box-shadow:none!important}
+.live-hero-main-avatar{width:min(54%,430px)!important;height:88%!important;top:6%!important;border-radius:34px!important}
+.live-hero-avatar-picker .avatar{width:clamp(84px,12vw,142px)!important;border-radius:18px!important}
+.live-hero-avatar-picker .avatar .avatar-art,.live-hero-avatar-picker .avatar[aria-pressed=true] .avatar-art,.live-hero-avatar-picker .avatar[aria-pressed=false] .avatar-art{border-radius:16px!important}
+.live-hero-avatar-picker .avatar[data-avatar="Ngina"]{left:3%!important;top:12%!important}
+.live-hero-avatar-picker .avatar[data-avatar="Ethan"]{right:3%!important;bottom:12%!important}
+@media(max-width:600px){
+ .live-hero{padding-top:24px!important;padding-bottom:4px!important}
+ .live-hero .lab-eyebrow{font-size:.56rem!important}
+ .live-hero .lab-hero-copy h2{font-size:1.65rem!important;line-height:1.12!important}
+ .live-hero .lab-intro{font-size:.82rem!important;line-height:1.4!important;padding:0 8px}
+ .live-hero-art{width:100%!important;min-height:260px!important;margin-top:16px!important;border-radius:24px!important}
+ .live-hero-main-avatar{width:52%!important;height:82%!important;top:8%!important;border-radius:24px!important}
+ .live-hero-avatar-picker .avatar{width:clamp(76px,24vw,104px)!important;border-radius:14px!important}
+ .live-hero-avatar-picker .avatar .avatar-art,.live-hero-avatar-picker .avatar[aria-pressed=true] .avatar-art,.live-hero-avatar-picker .avatar[aria-pressed=false] .avatar-art{border-radius:12px!important}
+ .live-hero-avatar-picker .avatar[data-avatar="Ngina"]{left:1%!important;top:8%!important}
+ .live-hero-avatar-picker .avatar[data-avatar="Ethan"]{right:1%!important;bottom:8%!important}
+}
+
 </style></head><body><header class="studio-header"><a class="studio-wordmark" href="/" aria-label="Mlimani Labs">MLIMANI <span>LABS</span></a><nav class="studio-nav" aria-label="Studio tools"><a href="/production-studio.html?mode=video">Video Creator</a><a href="/production-studio.html?mode=music">Music Generator</a><a href="/production-studio.html?mode=film">Film Studio</a><a href="#featuredAvatarChoices">Avatar Library</a></nav><div class="studio-header-actions"><a href="/guide.html">Resources</a><a href="/">Mlimani Labs ↗</a></div></header><main>
 <section class="lab-home" aria-label="Mlimani Labs creative studio">
  <div class="lab-topline"><span class="lab-brandmark">M</span><span>MLIMANI LABS</span><span class="lab-topline-divider"></span><span class="lab-kicker">AI LIVE EXPERIENCE</span></div>
  <div class="lab-hero live-hero">
   <div class="lab-hero-copy">
-   <div class="lab-eyebrow">MLIMANI LABS · LIVE AI EXPERIENCE</div>
-   <h2>Meet your AI. Talk face to face.</h2>
-   <p class="lab-intro">Zungumza moja kwa moja na Ethan au Ngina. AI inayokusikiliza, kujibu na kukusaidia kwa Kiswahili cha Tanzania — muda halisi.</p>
+   <div class="lab-eyebrow">MLIMANI LABS · LIVE AI</div>
+   <h2>Talk to Ethan or Ngina.</h2>
+   <p class="lab-intro">Zungumza na Ethan au Ngina kwa Kiswahili, muda halisi.</p>
    <div class="lab-hero-actions"><button type="button" class="primary" id="continueStudio">▶ Start Call</button><span class="lab-caption">Anza mazungumzo ya video na AI avatar.</span></div>
   </div>
   <div class="lab-hero-art live-hero-art" aria-label="Live AI avatar preview">
