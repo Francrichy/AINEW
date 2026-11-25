@@ -282,7 +282,7 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
       maxSessionDuration = Math.min(180, availableMinutes * 60);
     }
     const avatarGender = String(selectedAvatar?.gender || '').toLowerCase();
-    const voiceGender = requestedCharacter ? (requestedCharacter === 'Ethan' ? 'male' : 'female') : (avatarGender.includes('male') ? 'male' : avatarGender.includes('female') ? 'female' : '');
+    const voiceGender = requestedCharacter ? (requestedCharacter === 'Ethan' ? 'male' : 'female') : (['male', 'man'].includes(avatarGender) ? 'male' : ['female', 'woman'].includes(avatarGender) ? 'female' : '');
     const voiceLanguage = v => {
       const value = v?.language;
       if (typeof value === 'string') return value.toLowerCase().trim();
