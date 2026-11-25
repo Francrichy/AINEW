@@ -19,6 +19,7 @@ const providerDefinitions = [
 const serviceDefinitions = [
   { id: 'live_call', name: 'Live Call', description: 'Real-time avatar conversations' },
   { id: 'avatar_library', name: 'Avatar Library', description: 'Browse and select AI presenters' },
+  { id: 'avatar_video', name: 'Avatar Video', description: 'Create presenter videos and talking photos' },
   { id: 'voice_generation', name: 'Voice Studio', description: 'Create spoken audio and voiceovers' },
   { id: 'music_generation', name: 'Music Studio', description: 'Generate original music and instrumental tracks' },
   { id: 'speech_to_text', name: 'Speech Recognition', description: 'Convert speech into text' },
