@@ -326,9 +326,10 @@ let adScriptApproved=false;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 document.querySelectorAll('[data-lab-launch]').forEach(button=>button.addEventListener('click',()=>{
  const target=button.dataset.labLaunch;
+ if(target==='video'){window.location.href='/production-studio.html?mode=video';return;}
  const modeButton=document.querySelector('[data-mode="'+target+'"]');
  if(modeButton) modeButton.click();
- setTimeout(()=>{const area=document.getElementById(target==='live'?'liveFields':'videoFields');area?.scrollIntoView({behavior:'smooth',block:'start'});},180);
+ setTimeout(()=>{const area=document.getElementById('liveFields');area?.scrollIntoView({behavior:'smooth',block:'start'});},180);
 }));
 function addBubble(role,text){const d=document.createElement('div');d.className='bubble '+role;d.textContent=text;$('#chatlog').append(d);$('#chatlog').scrollTop=$('#chatlog').scrollHeight}
 function transcript(){return history.map(m=>(m.role==='user'?'WEWE':'MLIMANI LABS')+':\n'+m.content).join('\n\n')}
