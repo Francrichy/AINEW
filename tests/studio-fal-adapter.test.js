@@ -12,7 +12,7 @@ test('fal input templates replace supported placeholders recursively', () => {
   const result = makeInput(JSON.stringify({ prompt: '{{prompt}}', seconds: '{{durationSeconds}}', options: [{ ratio: '{{aspectRatio}}' }] }), {
     prompt: 'A coffee advert', durationSeconds: 10, aspectRatio: '9:16'
   });
-  assert.deepEqual(result, { prompt: 'A coffee advert', seconds: '10', options: [{ ratio: '9:16' }] });
+  assert.deepEqual(result, { prompt: 'A coffee advert', seconds: 10, options: [{ ratio: '9:16' }] });
 });
 
 test('fal input templates reject invalid JSON and non-object roots', () => {
