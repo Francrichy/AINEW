@@ -18,8 +18,9 @@ test('provider catalog distinguishes configured credentials from working integra
   assert.equal(pollinations.ready, true);
   assert.equal(pollinations.selected, true);
   assert.equal(eleven.credentialConfigured, true);
-  assert.equal(eleven.ready, false);
-  assert.equal(eleven.integrationStatus, 'planned');
+  assert.equal(eleven.ready, true);
+  assert.equal(eleven.services.includes('music_generation'), true);
+  assert.equal(catalog.services.find(s => s.id === 'music_generation').available, true);
   const serialized = JSON.stringify(catalog);
   for (const secret of ['live-secret', 'pollinations-secret', 'openrouter-secret', 'eleven-secret']) {
     assert.equal(serialized.includes(secret), false);
