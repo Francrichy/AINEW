@@ -1,0 +1,16 @@
+name = "mlimani-film-orchestrator"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+
+[[r2_buckets]]
+binding = "FILM_MEDIA"
+bucket_name = "mlimani-studio-media"
+
+[[workflows]]
+name = "mlimani-film-workflow"
+binding = "FILM_WORKFLOW"
+class_name = "FilmWorkflow"
+
+[vars]
+VIDEO_MODEL = "bytedance/seedance-2.0"
+MAX_SCENES = "120"
