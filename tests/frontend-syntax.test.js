@@ -38,3 +38,17 @@ test('Studio multi-choice controls use collections and key actions are wired', (
   assert.doesNotMatch(html, /(?<!\$)\$\('\[data-mode\]'\)\.forEach/);
   assert.doesNotMatch(html, /(?<!\$)\$\('#voiceLog \.bubble'\)\.map/);
 });
+
+test('Live Talk keeps Ethan and Ngina featured and supports provider avatar selections', () => {
+  const html = readFileSync(path.join('public', 'studio.html'), 'utf8');
+  const server = readFileSync('server.js', 'utf8');
+  assert.match(html, /id="featuredAvatarChoices"/);
+  assert.match(html, /data-avatar="Ethan"/);
+  assert.match(html, /data-avatar="Ngina"/);
+  assert.match(html, /id="liveAvatarCatalogGrid"/);
+  assert.match(html, /loadLiveAvatarLibrary\(\)/);
+  assert.match(html, /avatarId:selectedLiveAvatarId/);
+  assert.match(server, /requestedAvatarId/);
+  assert.match(server, /selectedAvatar = catalog\.avatars\.find/);
+  assert.match(server, /Avatar uliyochagua haipatikani au haiko tayari/);
+});
