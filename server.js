@@ -243,10 +243,30 @@ app.get('/api/liveavatar/catalog', need, async (_req, res) => {
 });
 app.post('/api/liveavatar/session-token', need, async (req, res) => {
   try {
-    const character = ['Ethan', 'Ngina'].includes(req.body?.character) ? req.body.character : 'Ngina';
+    const requestedCharacter = ['Ethan', 'Ngina'].includes(req.body?.character) ? req.body.character : null;
     const language = ['sw', 'en'].includes(req.body?.language) ? req.body.language : 'sw';
-    const configuredAvatarId = env['LIVEAVATAR_' + character.toUpperCase() + '_AVATAR_ID'] || '';
-    const production = Boolean(configuredAvatarId);
+    const catalog = await liveAvatarCatalog();
+    const requestedAvatarId = String(req.body?.avatarId || '').trim();
+    let character = requestedCharacter || 'Mlimani Presenter';
+    let avatarId = LIVEAVATAR_SANDBOX_AVATAR;
+    let selectedAvatar = null;
+    let production = false;
+    if (requestedCharacter) {
+      const configuredAvatarId = env['LIVEAVATAR_' + requestedCharacter.toUpperCase() + '_AVATAR_ID'] || '';
+      production = Boolean(configuredAvatarId);
+      if (production) {
+        avatarId = String(configuredAvatarId);
+        selectedAvatar = catalog.avatars.find(a => String(a.id) === avatarId && String(a.status).toUpperCase() === 'READY');
+        if (!selectedAvatar) return res.status(503).json({ error: 'Avatar maalum ya Mlimani (' + requestedCharacter + ') bado haijaunganishwa au haiko tayari kwenye LiveAvatar.' });
+      }
+    } else {
+      if (!requestedAvatarId) return res.status(400).json({ error: 'Chagua avatar kutoka kwenye maktaba ya Live Talk.' });
+      selectedAvatar = catalog.avatars.find(a => String(a.id) === requestedAvatarId && String(a.status).toUpperCase() === 'READY');
+      if (!selectedAvatar) return res.status(400).json({ error: 'Avatar uliyochagua haipatikani au haiko tayari kwenye akaunti hii.' });
+      avatarId = String(selectedAvatar.id);
+      character = String(selectedAvatar.name || 'Mlimani Presenter').slice(0, 70);
+      production = true;
+    }
     let maxSessionDuration = production ? 180 : 60;
     const legacyMinutes = walletAvailable(db, req.user.id, 'live_talk');
     const legacyLive = walletModeEnabled(db, req.user.id, 'live_talk') && legacyMinutes >= 1;
@@ -261,8 +281,8 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
       if (active) return res.status(409).json({ error: 'Una kikao cha Live Talk kinachoendelea. Maliza kwanza kabla ya kuanza kingine.' });
       maxSessionDuration = Math.min(180, availableMinutes * 60);
     }
-    const catalog = await liveAvatarCatalog();
-    const voiceGender = character === 'Ethan' ? 'male' : 'female';
+    const avatarGender = String(selectedAvatar?.gender || '').toLowerCase();
+    const voiceGender = requestedCharacter ? (requestedCharacter === 'Ethan' ? 'male' : 'female') : (avatarGender.includes('male') ? 'male' : avatarGender.includes('female') ? 'female' : '');
     const voiceLanguage = v => {
       const value = v?.language;
       if (typeof value === 'string') return value.toLowerCase().trim();
@@ -281,19 +301,14 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
     }) : [];
     const preferredCandidates = voiceCandidates.length ? voiceCandidates
       : (language === 'sw' ? [...multilingualCandidates, ...englishCandidates] : []);
-    const voice = preferredCandidates.find(v => String(v.gender || '').toLowerCase() === voiceGender) || preferredCandidates[0];
+    const voice = (voiceGender ? preferredCandidates.find(v => String(v.gender || '').toLowerCase() === voiceGender) : null) || preferredCandidates[0];
     const voiceFallback = language === 'sw' && !voiceCandidates.length && Boolean(voice?.id);
     if (!voice?.id) {
       throw new Error(language === 'sw'
         ? 'Hakuna sauti ya Kiswahili, lugha nyingi, au English inayopatikana kwenye akaunti hii ya LiveAvatar.'
         : 'Hakuna sauti ya English inayopatikana kwenye akaunti hii ya LiveAvatar.');
     }
-    let avatarId = LIVEAVATAR_SANDBOX_AVATAR;
-    if (production) {
-      avatarId = String(configuredAvatarId);
-      if (!catalog.avatars.some(a => a.id === avatarId)) return res.status(503).json({ error: 'Avatar maalum ya Mlimani (' + character + ') bado haijaunganishwa au haiko tayari kwenye LiveAvatar. Hakuna avatar za watu wengine zitakazotumika.' });
-    }
-    const contextId = await liveAvatarContext(character, language);
+    const contextId = await liveAvatarContext(requestedCharacter || 'Mlimani Presenter', language);
     const payload = {
       mode: 'FULL',
       is_sandbox: !production,
@@ -317,7 +332,7 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
       sessionId: result.data.session_id || null,
       character,
       avatarId,
-      avatarName: production ? (catalog.avatars.find(a => a.id === avatarId)?.name || 'Avatar') : 'Wayne (Sandbox)',
+      avatarName: production ? (selectedAvatar?.name || character) : 'Wayne (Sandbox)',
       voiceName: voice.name || voice.id,
       language,
       voiceFallback,
