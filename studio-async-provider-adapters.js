@@ -212,8 +212,8 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
         fetch('https://api.heygen.com/v3/voices', { headers: { 'X-Api-Key': env.HEYGEN_API_KEY }, signal: AbortSignal.timeout(30000) })
       ]);
       const [avatarData, voiceData] = await Promise.all([parseBody(avatarResponse), parseBody(voiceResponse)]);
-      const avatarRows = avatarData.data?.looks || avatarData.data?.avatars || avatarData.looks || avatarData.avatars || [];
-      const voiceRows = voiceData.data?.voices || voiceData.voices || [];
+      const avatarRows = Array.isArray(avatarData.data) ? avatarData.data : avatarData.data?.looks || avatarData.data?.avatars || avatarData.looks || avatarData.avatars || [];
+      const voiceRows = Array.isArray(voiceData.data) ? voiceData.data : voiceData.data?.voices || voiceData.voices || [];
       const avatars = avatarRows.map(item => ({ id: item.id || item.avatar_id || item.look_id, name: item.name || item.avatar_name || 'HeyGen Avatar', previewImageUrl: item.preview_image_url || item.preview_image || null, defaultVoiceId: item.default_voice_id || null })).filter(item => item.id);
       const voices = voiceRows.map(item => ({ id: item.voice_id || item.id, name: item.name || 'HeyGen Voice', language: item.language || item.language_code || null })).filter(item => item.id);
       return res.json({ avatars, voices, avatarCount: avatars.length, voiceCount: voices.length });
@@ -239,6 +239,7 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
     if (!voiceId) return res.status(400).json({ error: 'Chagua HeyGen Voice ID.' });
     if (mode === 'avatar' && !avatarId) return res.status(400).json({ error: 'Chagua HeyGen Avatar ID.' });
     if (mode === 'image') {
+      if (req.body?.consentConfirmed !== true) return res.status(400).json({ error: 'Thibitisha kuwa una ruhusa ya kutumia picha hii na mtu aliye kwenye picha ameridhia.' });
       try { const url = new URL(imageUrl); if (url.protocol !== 'https:') throw new Error('bad protocol'); }
       catch { return res.status(400).json({ error: 'Picha lazima iwe na kiungo salama cha HTTPS.' }); }
     }
