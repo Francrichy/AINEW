@@ -1,5 +1,6 @@
 import express from 'express';
 import { randomUUID } from 'crypto';
+import { registerStudioProviderRoutes } from './studio-provider-adapters.js';
 
 const DEFAULT_PRICING = [
   ['chat', 'Chat', 'chat', 'per_1000_tokens', 0, 0, 'TZS', 'Gharama na bei bado hazijathibitishwa'],
@@ -190,6 +191,7 @@ export function syncBillingPlans(db, plans) {
 }
 
 export function registerBillingRoutes(app, { db, need, admin, plans: runtimePlans, onPricingChange }) {
+  registerStudioProviderRoutes(app, { db, need, env: process.env, cashWalletBalance, consumeWalletCredits, creditCashWallet });
   const router = express.Router();
   router.get('/wallet', need, (req, res) => {
     const balances = db.prepare('SELECT service,bucket,balance,expires_at,updated_at FROM wallet_balances WHERE user_id=? ORDER BY service,bucket').all(req.user.id);
