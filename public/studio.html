@@ -675,14 +675,14 @@ input::placeholder,textarea::placeholder{color:#81798f!important}
 <div class="actions"><button type="button" class="secondary" id="approveAdScript" disabled>Nimeidhinisha script</button></div>
 <label for="videoDuration">Muda wa video</label><select id="videoDuration"><option value="15">Sekunde 15 — Tangazo</option><option value="5">Sekunde 5</option><option value="30" disabled>Sekunde 30 — bado inatayarishwa</option></select>
 <label for="format">Muundo wa video</label><select id="format"><option value="9:16">9:16 — TikTok / Reels</option><option value="16:9">16:9 — YouTube / Presentation</option><option value="1:1">1:1 — Social media</option></select>
-<p class="note">Script ya AI hutumia Chat credits. Video ya sekunde 15 hutumia Matangazo credits zilizowekwa na Admin; kama akaunti haina Matangazo Wallet, hutumia Video credits 3. Video ya sekunde 30 bado haijawezeshwa. Picha ya bidhaa hutumwa kwa muda kama reference image kwenye tangazo la sekunde 15 tu; huondolewa baada ya kutumika au dakika 10. Ethan/Ngina ni maelekezo ya mhusika tu; mwonekano na sauti zao halisi havijahakikishwa.</p><div class="actions"><button class="primary" id="createVideo">Tengeneza video</button></div><div class="status" id="videoProviderStatus">Jaza taarifa kisha bonyeza Tengeneza video sasa.</div><video id="generatedVideo" class="hidden" controls playsinline style="width:100%;max-height:420px;border-radius:16px;background:#111;margin-top:12px"></video><div class="actions"><button type="button" class="secondary hidden" id="downloadGeneratedVideo">Pakua video</button></div>
+<p class="note">Script ya AI hutumia Chat credits. Video ya sekunde 15 hutumia Matangazo credits zilizowekwa na Admin; kama akaunti haina Matangazo Wallet, hutumia Video credits 3. Video ya sekunde 30 bado haijawezeshwa. Picha ya bidhaa hutumwa kwa muda kama reference image kwenye tangazo la sekunde 15 tu; huondolewa baada ya kutumika au dakika 10. Ethan/Ngina ni maelekezo ya mhusika tu; mwonekano na sauti zao halisi havijahakikishwa.</p><div class="actions"><button class="primary" id="createVideo">Tengeneza video</button><button type="button" class="secondary" id="recordPresenterVideo" disabled>Rekodi script kwa Ngina / Ethan</button></div><div class="status" id="videoProviderStatus">Jaza taarifa kisha bonyeza Tengeneza video sasa.</div><video id="generatedVideo" class="hidden" controls playsinline style="width:100%;max-height:420px;border-radius:16px;background:#111;margin-top:12px"></video><div class="actions"><button type="button" class="secondary hidden" id="downloadGeneratedVideo">Pakua video</button></div>
 </div>
 <div class="status" id="status" aria-live="polite"></div><div class="actions"><button class="secondary" id="back">Rudi Mlimani Labs</button></div>
 <p class="note">Ngina na Ethan ni wahusika wa AI. Kamera/microphone zitaombwa ruhusa tu Live Talk itakapowashwa. Mazungumzo hayatapakuliwa mpaka uchague kitufe cha kupakua.</p>
 </section></main>
 <script>
 let avatar='Ngina',selectedLiveAvatarId=null,mode='live',localCameraStream=null,age='young',durationTier='normal',videoType='marketing',history=[],sessionEndsAt=0,sessionTimer=null,studioSessionId=null,liveAvatarSession=null,liveAvatarCatalogData=null,videoObjectUrl=null,liveRecorder=null,liveRecordingChunks=[];
-let adScriptApproved=false;
+let adScriptApproved=false,pendingPresenterScript='';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 document.querySelectorAll('[data-lab-launch]').forEach(button=>button.addEventListener('click',()=>{
  const target=button.dataset.labLaunch;
@@ -729,7 +729,7 @@ $('#sendChat').textContent='Ongea na '+avatar;
 $$('[data-age]').forEach(b=>b.addEventListener('click',()=>{age=b.dataset.age;$$('[data-age]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));}));
 $$('[data-duration]').forEach(b=>b.addEventListener('click',()=>{durationTier=b.dataset.duration;$$('[data-duration]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#durationNote').textContent=durationTier==='extended'?'Muda mrefu wa mazungumzo umechaguliwa.':'Muda wa kawaida wa mazungumzo.';}));
 $$('[data-mode]').forEach(b=>b.addEventListener('click',async()=>{const next=b.dataset.mode;if(next===mode)return;if(liveAvatarStarting){liveAvatarCancelRequested=true;}else if(liveAvatarSession){try{await liveAvatarSession.stop();}catch{}resetLiveControls('Umebadilisha huduma.');}mode=next;$$('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#chatFields').classList.add('hidden');$('#liveFields').classList.add('hidden');$('#videoFields').classList.add('hidden');$('#continueStudio').classList.remove('hidden');$('#continueStudio').disabled=false;$('#continueStudio').textContent=mode==='live'?'Anza kuzungumza':'Endelea na tangazo';$('#selectionHint').textContent=mode==='live'?'Chagua Ethan au Ngina, kisha anza mazungumzo ya video.':'Chagua Ethan au Ngina, kisha endelea kuweka maelezo ya tangazo.';if(mode==='video')refreshVideoWallet();}));
-$$('[data-vtype]').forEach(b=>b.addEventListener('click',()=>{videoType=b.dataset.vtype;adScriptApproved=false;$$('[data-vtype]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#marketingFields').classList.toggle('hidden',videoType!=='marketing');$('#newsFields').classList.toggle('hidden',videoType!=='news');$('#approveAdScript').disabled=!currentStudioScript();}));
+$('[data-vtype]').forEach(b=>b.addEventListener('click',()=>{videoType=b.dataset.vtype;adScriptApproved=false;$('#recordPresenterVideo').disabled=true;$('[data-vtype]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#marketingFields').classList.toggle('hidden',videoType!=='marketing');$('#newsFields').classList.toggle('hidden',videoType!=='news');$('#approveAdScript').disabled=!currentStudioScript();}));
 $('#productImage').addEventListener('change',e=>{
  const file=e.target.files?.[0];
  if(!file){$('#productPreview').classList.add('hidden');return;}
@@ -848,6 +848,7 @@ async function startLiveAvatar(){
     await video.play().catch(()=>{video.controls=true;$('#liveStatus').textContent='Video imeunganishwa. Bonyeza Play ikiwa haijaanza yenyewe.';});
     $('#liveSpeakingStatus').textContent=avatar+' yuko hewani. Sauti na video vimeunganishwa.';$('#muteLive').disabled=false;$('#cameraLive').disabled=false;
     $('#liveStatus').textContent='Video ya '+avatar+' imeunganishwa. Zungumza sasa au andika ujumbe.';
+    if(pendingPresenterScript)deliverPresenterScript();
     resolveStreamReady(true);
    }catch(e){resolveStreamReady(false);$('#liveStatus').textContent='Stream imefika lakini video haijacheza: '+e.message;}
   });
@@ -859,7 +860,7 @@ async function startLiveAvatar(){
   session.on('avatar.transcription',event=>{if(event?.text)addVoiceLine('assistant',avatar+': '+event.text);});
   session.on('avatar.speak_started',()=>{$('#liveSpeakingStatus').textContent=avatar+' anazungumza...';});
   session.on('avatar.speak_ended',()=>{$('#liveSpeakingStatus').textContent=avatar+' amemaliza kujibu. Unaweza kuzungumza tena.';});
-  session.on('session.disconnected',()=>{liveAvatarStarting=false;finishLiveBilling();if(liveRecorder&&liveRecorder.state!=='inactive'){try{liveRecorder.stop();}catch{}}resetLiveControls('Kikao kimefungwa. Unaweza kupakua mazungumzo.');$('#liveEndActions').classList.remove('hidden');});
+  session.on('session.disconnected',()=>{liveAvatarStarting=false;pendingPresenterScript='';finishLiveBilling();if(liveRecorder&&liveRecorder.state!=='inactive'){try{liveRecorder.stop();}catch{}}resetLiveControls('Kikao kimefungwa. Unaweza kupakua mazungumzo.');$('#liveEndActions').classList.remove('hidden');});
   await session.start();
   await markLiveBillingConnected();
   if(liveAvatarCancelRequested){liveAvatarStarting=false;await session.stop();await finishLiveBilling();resetLiveControls('Umefunga kikao wakati kinaunganisha.');return;}
@@ -873,6 +874,7 @@ async function startLiveAvatar(){
    $('#liveStatus').textContent='Sauti/microphone zimeunganishwa, lakini video ya avatar bado haijafika. Kikao kitaendelea; unaweza kuzungumza au kuandika ujumbe. Angalia muunganisho wa intaneti.';
   }
  }catch(e){
+  pendingPresenterScript='';
   const session=liveAvatarSession;liveAvatarStarting=false;
   try{await session?.stop();}catch{}
   await finishLiveBilling();
@@ -880,6 +882,11 @@ async function startLiveAvatar(){
  }
 }
 function addVoiceLine(role,text){const log=$('#voiceLog');const d=document.createElement('div');d.className='bubble '+role;d.textContent=text;log.append(d);log.scrollTop=log.scrollHeight;}
+function deliverPresenterScript(){
+ const script=pendingPresenterScript;if(!script||!liveAvatarSession)return;
+ try{liveAvatarSession.message(script);addVoiceLine('user','Script ya kurekodi: '+script);$('#liveStatus').textContent='Script imetumwa kwa '+avatar+'. Avatar anaisoma; rekodi ya video inaendelea.';pendingPresenterScript='';}
+ catch(error){$('#liveStatus').textContent='Script haikuweza kutumwa kwa avatar: '+(error.message||'Jaribu tena.');}
+}
 $('#continueStudio').addEventListener('click',()=>{if(mode==='video'){ $('#videoFields').classList.remove('hidden');$('#continueStudio').classList.add('hidden');refreshVideoWallet();$('#videoFields').scrollIntoView({behavior:'smooth',block:'start'});return;}$('#liveFields').classList.remove('hidden');$('#liveEndActions').classList.add('hidden');document.body.style.overflow='hidden';startLiveAvatar();});
 $('#stopLive').addEventListener('click',async()=>{
  if(liveAvatarStarting){liveAvatarCancelRequested=true;$('#stopLive').disabled=true;$('#liveStatus').textContent='Tunafunga kikao kinachoendelea kuunganishwa...';return;}
@@ -946,14 +953,22 @@ $('#draftNewsScript').addEventListener('click',async()=>{
  }catch(e){$('#videoProviderStatus').textContent=e.message;}
  finally{button.disabled=false;}
 });
-$('#adScript').addEventListener('input',()=>{adScriptApproved=false;$('#approveAdScript').disabled=!$('#adScript').value.trim();});
-$('#newsScript').addEventListener('input',()=>{adScriptApproved=false;$('#approveAdScript').disabled=!$('#newsScript').value.trim();});
-$('#videoDuration').addEventListener('change',()=>{adScriptApproved=false;$('#approveAdScript').disabled=!currentStudioScript();});
+$('#adScript').addEventListener('input',()=>{adScriptApproved=false;$('#approveAdScript').disabled=!$('#adScript').value.trim();$('#recordPresenterVideo').disabled=true;});
+$('#newsScript').addEventListener('input',()=>{adScriptApproved=false;$('#approveAdScript').disabled=!$('#newsScript').value.trim();$('#recordPresenterVideo').disabled=true;});
+$('#videoDuration').addEventListener('change',()=>{adScriptApproved=false;$('#approveAdScript').disabled=!currentStudioScript();$('#recordPresenterVideo').disabled=true;});
 $('#approveAdScript').addEventListener('click',()=>{
  const script=currentStudioScript();if(!script){$('#videoProviderStatus').textContent='Andika au andaa script kwanza.';return;}
- adScriptApproved=true;$('#approveAdScript').disabled=false;$('#videoProviderStatus').textContent='Script imeidhinishwa. Sasa unaweza kutengeneza video.';
+ adScriptApproved=true;$('#approveAdScript').disabled=false;$('#recordPresenterVideo').disabled=false;$('#videoProviderStatus').textContent='Script imeidhinishwa. Unaweza kutengeneza video ya AI au kurekodi Ngina / Ethan akiisoma Live.';
 });
 $('#downloadGeneratedVideo').addEventListener('click',()=>{if(!videoObjectUrl)return;const a=document.createElement('a');a.href=videoObjectUrl;a.download='mlimani-studio-video-'+Date.now()+'.mp4';a.click();});
+$('#recordPresenterVideo').addEventListener('click',()=>{
+ const token=localStorage.getItem('t')||'',script=currentStudioScript();
+ if(!token){$('#videoProviderStatus').textContent='Tafadhali ingia kwenye akaunti kwanza.';return;}
+ if(!script||!adScriptApproved){$('#videoProviderStatus').textContent='Andaa na uidhinishe script kwanza.';return;}
+ if(script.length>1800){$('#videoProviderStatus').textContent='Script ni ndefu sana kwa kurekodi kikao kimoja. Ifupishe hadi herufi 1,800.';return;}
+ if(liveAvatarSession||liveAvatarStarting){$('#videoProviderStatus').textContent='Maliza kikao cha Live Talk kilicho wazi kwanza.';return;}
+ pendingPresenterScript=script;mode='live';$('#videoFields').classList.add('hidden');$('#liveFields').classList.remove('hidden');$('#liveEndActions').classList.add('hidden');$('#continueStudio').classList.remove('hidden');$('#continueStudio').disabled=false;$('#continueStudio').textContent='Anza kurekodi';document.body.style.overflow='hidden';$('#liveStatus').textContent='Tunaandaa '+avatar+' asome script yako. Bonyeza Anza kurekodi.';$('#continueStudio').click();
+});
 $('#createVideo').addEventListener('click',async()=>{
  const token=localStorage.getItem('t')||'',duration=Number($('#videoDuration').value),script=currentStudioScript();
  if(!token){$('#videoProviderStatus').textContent='Tafadhali ingia kwenye akaunti kwanza.';return;}
