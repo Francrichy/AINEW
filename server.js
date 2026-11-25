@@ -566,6 +566,7 @@ app.get('/api/admin/liveavatar/check', admin, async (_req, res) => {
     res.json({
       connected: true,
       avatarCount: catalog.avatars.length,
+      availableAvatars: catalog.avatars.map(a => ({ id: a.id, name: a.name, status: a.status, gender: a.gender })),
       voiceCount: catalog.voices.length,
       ethan: { configured: Boolean(ethanId), ready: isReady(ethanId) },
       ngina: { configured: Boolean(nginaId), ready: isReady(nginaId) },
