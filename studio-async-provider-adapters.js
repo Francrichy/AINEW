@@ -294,7 +294,7 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
           console.error('Studio async refund failed:', job.id, error.message);
           db.prepare("UPDATE studio_async_jobs SET billing_status='refund_review',status='failed',error=?,updated_at=? WHERE id=?").run('Refund review required', now(), job.id);
         }
-        return res.json({ jobId: job.id, provider: job.provider, status: 'failed', error: normalized.error || 'Generation failed', billingStatus: 'refunded' });
+        return res.json({ jobId: job.id, provider: job.provider, status: 'failed', error: normalized.error || 'Generation failed', billingStatus: db.prepare('SELECT billing_status FROM studio_async_jobs WHERE id=?').get(job.id)?.billing_status || 'refund_review' });
       }
       if (normalized.status === 'completed') {
         db.prepare("UPDATE studio_async_jobs SET status='completed',output_url=?,updated_at=? WHERE id=?")
