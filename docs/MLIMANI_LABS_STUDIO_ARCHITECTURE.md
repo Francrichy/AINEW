@@ -154,3 +154,13 @@ Use a payment adapter, not a direct dependency between the studio and one provid
 5. Select and configure a video provider for long-form scene generation, then validate unit costs and provider terms before exposing 30-minute AI films.
 6. Add tested Swahili voice-over/TTS, dubbing and licensed avatar/voice consent workflows.
 7. Run dependency install, automated tests, security checks and provider acceptance tests before production rollout.
+
+
+## Video Creator workflow milestone — November 25, 2026
+- The Mlimani Labs Studio Video Creator entry point now opens the dedicated mobile-first production workspace instead of the older embedded advertisement form. Live Talk and the existing AI Chat routes are unchanged.
+- The Video Creator guides the user through project name, video goal, audience, language, key message and visual direction; it can use the existing authenticated Mlimani chat endpoint to draft a prompt, which the user can edit before rendering.
+- Rendering uses the existing authenticated `POST /api/video` provider adapter and its existing billing checks. Supported generated clips remain 5 or 15 seconds. The browser polls the existing job status, previews the MP4 and offers download.
+- Completed AI clips can be saved into the user's private R2 Studio project library through the existing authenticated presigned-upload and ownership-verification flow. This requires R2 to be configured and its CORS policy to allow the Studio origin.
+- Film Studio now lets a user transfer one selected scene description into Video Creator. This supports scene-by-scene clip creation, but it does not assemble clips into one continuous film.
+- Important existing limitation: video jobs are still held in an in-memory server Map and the provider request is synchronous inside a background promise. Jobs can be lost on restart/deploy and are not a durable queue. 30-minute AI film rendering, automatic scene assembly, timeline editing, FFmpeg export, resumable jobs and cloud project-level script/scene records are NOT enabled by this UI milestone.
+- No new provider credentials, Render services, paid resources, database migrations, changes to Chat pricing, or changes to Mlimani Fleet are required by this frontend integration. Provider video pricing remains controlled by existing Admin settings.
