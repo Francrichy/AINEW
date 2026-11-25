@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="sw"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0e3b24"><title>Mlimani Labs Studio</title>
+<html lang="sw"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#080909"><title>Mlimani Labs Studio</title>
 <style>
 :root{--forest:#0e3b24;--leaf:#1f7a42;--gold:#f2a900;--cream:#fff8ea;--ink:#1d2a1f}*{box-sizing:border-box}button{touch-action:manipulation;pointer-events:auto;cursor:pointer}button:focus-visible{outline:3px solid #f2a900;outline-offset:3px}body{margin:0;background:linear-gradient(145deg,#092c1b,#1f7a42);font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink);min-height:100vh}header{padding:16px 5%;display:flex;justify-content:space-between;align-items:center;color:white}header a{color:white;text-decoration:none;font-weight:700}main{max-width:1100px;margin:auto;padding:18px}.panel{background:var(--cream);border-radius:22px;padding:22px;box-shadow:0 14px 40px #001b1080;margin-bottom:18px}h1{color:white;margin:8px 0}.lead{color:#e7f4df;margin:0 0 20px}.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.avatar{border:3px solid transparent;border-radius:18px;background:white;padding:12px;text-align:left;cursor:pointer;font:inherit}.avatar[aria-pressed=true]{border-color:var(--gold);box-shadow:0 0 0 3px #f2a90033}.avatar-art{width:100%;aspect-ratio:3/4;max-height:340px;border-radius:14px;background:#e8eee5;display:block;object-fit:contain;object-position:center center;overflow:hidden}.avatar-art-label{display:block;margin-top:8px;font-size:.78rem;color:#536656;font-weight:700}.avatar[ data-avatar ]{transition:transform .15s ease}.avatar:active{transform:scale(.99)}.motion-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.motion-help{font-size:.88rem;color:#59665a;line-height:1.5;margin:8px 0}.avatar strong{display:block;font-size:1.15rem;color:var(--forest);margin-top:8px}.avatar small{color:#536656}.modes{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.modes button,.primary,.secondary,.light{border:0;border-radius:999px;padding:11px 17px;font-weight:800;cursor:pointer}.modes button{background:#e8e1d1;color:var(--forest)}.modes button[aria-pressed=true],.primary{background:var(--gold);color:var(--forest)}label{font-weight:700;display:block;margin:12px 0 6px}select,textarea,input{width:100%;padding:12px;border:1px solid #c7d5c2;border-radius:12px;font:inherit;background:white}textarea{min-height:100px;resize:vertical}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.secondary{background:var(--leaf);color:white}.light{background:#e8e1d1;color:var(--forest)}.status{padding:12px;border-radius:12px;background:#fff0c7;color:#624600;line-height:1.5;margin-top:14px}.note{font-size:.9rem;color:#59665a;line-height:1.55}.preview{border-radius:18px;background:linear-gradient(135deg,#153f2a,#547b53);min-height:180px;display:grid;place-items:center;color:white;text-align:center;padding:20px}.chatlog{background:#fff;border:1px solid #d6dfd2;border-radius:16px;padding:14px;min-height:230px;max-height:420px;overflow:auto;margin:12px 0}.bubble{padding:10px 13px;border-radius:14px;margin:8px 0;max-width:88%;white-space:pre-wrap;line-height:1.45}.user{background:#e4f1e4;margin-left:auto}.assistant{background:#f0eee6;margin-right:auto}.age,.duration{display:flex;gap:8px;flex-wrap:wrap}.age button,.duration button{border:1px solid #b8cbb7;border-radius:12px;background:white;padding:10px 14px;cursor:pointer}.age button[aria-pressed=true],.duration button[aria-pressed=true]{border:2px solid var(--leaf);background:#eaf5e9}.live-config{background:#fff;border:1px solid #d8e2d4;border-radius:16px;padding:14px;margin-bottom:14px}.live-config-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.production-toggle{display:flex;align-items:center;gap:8px;font-weight:700;margin-top:12px}.production-toggle input{width:auto}.live-text-row{display:flex;gap:8px;margin-top:10px}.live-text-row input{flex:1;min-width:0}.live-text-row button{white-space:nowrap}.call-stage video:not([srcObject]){background:#102b1c}@media(max-width:640px){.live-config-grid{grid-template-columns:1fr}.live-text-row{flex-direction:column}}.hidden{display:none!important}@media(max-width:640px){main{padding:12px}.choices{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.avatar{padding:8px}.avatar strong{font-size:1rem}.avatar-art{max-height:260px}.panel{padding:16px}}
 
@@ -479,6 +479,40 @@ body{background:#080808!important}
 #featuredAvatarChoices .avatar strong,#featuredAvatarChoices .avatar small{pointer-events:none!important}
 #featuredAvatarChoices .avatar[aria-pressed=true]{outline:3px solid #fff!important;outline-offset:4px}
 @media(hover:hover){#featuredAvatarChoices .avatar:hover{transform:translateY(-3px)!important}}
+
+
+/* Mlimani Labs brand alignment: black canvas with Mlimani gold accents */
+:root{--mlimani-gold:#f2b705;--mlimani-gold-bright:#ffc928;--mlimani-black:#080909}
+html,body,body>main, .lab-home{background:var(--mlimani-black)!important;color:#f5f2e9!important}
+body{background:var(--mlimani-black)!important}
+.studio-header{background:#080909!important;color:var(--mlimani-gold)!important;border-bottom:1px solid #29251a!important;box-shadow:0 5px 24px #0008!important}
+.studio-wordmark,.studio-wordmark span{color:var(--mlimani-gold)!important}
+.studio-nav a,.studio-header-actions a{color:#f0c65a!important}
+.studio-nav a:hover,.studio-header-actions a:hover{color:#fff0b3!important}
+.studio-nav a:after{background:var(--mlimani-gold)!important}
+.studio-header-actions a:last-child{background:var(--mlimani-gold)!important;border:1px solid var(--mlimani-gold)!important;color:#17130a!important;font-weight:800!important}
+.live-hero .lab-eyebrow{color:var(--mlimani-gold)!important}
+.live-hero .lab-hero-copy h2{color:#fff!important}
+.live-hero .lab-intro{color:#c5c2b9!important}
+.live-hero .lab-hero-actions #continueStudio{background:var(--mlimani-gold)!important;color:#17130a!important;border:1px solid var(--mlimani-gold)!important;box-shadow:0 8px 28px #f2b70535!important}
+.live-hero .lab-hero-actions #continueStudio:hover{background:var(--mlimani-gold-bright)!important;transform:translateY(-2px)}
+.live-hero .lab-caption{color:#a7a39a!important}
+.live-hero-art{background:radial-gradient(ellipse at 50% 42%,#293035 0,#15191c 48%,#080909 78%)!important}
+.lab-section-head,.lab-section-head h3{color:#f5f2e9!important}
+.lab-card{background:#111313!important;border-color:#343126!important;color:#f5f2e9!important}
+.lab-card h3{color:#f5f2e9!important}.lab-card p{color:#bdb9af!important}
+.lab-card .lab-icon{background:#292416!important;color:var(--mlimani-gold)!important}
+.lab-card button,.lab-card>a{background:var(--mlimani-gold)!important;color:#17130a!important}
+.live-avatar-library{background:#111313!important;border-color:#343126!important;color:#f5f2e9!important}
+.live-avatar-library h3{color:#f5f2e9!important}
+.live-avatar-library .note{color:#bdb9af!important}
+.lab-footer{color:#8f8b82!important}
+button:focus-visible,a:focus-visible{outline:3px solid var(--mlimani-gold-bright)!important;outline-offset:3px}
+@media(max-width:600px){
+ .studio-header{background:#080909!important}
+ .studio-nav a{color:#f0c65a!important}
+ .studio-nav a:after{background:var(--mlimani-gold)!important}
+}
 
 </style></head><body><header class="studio-header"><a class="studio-wordmark" href="/" aria-label="Mlimani Labs">MLIMANI <span>LABS</span></a><nav class="studio-nav" aria-label="Studio tools"><a href="/production-studio.html?mode=video">Video Creator</a><a href="/production-studio.html?mode=music">Music Generator</a><a href="/production-studio.html?mode=film">Film Studio</a><a href="#featuredAvatarChoices">Avatar Library</a></nav><div class="studio-header-actions"><a href="/guide.html">Resources</a><a href="/">Mlimani Labs ↗</a></div></header><main>
 <section class="lab-home" aria-label="Mlimani Labs creative studio">
