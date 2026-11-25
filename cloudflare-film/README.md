@@ -1,38 +1,34 @@
 # Mlimani Cloudflare Film Orchestrator
 
-This is a separate Cloudflare Worker + Workflows service. It is intentionally isolated from the existing Render-hosted Mlimani AI application.
+This is an isolated Cloudflare Worker + Workflows + R2 + Containers service. It does not replace the existing Render-hosted Mlimani AI website.
 
-## What this first stage does
+## What this service is designed to do
 
-- Accepts authenticated internal film-job requests.
-- Validates up to 120 scenes (120 x 15 seconds = 30 minutes of generated clip duration).
-- Creates a durable Workflow execution.
-- Generates clips one at a time through the configured video provider.
-- Stores each MP4 clip and a progress manifest in the R2 bucket.
-- Uses Workflow step retries and persisted checkpoints so completed scene objects are not generated again after a retry.
-- Exposes an authenticated job-status endpoint.
+- Accept authenticated internal film-job requests.
+- Validate up to 120 scenes (120 x 15 seconds = 30 minutes of generated clip duration).
+- Create a durable Workflow execution with retries and persisted checkpoints.
+- Generate each scene and store the MP4 clip in R2.
+- Store a durable manifest and progress after each scene.
+- Start a Cloudflare Container with FFmpeg to normalize and join all scenes into one MP4.
+- Upload the final MP4 to R2 and mark the job completed.
 
-## Important current limitation
+## Current integration boundary
 
-This stage stops at `ready_for_assembly`. It does **not** yet produce the final 30-minute MP4. A separate FFmpeg-capable renderer must be implemented and tested to concatenate clips, normalize resolution/frame rate/audio, add soundtrack/subtitles, and write the final MP4 back to R2. Cloudflare Workers are not being used as an FFmpeg compute server.
+The Cloudflare service is implemented separately. The existing Render application is not yet connected to it. The next integration change must connect the authenticated/billed Mlimani API to this service, verify that the returned `ownerId` matches the logged-in user, and preserve all existing wallet checks and video prices. Do not expose the internal token or call this API directly from browser code.
 
-The existing Render app is not changed by this subproject. The next integration stage must connect the existing authenticated/billed video API to this service without bypassing wallet checks or changing existing video prices.
+## Cloudflare resources and configuration
 
-## Cloudflare setup (do not do this until code review)
-
-1. Create an R2 bucket named `mlimani-studio-media` (or change `bucket_name` in `wrangler.toml`).
-2. Create a Cloudflare API token with R2 Object Read & Write permission scoped only to that bucket. Keep it private.
-3. From `cloudflare-film/`, install dependencies and run `npm test`.
-4. Set secrets directly in Cloudflare:
+1. Create an R2 bucket named `mlimani-studio-media` (or change `bucket_name` and `R2_BUCKET_NAME`).
+2. Create an R2 API token with Object Read & Write permission scoped only to this bucket.
+3. Install dependencies and run `npm test` from this directory.
+4. Configure these secrets directly in Cloudflare:
    - `MLIMANI_INTERNAL_TOKEN`: long random shared secret for Render-to-Cloudflare calls.
    - `POLLINATIONS_API_KEY`: video provider API key.
-5. Deploy only after the Cloudflare account and billing limits are understood.
+   - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`: credentials used only to create short-lived signed R2 URLs for the FFmpeg Container.
+5. Configure the matching `MLIMANI_INTERNAL_TOKEN` in Render later, directly in the Render dashboard.
+6. Deploy only after account billing limits and test budget are understood.
 
-## Required Render-side environment variables for the later integration
-
-- `MLIMANI_FILM_WORKER_URL`: deployed Worker base URL.
-- `MLIMANI_INTERNAL_TOKEN`: same secret configured in Cloudflare.
-- Do not expose this token to browser code.
+The FFmpeg Container uses the `standard-2` instance type (1 vCPU, 6 GiB RAM, 12 GB disk) and can scale to zero after inactivity. This is a starting size; real 30-minute exports must be benchmarked. Container disk is temporary, so all source and final files are stored in R2.
 
 ## Job API
 
@@ -53,4 +49,10 @@ Example request body:
 }
 ```
 
-A 30-minute film at 15 seconds per scene needs at least 120 clips. Actual duration depends on scene durations and the video provider. Provider generation fees are separate from Cloudflare infrastructure charges.
+A 30-minute film at 15 seconds per scene needs at least 120 clips. Actual duration depends on the selected clip durations and provider. Video generation fees are separate from Cloudflare infrastructure charges.
+
+## Output
+
+The final file is stored at `film-jobs/<jobId>/final.mp4`. The manifest is stored at `film-jobs/<jobId>/manifest.json` and contains progress, per-scene status, output size, and duration.
+
+The initial FFmpeg pass normalizes all clips to 1280x720 at 30 fps and joins them without audio. Background music, voice-over, subtitles, transitions, and branding are follow-on editing features and are not silently added to the first assembly pass.
