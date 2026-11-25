@@ -256,12 +256,12 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
       production = Boolean(configuredAvatarId);
       if (production) {
         avatarId = String(configuredAvatarId);
-        selectedAvatar = catalog.avatars.find(a => String(a.id) === avatarId && String(a.status).toUpperCase() === 'READY');
+        selectedAvatar = catalog.avatars.find(a => String(a.id) === avatarId && ['READY', 'ACTIVE'].includes(String(a.status).toUpperCase()));
         if (!selectedAvatar) return res.status(503).json({ error: 'Avatar maalum ya Mlimani (' + requestedCharacter + ') bado haijaunganishwa au haiko tayari kwenye LiveAvatar.' });
       }
     } else {
       if (!requestedAvatarId) return res.status(400).json({ error: 'Chagua avatar kutoka kwenye maktaba ya Live Talk.' });
-      selectedAvatar = catalog.avatars.find(a => String(a.id) === requestedAvatarId && String(a.status).toUpperCase() === 'READY');
+      selectedAvatar = catalog.avatars.find(a => String(a.id) === requestedAvatarId && ['READY', 'ACTIVE'].includes(String(a.status).toUpperCase()));
       if (!selectedAvatar) return res.status(400).json({ error: 'Avatar uliyochagua haipatikani au haiko tayari kwenye akaunti hii.' });
       avatarId = String(selectedAvatar.id);
       character = String(selectedAvatar.name || 'Mlimani Presenter').slice(0, 70);
