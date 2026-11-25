@@ -24,6 +24,7 @@ const DEFAULT_PRICING = [
   ['studio_film_minute_tzs', 'Mlimani Studio Film kwa dakika', 'studio_film', 'per_minute', 0, 0, 'TZS', 'Bei ya filamu kwa dakika; huduma itabaki imezimwa mpaka Admin athibitishe gharama na bei za provider.'],
   ['studio_motion_second_tzs', 'Mlimani Motion Studio kwa sekunde', 'studio_motion', 'per_second', 0, 0, 'TZS', 'Bei ya mteja kwa sekunde; weka baada ya kuthibitisha gharama za Runway/Luma.'],
   ['studio_avatar_video_second_tzs', 'Mlimani Avatar Video kwa sekunde', 'studio_avatar_video', 'per_second', 0, 0, 'TZS', 'Bei ya mteja kwa sekunde; weka baada ya kuthibitisha gharama za HeyGen.'],
+  ['studio_animation_tzs', 'Mlimani Animation Studio kwa kazi', 'studio_animation', 'per_animation', 0, 0, 'TZS', 'Bei ya mteja kwa animation moja; weka baada ya kuchagua model na kuthibitisha gharama za Replicate.'],
 ];
 
 const DEFAULT_PLANS = [
