@@ -36,3 +36,23 @@ test('provider selection respects configured video provider', () => {
   assert.equal(catalog.providers.find(p => p.id === 'openrouter-video').selected, true);
   assert.equal(catalog.providers.find(p => p.id === 'pollinations').selected, false);
 });
+
+test('Studio provider readiness is separate from API-key presence', () => {
+  const catalog = buildAiProviderCatalog({
+    CARTESIA_API_KEY: 'cartesia-secret',
+    DEEPGRAM_API_KEY: 'deepgram-secret',
+    STABILITY_API_KEY: 'stability-secret',
+    REPLICATE_API_TOKEN: 'replicate-secret'
+  });
+  for (const id of ['cartesia', 'deepgram', 'stability']) {
+    const provider = catalog.providers.find(p => p.id === id);
+    assert.equal(provider.integrationStatus, 'active');
+    assert.equal(provider.ready, true);
+  }
+  const replicate = catalog.providers.find(p => p.id === 'replicate');
+  assert.equal(replicate.credentialConfigured, true);
+  assert.equal(replicate.integrationStatus, 'planned');
+  assert.equal(replicate.ready, false);
+  assert.equal(catalog.services.find(s => s.id === 'animation').available, false);
+  assert.equal(catalog.services.find(s => s.id === 'motion').available, false);
+});
