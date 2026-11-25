@@ -1,0 +1,82 @@
+const TASKS = {
+  image: ['FAL_IMAGE_MODEL','FAL_IMAGE_INPUT_TEMPLATE','fal_image_tzs','Image','per_image',['prompt']],
+  video: ['FAL_VIDEO_MODEL','FAL_VIDEO_INPUT_TEMPLATE','fal_video_5s_tzs','Video','per_5_seconds',['prompt']],
+  music: ['FAL_MUSIC_MODEL','FAL_MUSIC_INPUT_TEMPLATE','fal_music_minute_tzs','Music','per_minute',['prompt']],
+  voice: ['FAL_VOICE_MODEL','FAL_VOICE_INPUT_TEMPLATE','fal_voice_minute_tzs','Voice','per_minute',['prompt']],
+  speech: ['FAL_SPEECH_MODEL','FAL_SPEECH_INPUT_TEMPLATE','fal_speech_minute_tzs','Speech recognition','per_minute',['audioUrl']],
+  animation: ['FAL_ANIMATION_MODEL','FAL_ANIMATION_INPUT_TEMPLATE','fal_animation_tzs','Animation','per_job',['prompt']],
+  motion: ['FAL_MOTION_MODEL','FAL_MOTION_INPUT_TEMPLATE','fal_motion_second_tzs','Motion','per_second',['prompt']],
+  avatar_video: ['FAL_AVATAR_VIDEO_MODEL','FAL_AVATAR_VIDEO_INPUT_TEMPLATE','fal_avatar_video_second_tzs','Avatar video','per_second',['prompt']]
+};
+const fail = (message,status=400) => Object.assign(new Error(message),{status});
+const json = async r => { const d=await r.json().catch(()=>({})); if(!r.ok) throw fail(String(d.detail||d.message||d.error||'fal.ai HTTP '+r.status).slice(0,500),r.status); return d; };
+const modelPath = model => {
+  const m=String(model||'').trim();
+  if(!/^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*){1,3}$/i.test(m)) throw fail('Admin hajaweka model ID sahihi ya fal.ai.',503);
+  return m.split('/').map(encodeURIComponent).join('/');
+};
+const https = (v,label) => { if(!v)return ''; try{const u=new URL(String(v));if(u.protocol!=='https:')throw 0;return u.toString()}catch{throw fail(label+' lazima iwe HTTPS.')} };
+function makeInput(templateText,vars) {
+  let t;try{t=JSON.parse(templateText)}catch{throw fail('Input template ya fal.ai si JSON sahihi.',503)}
+  if(!t||typeof t!=='object'||Array.isArray(t))throw fail('Input template lazima iwe JSON object.',503);
+  const walk=v=>Array.isArray(v)?v.map(walk):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,walk(x)])):typeof v==='string'?v.replace(/\{\{(prompt|durationSeconds|aspectRatio|audioUrl|imageUrl|voiceId|language)\}\}/g,(_m,k)=>String(vars[k]??'')):v;
+  return walk(t);
+}
+export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance,consumeWalletCredits,creditCashWallet}) {
+  const now=()=>Date.now(), key=()=>env.FAL_API_KEY||env.FAL_KEY;
+  const price=k=>Number(db.prepare('SELECT customer_price FROM admin_pricing WHERE config_key=?').get(k)?.customer_price||0);
+  for(const [id,t] of Object.entries(TASKS)){
+    const [,,p,label,unit]=t;
+    db.prepare("INSERT OR IGNORE INTO admin_pricing(config_key,label,service,unit,provider_cost,customer_price,currency,notes,updated_at) VALUES(?,?,?, ?,0,0,'TZS',?,?)")
+      .run(p,'fal.ai · '+label,'fal_'+id,unit,'Weka provider cost na bei ya mteja baada ya kuthibitisha model.',now());
+  }
+  db.exec("CREATE TABLE IF NOT EXISTS studio_fal_jobs(id TEXT PRIMARY KEY,user_id INTEGER NOT NULL,task TEXT NOT NULL,model TEXT NOT NULL,request_id TEXT NOT NULL,status TEXT NOT NULL,charge_tzs REAL NOT NULL,billing_status TEXT NOT NULL,result_json TEXT,output_url TEXT,error TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)");
+  const refund=(j,reason)=>{if(j.billing_status!=='reserved')return;creditCashWallet(db,j.user_id,j.charge_tzs,'studio-fal-refund:'+j.id,reason);db.prepare("UPDATE studio_fal_jobs SET status='FAILED',billing_status='refunded',error=?,updated_at=? WHERE id=?").run(String(reason).slice(0,500),now(),j.id)};
+  const headers=()=>{if(!key())throw fail('Admin aweke FAL_API_KEY kwenye Render.',503);return {Authorization:'Key '+key(),'Content-Type':'application/json'}};
+  const root=model=>'https://queue.fal.run/'+modelPath(model);
+  const outputUrl=d=>[d?.video?.url,d?.audio?.url,d?.image?.url,d?.url,d?.images?.[0]?.url,d?.videos?.[0]?.url,d?.audios?.[0]?.url,d?.data?.url].find(x=>typeof x==='string'&&x.startsWith('https://'))||null;
+  const view=j=>({jobId:j.id,task:j.task,status:j.status,outputUrl:j.output_url||null,result:j.result_json?JSON.parse(j.result_json):null,chargedTzs:j.charge_tzs,billingStatus:j.billing_status,error:j.error||null});
+  app.get('/api/admin/fal/status',admin,(_q,res)=>res.json({keyConfigured:!!key(),tasks:Object.entries(TASKS).map(([id,t])=>({id,modelVariable:t[0],modelConfigured:!!env[t[0]],templateVariable:t[1],templateConfigured:!!env[t[1]],priceKey:t[2],priceConfigured:price(t[2])>0,ready:!!(key()&&env[t[0]]&&env[t[1]]&&price(t[2])>0)}))}));
+  app.post('/api/admin/fal/check',admin,async(_q,res)=>{try{const r=await fetch('https://rest.fal.ai/tokens',{headers:{Authorization:'Key '+key()},signal:AbortSignal.timeout(20000)});const d=await json(r);res.set('Cache-Control','no-store');res.json({connected:true,name:d.name||d.token_name||null,note:'Key imethibitishwa bila kuanzisha generation.'})}catch(e){res.status(e.status||502).json({connected:false,error:e.message})}});
+  app.get('/api/studio/fal/:task/estimate',need,(req,res)=>{
+    const t=TASKS[req.params.task];if(!t)return res.status(404).json({error:'Task haijulikani.'});
+    const secs=Math.max(1,Math.min(600,Math.round(+req.query.durationSeconds||5))),rate=price(t[2]);
+    const units=t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1,charge=units*rate;
+    res.json({provider:'fal.ai',task:req.params.task,modelConfigured:!!env[t[0]],templateConfigured:!!env[t[1]],durationSeconds:secs,units,unit:t[4],customerPricePerUnitTzs:rate,estimatedChargeTzs:charge,walletBalanceTzs:cashWalletBalance(db,req.user.id),enabled:!!(key()&&env[t[0]]&&env[t[1]]&&rate>0&&cashWalletBalance(db,req.user.id)>=charge)});
+  });
+  app.post('/api/studio/fal/:task/jobs',need,async(req,res)=>{
+    const taskId=req.params.task,t=TASKS[taskId];if(!t)return res.status(404).json({error:'Task haijulikani.'});
+    let model,input,secs,charge,id;
+    try{
+      model=String(env[t[0]]||'');const path=root(model);if(!key())throw fail('FAL_API_KEY haijawekwa kwenye Render.',503);if(!env[t[1]])throw fail('Admin aweke input template: '+t[1],503);
+      const prompt=String(req.body?.prompt||req.body?.text||'').trim().slice(0,6000);secs=Math.max(1,Math.min(600,Math.round(+req.body?.durationSeconds||5)));
+      const vars={prompt,durationSeconds:secs,aspectRatio:['16:9','9:16','1:1','4:5','3:2','2:3'].includes(req.body?.aspectRatio)?req.body.aspectRatio:'16:9',audioUrl:https(req.body?.audioUrl,'Audio URL'),imageUrl:https(req.body?.imageUrl,'Image URL'),voiceId:String(req.body?.voiceId||'').slice(0,200),language:['sw','en'].includes(req.body?.language)?req.body.language:''};
+      for(const v of t[5])if(!vars[v])throw fail(v==='audioUrl'?'Weka audio URL ya HTTPS.':'Andika prompt kwanza.');
+      input=makeInput(env[t[1]],vars);if(JSON.stringify(input).length>20000)throw fail('Input ni kubwa mno.',413);
+      const rate=price(t[2]),units=t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1;charge=units*rate;
+      if(charge<=0||Number(req.body?.expectedChargeTzs)!==charge)throw fail('Bei haijaidhinishwa au imebadilika. Kagua makadirio mapya.',409);
+      if(cashWalletBalance(db,req.user.id)<charge)throw fail('Salio la Wallet halitoshi.',402);
+      id=crypto.randomUUID();
+    }catch(e){return res.status(e.status||400).json({error:e.message})}
+    try{consumeWalletCredits(db,req.user.id,'cash',charge,'Mlimani fal.ai '+taskId+' reservation '+id)}catch(e){return res.status(402).json({error:'Salio la Wallet halitoshi.'})}
+    try{
+      const submitted=await json(await fetch(root(model),{method:'POST',headers:headers(),body:JSON.stringify(input),signal:AbortSignal.timeout(60000)}));
+      if(!submitted.request_id||!submitted.status_url||!submitted.response_url)throw fail('fal.ai haikurudisha queue request kamili.',502);
+      if(new URL(submitted.status_url).hostname!=='queue.fal.run'||new URL(submitted.response_url).hostname!=='queue.fal.run')throw fail('fal.ai imerudisha URL isiyoruhusiwa.',502);
+      db.prepare("INSERT INTO studio_fal_jobs(id,user_id,task,model,request_id,status,charge_tzs,billing_status,created_at,updated_at) VALUES(?,?,?,?,?,'IN_QUEUE',?,'reserved',?,?)").run(id,req.user.id,taskId,model,String(submitted.request_id),charge,now(),now());
+      res.status(202).json({jobId:id,provider:'fal.ai',task:taskId,status:'IN_QUEUE',queuePosition:submitted.queue_position??null,chargedTzs:charge});
+    }catch(e){try{creditCashWallet(db,req.user.id,charge,'studio-fal-refund:'+id,'Refund ya fal.ai iliyoshindwa kuanzishwa')}catch(x){console.error('fal refund failed',x.message)}res.status(e.status||502).json({error:'fal.ai imeshindwa kuanzisha kazi: '+e.message.slice(0,250)})}
+  });
+  app.get('/api/studio/fal/jobs/:id',need,async(req,res)=>{
+    const j=db.prepare('SELECT * FROM studio_fal_jobs WHERE id=? AND user_id=?').get(req.params.id,req.user.id);if(!j)return res.status(404).json({error:'Kazi haijapatikana.'});
+    if(j.status==='COMPLETED'||j.status==='FAILED')return res.json(view(j));
+    try{
+      const url=root(j.model)+'/requests/'+encodeURIComponent(j.request_id),s=await json(await fetch(url+'/status',{headers:{Authorization:'Key '+key()},signal:AbortSignal.timeout(20000)}));
+      if(s.status!=='COMPLETED'){db.prepare('UPDATE studio_fal_jobs SET status=?,updated_at=? WHERE id=?').run(s.status||'IN_PROGRESS',now(),j.id);return res.json({...view(j),status:s.status||'IN_PROGRESS',queuePosition:s.queue_position??null})}
+      if(s.error||s.error_type){refund(j,'fal.ai generation imeshindwa: '+String(s.error||s.error_type));return res.json(view(db.prepare('SELECT * FROM studio_fal_jobs WHERE id=?').get(j.id)))}
+      const result=await json(await fetch(url,{headers:{Authorization:'Key '+key()},signal:AbortSignal.timeout(60000)}));
+      db.prepare("UPDATE studio_fal_jobs SET status='COMPLETED',billing_status='captured',result_json=?,output_url=?,updated_at=? WHERE id=?").run(JSON.stringify(result).slice(0,200000),outputUrl(result),now(),j.id);
+      res.json(view(db.prepare('SELECT * FROM studio_fal_jobs WHERE id=?').get(j.id)));
+    }catch(e){res.status(e.status||502).json({error:'Imeshindikana kupata matokeo ya fal.ai: '+e.message.slice(0,200)})}
+  });
+}
