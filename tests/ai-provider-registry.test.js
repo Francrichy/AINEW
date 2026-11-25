@@ -17,6 +17,7 @@ test('provider catalog distinguishes configured credentials from working integra
   assert.equal(live.ready, true);
   assert.equal(pollinations.ready, true);
   assert.equal(pollinations.selected, true);
+  assert.equal(pollinations.services.includes('image_generation'), true);
   assert.equal(eleven.credentialConfigured, true);
   assert.equal(eleven.ready, true);
   assert.equal(eleven.services.includes('music_generation'), true);
