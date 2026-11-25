@@ -12,6 +12,15 @@ const TASKS = {
 };
 const fail = (message,status=400) => Object.assign(new Error(message),{status});
 const json = async r => { const d=await r.json().catch(()=>({})); if(!r.ok) throw fail(String(d.detail||d.message||d.error||'fal.ai HTTP '+r.status).slice(0,500),r.status); return d; };
+export function normalizeSupplierPrice(task,unit,unitPrice,exchangeRate) {
+  const factors={image:{image:1,images:1},video:{second:5,seconds:5},music:{minute:1,minutes:1,second:60,seconds:60},voice:{minute:1,minutes:1,second:60,seconds:60},speech:{minute:1,minutes:1,second:60,seconds:60},animation:{request:1,requests:1,generation:1,generations:1},motion:{second:1,seconds:1},avatar_video:{second:1,seconds:1}};
+  const normalized=String(unit||'').toLowerCase().trim(),factor=factors[task]?.[normalized];
+  const price=Number(unitPrice),fx=Number(exchangeRate);
+  if(!factor)throw fail('Unit ya fal.ai ni '+normalized+'; haiwezi kulinganishwa salama na kipimo cha Mlimani. Badili model au weka bei kwa mkono.',422);
+  if(!Number.isFinite(price)||price<=0||!Number.isFinite(fx)||fx<=0)throw fail('Bei ya supplier au kiwango cha USD/TZS si sahihi.',422);
+  const providerCost=Math.round(price*factor*fx*1000000)/1000000;
+  return {providerCost,customerPrice:Math.round(providerCost*3.5*1000000)/1000000,factor,unit:normalized};
+}
 export const modelPath = model => {
   const m=String(model||'').trim();
   if(!/^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*){1,5}$/i.test(m)) throw fail('Admin hajaweka model ID sahihi ya fal.ai.',503);
@@ -88,11 +97,8 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
       if(!item||!Number.isFinite(Number(item.unit_price))||Number(item.unit_price)<=0)throw fail('fal.ai haijarudisha bei halali ya model hii.',404);
       const unit=String(item.unit||'').toLowerCase().trim(),currency=String(item.currency||'').toUpperCase();
       if(currency!=='USD')throw fail('Sarafu ya supplier ni '+(currency||'haijulikani')+'. Auto-conversion inahitaji bei ya USD.',422);
-      const factors={image:{image:1,images:1},video:{second:5,seconds:5},music:{minute:1,minutes:1,second:60,seconds:60},voice:{minute:1,minutes:1,second:60,seconds:60},speech:{minute:1,minutes:1,second:60,seconds:60},animation:{request:1,requests:1,generation:1,generations:1},motion:{second:1,seconds:1},avatar_video:{second:1,seconds:1}};
-      const factor=factors[task]?.[unit];
-      if(!factor)throw fail('Unit ya fal.ai ni '+unit+'; haiwezi kulinganishwa salama na kipimo cha Mlimani ('+t[4]+'). Badili model au weka bei kwa mkono.',422);
-      const providerCost=Math.round(Number(item.unit_price)*factor*fx*1000000)/1000000;
-      const customerPrice=Math.round(providerCost*3.5*1000000)/1000000;
+      const normalized=normalizeSupplierPrice(task,unit,item.unit_price,fx);
+      const providerCost=normalized.providerCost,customerPrice=normalized.customerPrice,factor=normalized.factor;
       const stamp=now(),priceKey=t[2];
       const note=('fal.ai live price · '+model+' · USD '+item.unit_price+'/'+unit+' · FX '+fx+' TZS/USD · unit factor '+factor+' · synced '+new Date(stamp).toISOString()).slice(0,500);
       db.prepare("UPDATE admin_pricing SET provider_cost=?,customer_price=?,currency='TZS',notes=?,updated_at=? WHERE config_key=?").run(providerCost,customerPrice,note,stamp,priceKey);
