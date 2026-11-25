@@ -546,6 +546,37 @@ app.post('/api/wallet/topup', need, (req, res) => {
 });
 const admin = (req, res, next) => env.ADMIN_KEY && req.headers['x-admin-key'] === env.ADMIN_KEY ? next() : res.status(403).json({ error: 'Hapana.' });
 app.get('/api/admin/ai/providers', admin, (_req, res) => res.json(buildAiProviderCatalog(env)));
+app.get('/api/admin/liveavatar/check', admin, async (_req, res) => {
+  try {
+    // A direct authenticated request verifies the key rather than merely checking that a value exists.
+    await liveAvatarRequest('/v1/avatars/public?page=1&page_size=1');
+    const catalog = await liveAvatarCatalog();
+    const isReady = id => Boolean(id && catalog.avatars.some(a => String(a.id) === String(id) && ['READY', 'ACTIVE'].includes(String(a.status).toUpperCase())));
+    const hasSwahili = catalog.voices.some(v => {
+      const language = typeof v.language === 'string' ? v.language.toLowerCase() : String(v.language?.code || v.language?.name || '').toLowerCase();
+      return language === 'sw' || language.startsWith('sw-') || language.includes('swahili') || language.includes('multilingual');
+    });
+    const hasEnglish = catalog.voices.some(v => {
+      const language = typeof v.language === 'string' ? v.language.toLowerCase() : String(v.language?.code || v.language?.name || '').toLowerCase();
+      return language === 'en' || language.startsWith('en-') || language.includes('english');
+    });
+    const ethanId = env.LIVEAVATAR_ETHAN_AVATAR_ID || '';
+    const nginaId = env.LIVEAVATAR_NGINA_AVATAR_ID || '';
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      connected: true,
+      avatarCount: catalog.avatars.length,
+      voiceCount: catalog.voices.length,
+      ethan: { configured: Boolean(ethanId), ready: isReady(ethanId) },
+      ngina: { configured: Boolean(nginaId), ready: isReady(nginaId) },
+      swahiliVoiceAvailable: hasSwahili,
+      englishVoiceAvailable: hasEnglish,
+      contextIds: 'created automatically when a Live Talk session starts'
+    });
+  } catch (error) {
+    res.status(502).json({ connected: false, error: error.message || 'LiveAvatar connection check failed.' });
+  }
+});
 registerBillingRoutes(app, { db, need, admin, plans: PLANS, onPricingChange: (key, value) => { if (key === 'markup_multiplier') MARKUP = Math.max(3.5, value); if (key === 'usd_tzs' && value > 0) USD_TZS = value; } });
 app.get('/api/admin/payments', admin, (_req, res) => res.json(db.prepare("select p.*,u.email,u.phone as uphone,u.name from payments p join users u on u.id=p.user_id where status='pending' order by p.id desc").all()));
 app.get('/api/admin/stats', admin, (_req, res) => res.json({
