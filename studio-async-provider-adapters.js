@@ -15,9 +15,9 @@ export function buildReplicateInput(templateText, variables) {
     if (Array.isArray(value)) return value.map(apply);
     if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, apply(item)]));
     if (typeof value !== 'string') return value;
-    const exact = value.match(/^\\{\\{(prompt|imageUrl|durationSeconds|aspectRatio)\\}\\}$/);
+    const exact = value.match(/^\{\{(prompt|imageUrl|durationSeconds|aspectRatio)\}\}$/);
     if (exact) return variables[exact[1]] ?? '';
-    return value.replace(/\\{\\{(prompt|imageUrl|durationSeconds|aspectRatio)\\}\\}/g, (_match, key) => String(variables[key] ?? ''));
+    return value.replace(/\{\{(prompt|imageUrl|durationSeconds|aspectRatio)\}\}/g, (_match, key) => String(variables[key] ?? ''));
   };
   return apply(template);
 }
@@ -41,6 +41,7 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
     VALUES(?,?,?,?,0,0,'TZS',?,?)`).run(key, label, service, unit, notes, now());
   ensurePrice('studio_motion_second_tzs', 'Mlimani Motion Studio kwa sekunde', 'studio_motion', 'per_second', 'Bei ya mteja kwa sekunde; weka baada ya kuthibitisha gharama za Runway/Luma.');
   ensurePrice('studio_avatar_video_second_tzs', 'Mlimani Avatar Video kwa sekunde', 'studio_avatar_video', 'per_second', 'Bei ya mteja kwa sekunde; weka baada ya kuthibitisha gharama za HeyGen.');
+  ensurePrice('studio_animation_tzs', 'Mlimani Animation Studio kwa kazi', 'studio_animation', 'per_animation', 'Bei ya mteja kwa animation moja; weka baada ya kuchagua model na kuthibitisha gharama za Replicate.');
   ensurePrice('studio_animation_tzs', 'Mlimani Animation Studio kwa kazi', 'studio_animation', 'per_animation', 'Bei ya mteja kwa animation moja; weka baada ya kuchagua model na kuthibitisha gharama za Replicate.');
 
   db.exec(`
@@ -158,7 +159,7 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
   }
 
   function providerKey(provider) {
-    return provider === 'runway' ? env.RUNWAY_API_KEY : provider === 'luma' ? env.LUMA_AGENTS_API_KEY : provider === 'heygen' ? env.HEYGEN_API_KEY : null;
+    return provider === 'runway' ? env.RUNWAY_API_KEY : provider === 'luma' ? env.LUMA_AGENTS_API_KEY : provider === 'heygen' ? env.HEYGEN_API_KEY : provider === 'replicate' ? env.REPLICATE_API_TOKEN : null;
   }
 
   function normalizeJob(provider, data) {
@@ -170,6 +171,11 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
         outputUrl: typeof output === 'string' ? output : output?.url || data.video_url || null,
         error: data.failure || data.error || null
       };
+    }
+    if (provider === 'replicate') {
+      const status = String(data.status || 'starting').toLowerCase();
+      const output = Array.isArray(data.output) ? data.output[0] : data.output;
+      return { status: status === 'succeeded' ? 'completed' : ['failed', 'canceled', 'cancelled'].includes(status) ? 'failed' : 'processing', outputUrl: typeof output === 'string' ? output : output?.url || null, error: data.error || null };
     }
     if (provider === 'luma') {
       const status = String(data.state || 'queued').toLowerCase();
@@ -237,7 +243,6 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
     }
   });
 
-  app.get('/api/studio/animation/estimate', need, (req, res) => {\n    const rate = getPrice('studio_animation_tzs');\n    const charge = rate;\n    const configured = Boolean(env.REPLICATE_API_TOKEN && /^[a-f0-9]{64}$/i.test(String(env.REPLICATE_ANIMATION_VERSION || '')) && env.REPLICATE_ANIMATION_INPUT_TEMPLATE);\n    res.json({ provider: 'Replicate', customerPricePerAnimationTzs: rate, estimatedChargeTzs: charge, walletBalanceTzs: cashWalletBalance(db, req.user.id), configured, enabled: Boolean(configured && rate > 0 && cashWalletBalance(db, req.user.id) >= charge) });\n  });\n\n  app.post('/api/studio/animation/jobs', need, async (req, res) => {\n    const prompt = String(req.body?.prompt || '').trim().slice(0, 1200);\n    const imageUrl = String(req.body?.imageUrl || '').trim().slice(0, 2000);\n    const duration = [5, 10].includes(Number(req.body?.durationSeconds)) ? Number(req.body.durationSeconds) : 5;\n    const aspectRatio = ['16:9', '9:16', '1:1'].includes(req.body?.aspectRatio) ? req.body.aspectRatio : '1:1';\n    const version = String(env.REPLICATE_ANIMATION_VERSION || '').trim();\n    if (!env.REPLICATE_API_TOKEN || !/^[a-f0-9]{64}$/i.test(version) || !env.REPLICATE_ANIMATION_INPUT_TEMPLATE) return res.status(503).json({ error: 'Replicate animation bado haijasanidiwa. Admin aweke token, model version na input template.' });\n    if (prompt.length < 8) return res.status(400).json({ error: 'Andika maelezo ya animation angalau herufi 8.' });\n    if (imageUrl) {\n      if (req.body?.consentConfirmed !== true) return res.status(400).json({ error: 'Thibitisha kuwa una ruhusa ya kutumia picha hii na mtu aliye kwenye picha ameridhia.' });\n      try { const url = new URL(imageUrl); if (url.protocol !== 'https:') throw new Error('bad protocol'); } catch { return res.status(400).json({ error: 'Picha lazima iwe na kiungo salama cha HTTPS.' }); }\n    }\n    const charge = getPrice('studio_animation_tzs');\n    if (Number(req.body?.expectedChargeTzs) !== charge || charge <= 0) return res.status(409).json({ error: 'Bei haijaidhinishwa au imebadilika. Kagua makadirio mapya.' });\n    let input;\n    try { input = buildReplicateInput(env.REPLICATE_ANIMATION_INPUT_TEMPLATE, { prompt, imageUrl, durationSeconds: duration, aspectRatio }); }\n    catch (error) { return res.status(503).json({ error: error.message }); }\n    const id = randomUUID();\n    try { reserve(req.user.id, charge, 'Mlimani Animation Studio reservation ' + id); } catch (error) { return jsonError(res, error); }\n    const stamp = now();\n    try {\n      db.prepare(\`INSERT INTO studio_async_jobs (id,user_id,provider,job_type,prompt,duration_seconds,charge_tzs,billing_status,status,created_at,updated_at) VALUES(?,?,?,'animation',?,?,?,'reserved','submitting',?,?)\`)\n        .run(id, req.user.id, 'replicate', prompt, duration, charge, stamp, stamp);\n      const created = await createReplicate(input);\n      if (!created.id) throw new Error('Replicate hakurudisha Prediction ID.');\n      db.prepare('UPDATE studio_async_jobs SET provider_job_id=?,status=?,updated_at=? WHERE id=?').run(String(created.id), 'processing', now(), id);\n      return res.status(202).json({ jobId: id, provider: 'replicate', status: 'processing', durationSeconds: duration, chargedTzs: charge });\n    } catch (error) {\n      const job = db.prepare('SELECT * FROM studio_async_jobs WHERE id=?').get(id);\n      if (job) { try { refund(job, 'Refund ya Replicate Animation: ' + error.message); } catch (refundError) { console.error('Replicate refund failed:', id, refundError.message); db.prepare(\"UPDATE studio_async_jobs SET billing_status='refund_review',status='failed',error=?,updated_at=? WHERE id=?\").run('Refund review required', now(), id); } }\n      else { try { creditCashWallet(db, req.user.id, charge, 'studio-async-refund:' + id, 'Refund ya Replicate Animation iliyoshindwa kuanzishwa'); } catch (refundError) { console.error('Replicate reservation refund failed:', id, refundError.message); } }\n      return jsonError(res, error, 'Imeshindikana kuanzisha Animation Studio.');\n    }\n  });\n\n  app.get('/api/studio/avatar-video/estimate', need, (req, res) => {
     const seconds = Math.max(5, Math.min(600, Math.round(Number(req.query.durationSeconds) || 30)));
     const rate = getPrice('studio_avatar_video_second_tzs');
     const charge = seconds * rate;
@@ -327,6 +332,7 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
     try {
       const data = job.provider === 'runway' ? await getRunway(job.provider_job_id)
         : job.provider === 'luma' ? await getLuma(job.provider_job_id)
+        : job.provider === 'replicate' ? await getReplicate(job.provider_job_id)
         : await getHeyGen(job.provider_job_id);
       const normalized = normalizeJob(job.provider, data);
       if (normalized.status === 'failed') {
