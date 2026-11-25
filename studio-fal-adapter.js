@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 const TASKS = {
   image: ['FAL_IMAGE_MODEL','FAL_IMAGE_INPUT_TEMPLATE','fal_image_tzs','Image','per_image',['prompt']],
   video: ['FAL_VIDEO_MODEL','FAL_VIDEO_INPUT_TEMPLATE','fal_video_5s_tzs','Video','per_5_seconds',['prompt']],
@@ -56,7 +58,7 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
       const rate=price(t[2]),units=t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1;charge=units*rate;
       if(charge<=0||Number(req.body?.expectedChargeTzs)!==charge)throw fail('Bei haijaidhinishwa au imebadilika. Kagua makadirio mapya.',409);
       if(cashWalletBalance(db,req.user.id)<charge)throw fail('Salio la Wallet halitoshi.',402);
-      id=crypto.randomUUID();
+      id=randomUUID();
     }catch(e){return res.status(e.status||400).json({error:e.message})}
     try{consumeWalletCredits(db,req.user.id,'cash',charge,'Mlimani fal.ai '+taskId+' reservation '+id)}catch(e){return res.status(402).json({error:'Salio la Wallet halitoshi.'})}
     try{
