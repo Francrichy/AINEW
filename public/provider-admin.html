@@ -89,7 +89,7 @@ $('checkLiveAvatar').addEventListener('click',checkLiveAvatar);
  
 const falDefaults={
  image:{model:'fal-ai/flux/schnell',template:{prompt:'{{prompt}}',image_size:'landscape_4_3',num_images:1,output_format:'jpeg',enable_safety_checker:true}},
- video:{model:'kling/v4/text-to-video',template:{prompt:'{{prompt}}',duration:5,aspect_ratio:'{{aspectRatio}}',resolution:'720p'}},
+ video:{model:'kling/v4/text-to-video',template:{prompt:'{{prompt}}',duration:'{{durationSeconds}}',aspect_ratio:'{{aspectRatio}}',resolution:'720p'}},
  music:{model:'fal-ai/lyria2',template:{prompt:'{{prompt}}'}},
  voice:{model:'fal-ai/elevenlabs/tts',template:{text:'{{prompt}}',voice:'Rachel',language_code:'en'}},
  speech:{model:'fal-ai/whisper',template:{audio_url:'{{audioUrl}}'}},
