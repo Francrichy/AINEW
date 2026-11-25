@@ -2,7 +2,7 @@
 // This reports configuration and integration readiness only; it never exposes secrets.
 const providerDefinitions = [
   { id: 'liveavatar', name: 'LiveAvatar', services: ['live_avatar', 'live_call', 'avatar_library'], key: 'LIVEAVATAR_API_KEY', integration: 'active', description: 'Live avatars, real-time calls and avatar catalog.' },
-  { id: 'pollinations', name: 'Pollinations', services: ['video_generation'], key: 'POLLINATIONS_API_KEY', integration: 'active', description: 'Current short-video generation adapter.' },
+  { id: 'pollinations', name: 'Pollinations', services: ['image_generation', 'video_generation'], key: 'POLLINATIONS_API_KEY', integration: 'active', description: 'Current short-video generation adapter.' },
   { id: 'openrouter-video', name: 'OpenRouter Video', services: ['video_generation'], key: 'OPENROUTER_API_KEY', integration: 'active', description: 'Asynchronous video generation adapter; model pricing may apply.' },
   { id: 'openrouter-chat', name: 'OpenRouter', services: ['chat', 'text_generation'], key: 'OPENROUTER_API_KEY', integration: 'active', description: 'Text and chat model routing.' },
   { id: 'elevenlabs', name: 'ElevenLabs', services: ['music_generation'], key: 'ELEVENLABS_API_KEY', integration: 'active', description: 'Music generation adapter is available in Mlimani Studio.' },
@@ -35,7 +35,7 @@ export function buildAiProviderCatalog(env = process.env) {
     const credentialConfigured = Boolean(env[provider.key]);
     const selected = provider.id === 'pollinations' && videoChoice === 'pollinations'
       || provider.id === 'openrouter-video' && videoChoice === 'openrouter'
-      || provider.id === 'openrouter-chat';
+      || ['liveavatar', 'elevenlabs', 'cartesia', 'deepgram', 'stability', 'openrouter-chat'].includes(provider.id);
     const ready = provider.integration === 'active' && credentialConfigured;
     return {
       id: provider.id,
