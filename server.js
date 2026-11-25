@@ -8,6 +8,7 @@ import { randomUUID, randomBytes, createHash, createCipheriv, createDecipheriv }
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { initializeBilling, registerBillingRoutes, syncBillingPlans, walletModeEnabled, walletAvailable, consumeWalletCredits, cashWalletBalance, creditCashWallet } from './billing.js';
+import { registerFilmJobRoutes } from './film-jobs.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const env = process.env;
@@ -121,6 +122,8 @@ app.use((req, _res, next) => {
 const need = (req, res, next) => req.user ? next() : res.status(401).json({ error: 'Tafadhali ingia kwanza.' });
 const pluginTestAllowed = user => String(user?.email || '').trim().toLowerCase() === 'francrichy@gmail.com';
 const requirePluginTest = (req,res,next) => pluginTestAllowed(req.user) ? next() : res.status(403).json({ error: 'Plugins zipo kwenye majaribio ya ndani ya Mlimani Labs kwa sasa.' });
+
+registerFilmJobRoutes(app, { db, need, env, cashWalletBalance, consumeWalletCredits, creditCashWallet });
 
 
 const LIVEAVATAR_API = 'https://api.liveavatar.com';
