@@ -318,7 +318,23 @@ main{max-width:920px;padding:20px 24px 60px;text-align:center}
 @media(max-width:760px){.lab-home{padding:14px}.live-hero{grid-template-columns:1fr;padding:22px;border-radius:22px}.live-hero-art{min-height:245px}.live-art-orbit{width:145px;height:145px}.live-art-core{width:86px;height:86px;font-size:2.4rem}.lab-grid{grid-template-columns:1fr}.lab-section-head{align-items:flex-start;flex-direction:column}.hero-avatar-picker .avatar{flex:1;min-width:130px}.live-hero .lab-hero-actions{align-items:stretch;flex-direction:column}.live-hero .lab-caption{max-width:none}#continueStudio{width:100%}}
 @media(prefers-reduced-motion:reduce){.live-art-orbit:after,.live-art-wave i{animation:none}}
 
-</style></head><body><header><strong>MLIMANI LABS STUDIO</strong><span><a href="/guide.html">Mwongozo</a> · <a href="/">← Rudi Mlimani Labs</a></span></header><main>
+
+
+/* LemonSlice-inspired product navigation: restrained white header, compact links, generous whitespace */
+.studio-header{width:100%;max-width:1320px;min-height:78px;margin:0 auto;padding:14px clamp(16px,3vw,38px);display:flex;align-items:center;justify-content:space-between;gap:24px;background:#fff;color:#18364c;border-bottom:1px solid #e9eef1}
+.studio-wordmark{flex:0 0 auto;text-decoration:none;color:#18364c;font-size:1.02rem;font-weight:900;letter-spacing:-.055em}
+.studio-wordmark span{font-weight:500;color:#6f8492}
+.studio-nav{display:flex;align-items:center;justify-content:center;gap:clamp(12px,2vw,28px);min-width:0}
+.studio-nav a,.studio-header-actions a{position:relative;text-decoration:none;color:#526879;font-size:.84rem;font-weight:650;white-space:nowrap;transition:color .15s ease}
+.studio-nav a:after{content:"";position:absolute;left:0;right:100%;bottom:-9px;height:2px;background:#2b7750;transition:right .18s ease}
+.studio-nav a:hover{color:#174b32}.studio-nav a:hover:after{right:0}
+.studio-header-actions{display:flex;align-items:center;gap:18px;flex:0 0 auto}
+.studio-header-actions a:last-child{padding:10px 15px;border:1px solid #dce5e9;border-radius:999px;color:#244c66}
+.lab-home{margin-top:22px}
+#videoCreatorCard,#musicGeneratorCard,#filmStudioCard,#avatarLibrary{scroll-margin-top:22px}
+@media(max-width:900px){.studio-header{flex-wrap:wrap;gap:12px}.studio-nav{order:3;width:100%;justify-content:flex-start;overflow-x:auto;padding:8px 0 11px;scrollbar-width:none}.studio-nav::-webkit-scrollbar{display:none}.studio-nav a{font-size:.82rem}.studio-nav a:after{bottom:-6px}.studio-header-actions{margin-left:auto}}
+@media(max-width:520px){.studio-header{min-height:0;padding:12px 14px}.studio-wordmark{font-size:.9rem}.studio-header-actions{gap:9px}.studio-header-actions a{font-size:.72rem}.studio-header-actions a:last-child{padding:8px 10px}.studio-nav{gap:19px}.studio-nav a{font-size:.78rem}}
+</style></head><body><header class="studio-header"><a class="studio-wordmark" href="/" aria-label="Mlimani Labs">MLIMANI <span>LABS</span></a><nav class="studio-nav" aria-label="Studio tools"><a href="#videoCreatorCard">Video Creator</a><a href="#musicGeneratorCard">Music Generator</a><a href="#filmStudioCard">Film Studio</a><a href="#avatarLibrary">Avatar Library</a></nav><div class="studio-header-actions"><a href="/guide.html">Resources</a><a href="/">Mlimani Labs ↗</a></div></header><main>
 <section class="lab-home" aria-label="Mlimani Labs creative studio">
  <div class="lab-topline"><span class="lab-brandmark">M</span><span>MLIMANI LABS</span><span class="lab-topline-divider"></span><span class="lab-kicker">AI LIVE EXPERIENCE</span></div>
  <div class="lab-hero live-hero">
@@ -339,11 +355,11 @@ main{max-width:920px;padding:20px 24px 60px;text-align:center}
  </div>
  <div class="lab-section-head"><div><span class="lab-kicker">MLIMANI WORKSPACE</span><h3>Vitu vingine unavyoweza kuunda</h3></div><span class="lab-caption">Studio zako sehemu moja</span></div>
  <div class="lab-grid">
-  <article class="lab-card lab-card-video"><div class="lab-card-top"><span class="lab-icon">▣</span><span class="lab-tag">VIDEO</span></div><h3>Video Creator</h3><p>Andaa matangazo na video fupi za bidhaa, huduma na mitandao ya kijamii.</p><button type="button" data-lab-launch="video">Fungua AI Video Creator <span>↗</span></button><a href="/production-studio.html?mode=record">Rekodi au pakia video yako <span>↗</span></a></article>
-  <article class="lab-card lab-card-music"><div class="lab-card-top"><span class="lab-icon">♫</span><span class="lab-tag">MUSIC</span></div><h3>Music Generator</h3><p>Andaa maneno ya wimbo, mtindo wa muziki na maelekezo ya sauti.</p><a href="/production-studio.html?mode=music">Fungua Music Studio <span>↗</span></a></article>
-  <article class="lab-card lab-card-film"><div class="lab-card-top"><span class="lab-icon">▤</span><span class="lab-tag">FILM</span></div><h3>Film Studio</h3><p>Panga hadithi, wahusika na scenes za filamu ndefu hadi dakika 30.</p><a href="/production-studio.html?mode=film">Fungua Film Studio <span>↗</span></a></article>
+  <article class="lab-card lab-card-video" id="videoCreatorCard"><div class="lab-card-top"><span class="lab-icon">▣</span><span class="lab-tag">VIDEO</span></div><h3>Video Creator</h3><p>Andaa matangazo na video fupi za bidhaa, huduma na mitandao ya kijamii.</p><button type="button" data-lab-launch="video">Fungua AI Video Creator <span>↗</span></button><a href="/production-studio.html?mode=record">Rekodi au pakia video yako <span>↗</span></a></article>
+  <article class="lab-card lab-card-music" id="musicGeneratorCard"><div class="lab-card-top"><span class="lab-icon">♫</span><span class="lab-tag">MUSIC</span></div><h3>Music Generator</h3><p>Andaa maneno ya wimbo, mtindo wa muziki na maelekezo ya sauti.</p><a href="/production-studio.html?mode=music">Fungua Music Studio <span>↗</span></a></article>
+  <article class="lab-card lab-card-film" id="filmStudioCard"><div class="lab-card-top"><span class="lab-icon">▤</span><span class="lab-tag">FILM</span></div><h3>Film Studio</h3><p>Panga hadithi, wahusika na scenes za filamu ndefu hadi dakika 30.</p><a href="/production-studio.html?mode=film">Fungua Film Studio <span>↗</span></a></article>
  </div>
- <div class="live-avatar-library"><h3>Avatar Library</h3><p class="note">Ethan na Ngina ni wahusika wakuu. Avatar nyingine zitaonekana ikiwa zinapatikana kwenye akaunti yako.</p><div id="liveAvatarLibraryStatus" class="note">Inasubiri akaunti kuonyesha avatars nyingine.</div><div class="choices" id="liveAvatarCatalogGrid"></div></div>
+ <div class="live-avatar-library" id="avatarLibrary"><h3>Avatar Library</h3><p class="note">Ethan na Ngina ni wahusika wakuu. Avatar nyingine zitaonekana ikiwa zinapatikana kwenye akaunti yako.</p><div id="liveAvatarLibraryStatus" class="note">Inasubiri akaunti kuonyesha avatars nyingine.</div><div class="choices" id="liveAvatarCatalogGrid"></div></div>
  <div class="lab-footer"><span class="lab-footer-dot"></span> Live Talk hutumia huduma ya video ya moja kwa moja. Gharama na muda hutegemea bei zilizowekwa kwenye akaunti yako.</div>
 </section>
 <div id="chatFields" class="hidden"><label>Muda wa mazungumzo</label><div class="duration"><button data-duration="normal" aria-pressed="true">Muda wa kawaida</button><button data-duration="extended" aria-pressed="false">Muda mrefu</button></div><p class="note" id="durationNote">Muda wa kawaida wa mazungumzo.</p>
