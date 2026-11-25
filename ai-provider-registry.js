@@ -2,10 +2,10 @@
 // This reports configuration and integration readiness only; it never exposes secrets.
 const providerDefinitions = [
   { id: 'liveavatar', name: 'LiveAvatar', services: ['live_avatar', 'live_call', 'avatar_library'], key: 'LIVEAVATAR_API_KEY', integration: 'active', description: 'Live avatars, real-time calls and avatar catalog.' },
-  { id: 'pollinations', name: 'Pollinations', services: ['video_generation'], key: 'POLLINATIONS_API_KEY', integration: 'active', description: 'Current video generation adapter.' },
+  { id: 'pollinations', name: 'Pollinations', services: ['image_generation', 'video_generation'], key: 'POLLINATIONS_API_KEY', integration: 'active', description: 'Current video generation adapter.' },
   { id: 'openrouter-video', name: 'OpenRouter Video', services: ['video_generation'], key: 'OPENROUTER_API_KEY', integration: 'active', description: 'Asynchronous video generation adapter; model pricing may apply.' },
   { id: 'openrouter-chat', name: 'OpenRouter', services: ['chat', 'text_generation'], key: 'OPENROUTER_API_KEY', integration: 'active', description: 'Text and chat model routing.' },
-  { id: 'elevenlabs', name: 'ElevenLabs', services: ['voice_generation', 'voice_cloning'], key: 'ELEVENLABS_API_KEY', integration: 'planned', description: 'Voice generation integration planned; key presence alone does not enable it.' },
+  { id: 'elevenlabs', name: 'ElevenLabs', services: ['music_generation'], key: 'ELEVENLABS_API_KEY', integration: 'active', description: 'Music generation adapter is available in Mlimani Studio.' },
   { id: 'cartesia', name: 'Cartesia', services: ['voice_generation', 'voice_cloning'], key: 'CARTESIA_API_KEY', integration: 'planned', description: 'Low-latency voice integration planned.' },
   { id: 'deepgram', name: 'Deepgram', services: ['speech_to_text', 'speech_recognition'], key: 'DEEPGRAM_API_KEY', integration: 'planned', description: 'Speech recognition integration planned.' },
   { id: 'replicate', name: 'Replicate', services: ['image_generation', 'animation'], key: 'REPLICATE_API_TOKEN', integration: 'planned', description: 'Image and animation provider integration planned.' },
@@ -20,6 +20,7 @@ const serviceDefinitions = [
   { id: 'live_call', name: 'Live Call', description: 'Real-time avatar conversations' },
   { id: 'avatar_library', name: 'Avatar Library', description: 'Browse and select AI presenters' },
   { id: 'voice_generation', name: 'Voice Studio', description: 'Create spoken audio and voiceovers' },
+  { id: 'music_generation', name: 'Music Studio', description: 'Generate original music and instrumental tracks' },
   { id: 'speech_to_text', name: 'Speech Recognition', description: 'Convert speech into text' },
   { id: 'video_generation', name: 'Video Studio', description: 'Generate short videos and adverts' },
   { id: 'image_generation', name: 'Image Studio', description: 'Create and edit images' },
