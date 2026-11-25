@@ -134,7 +134,7 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
   async function createReplicate(input) {
     const response = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
-      headers: { Authorization: 'Bearer ' + env.REPLICATE_API_TOKEN, 'Content-Type': 'application/json', Prefer: 'wait=1' },
+      headers: { Authorization: 'Bearer ' + env.REPLICATE_API_TOKEN, 'Content-Type': 'application/json', Prefer: 'wait=1', 'Cancel-After': '10m' },
       body: JSON.stringify({ version: env.REPLICATE_ANIMATION_VERSION, input }),
       signal: AbortSignal.timeout(60000)
     });
@@ -174,7 +174,7 @@ export function registerStudioAsyncProviderRoutes(app, { db, need, env, cashWall
     if (provider === 'replicate') {
       const status = String(data.status || 'starting').toLowerCase();
       const output = Array.isArray(data.output) ? data.output[0] : data.output;
-      return { status: status === 'succeeded' ? 'completed' : ['failed', 'canceled', 'cancelled'].includes(status) ? 'failed' : 'processing', outputUrl: typeof output === 'string' ? output : output?.url || null, error: data.error || null };
+      return { status: ['succeeded', 'successful', 'completed'].includes(status) ? 'completed' : ['failed', 'canceled', 'cancelled'].includes(status) ? 'failed' : 'processing', outputUrl: typeof output === 'string' ? output : output?.url || null, error: data.error || null };
     }
     if (provider === 'luma') {
       const status = String(data.state || 'queued').toLowerCase();
