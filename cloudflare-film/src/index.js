@@ -52,6 +52,7 @@ export class FilmWorkflow extends WorkflowEntrypoint {
   async run(event, step) {
     const env = this.env;
     const { jobId, ownerId, title, language, scenes } = event.payload;
+    try {
     await step.do("load-film-manifest", async () => {
       const current = await readManifest(env.FILM_MEDIA, jobId);
       if (!current) throw new Error("Film manifest haipo.");
@@ -154,6 +155,15 @@ export class FilmWorkflow extends WorkflowEntrypoint {
     });
 
     return { jobId, status: "completed", title, language };
+    } catch (error) {
+      const failed = await readManifest(env.FILM_MEDIA, jobId).catch(() => null);
+      if (failed) {
+        failed.status = "failed";
+        failed.error = String(error?.message || error).slice(0, 500);
+        await writeManifest(env.FILM_MEDIA, jobId, failed).catch(() => {});
+      }
+      throw error;
+    }
   }
 }
 
@@ -194,10 +204,27 @@ export default {
       return json({ jobId, status: "queued", totalScenes: payload.scenes.length }, 202);
     }
 
+    const downloadMatch = url.pathname.match(/^\/jobs\/([a-zA-Z0-9-]+)\/download$/);
+    if (request.method === "GET" && downloadMatch) {
+      const manifest = await readManifest(env.FILM_MEDIA, downloadMatch[1]);
+      if (!manifest || String(manifest.ownerId) !== String(url.searchParams.get("ownerId") || "")) return json({ error: "Kazi haipo." }, 404);
+      if (manifest.status !== "completed" || !manifest.output?.objectKey) return json({ error: "Filamu bado haijakamilika." }, 409);
+      const signer = r2Signer(env);
+      const bucketName = env.R2_BUCKET_NAME || "mlimani-studio-media";
+      const expiresIn = 600;
+      const command = new GetObjectCommand({
+        Bucket: bucketName,
+        Key: manifest.output.objectKey,
+        ResponseContentDisposition: 'attachment; filename="mlimani-film.mp4"'
+      });
+      const signedUrl = await getSignedUrl(signer, command, { expiresIn });
+      return json({ url: signedUrl, expiresIn });
+    }
+
     const match = url.pathname.match(/^\/jobs\/([a-zA-Z0-9-]+)$/);
     if (request.method === "GET" && match) {
       const manifest = await readManifest(env.FILM_MEDIA, match[1]);
-      if (!manifest) return json({ error: "Kazi haipo." }, 404);
+      if (!manifest || String(manifest.ownerId) !== String(url.searchParams.get("ownerId") || "")) return json({ error: "Kazi haipo." }, 404);
       return json(manifest);
     }
     return json({ error: "Route haipo." }, 404);

@@ -15,7 +15,8 @@ const DEFAULT_PRICING = [
   ['advertisement_15_tzs', 'Tangazo la sekunde 15', 'advertisement', 'per_ad', 0, 0, 'TZS', 'Bei ya mteja kwa tangazo la sekunde 15; weka baada ya kuthibitisha gharama.'],
   ['studio_music_minute_tzs', 'Mlimani Studio Music kwa dakika', 'studio_music', 'per_minute', 0, 0, 'TZS', 'Bei ya mteja kwa dakika ya muziki; weka baada ya kuthibitisha gharama za provider na leseni.'],
   ['studio_voice_minute_tzs', 'Mlimani Studio Voice-over kwa dakika', 'studio_voice', 'per_minute', 0, 0, 'TZS', 'Bei ya mteja kwa dakika ya sauti; weka baada ya kuthibitisha gharama za provider.'],
-  ['studio_video_second_tzs', 'Mlimani Studio AI Video kwa sekunde', 'studio_video', 'per_second', 0, 0, 'TZS', 'Bei ya mteja kwa sekunde; bei ya AI video haijawashwa mpaka Admin athibitishe gharama.']
+  ['studio_video_second_tzs', 'Mlimani Studio AI Video kwa sekunde', 'studio_video', 'per_second', 0, 0, 'TZS', 'Bei ya mteja kwa sekunde; bei ya AI video haijawashwa mpaka Admin athibitishe gharama.'],
+  ['studio_film_minute_tzs', 'Mlimani Studio Film kwa dakika', 'studio_film', 'per_minute', 0, 0, 'TZS', 'Bei ya filamu kwa dakika; huduma itabaki imezimwa mpaka Admin athibitishe gharama na bei za provider.'],
 ];
 
 const DEFAULT_PLANS = [
