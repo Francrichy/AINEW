@@ -12,13 +12,13 @@ const TASKS = {
 };
 const fail = (message,status=400) => Object.assign(new Error(message),{status});
 const json = async r => { const d=await r.json().catch(()=>({})); if(!r.ok) throw fail(String(d.detail||d.message||d.error||'fal.ai HTTP '+r.status).slice(0,500),r.status); return d; };
-const modelPath = model => {
+export const modelPath = model => {
   const m=String(model||'').trim();
   if(!/^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*){1,3}$/i.test(m)) throw fail('Admin hajaweka model ID sahihi ya fal.ai.',503);
   return m.split('/').map(encodeURIComponent).join('/');
 };
 const https = (v,label) => { if(!v)return ''; try{const u=new URL(String(v));if(u.protocol!=='https:')throw 0;return u.toString()}catch{throw fail(label+' lazima iwe HTTPS.')} };
-function makeInput(templateText,vars) {
+export function makeInput(templateText,vars) {
   let t;try{t=JSON.parse(templateText)}catch{throw fail('Input template ya fal.ai si JSON sahihi.',503)}
   if(!t||typeof t!=='object'||Array.isArray(t))throw fail('Input template lazima iwe JSON object.',503);
   const walk=v=>Array.isArray(v)?v.map(walk):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,walk(x)])):typeof v==='string'?v.replace(/\{\{(prompt|durationSeconds|aspectRatio|audioUrl|imageUrl|voiceId|language)\}\}/g,(_m,k)=>String(vars[k]??'')):v;
@@ -39,7 +39,6 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
   const outputUrl=d=>[d?.video?.url,d?.audio?.url,d?.image?.url,d?.url,d?.images?.[0]?.url,d?.videos?.[0]?.url,d?.audios?.[0]?.url,d?.data?.url].find(x=>typeof x==='string'&&x.startsWith('https://'))||null;
   const view=j=>({jobId:j.id,task:j.task,status:j.status,outputUrl:j.output_url||null,result:j.result_json?JSON.parse(j.result_json):null,chargedTzs:j.charge_tzs,billingStatus:j.billing_status,error:j.error||null});
   app.get('/api/admin/fal/status',admin,(_q,res)=>res.json({keyConfigured:!!key(),tasks:Object.entries(TASKS).map(([id,t])=>({id,modelVariable:t[0],modelConfigured:!!env[t[0]],templateVariable:t[1],templateConfigured:!!env[t[1]],priceKey:t[2],priceConfigured:price(t[2])>0,ready:!!(key()&&env[t[0]]&&env[t[1]]&&price(t[2])>0)}))}));
-  app.post('/api/admin/fal/check',admin,async(_q,res)=>{try{const r=await fetch('https://rest.fal.ai/tokens',{headers:{Authorization:'Key '+key()},signal:AbortSignal.timeout(20000)});const d=await json(r);res.set('Cache-Control','no-store');res.json({connected:true,name:d.name||d.token_name||null,note:'Key imethibitishwa bila kuanzisha generation.'})}catch(e){res.status(e.status||502).json({connected:false,error:e.message})}});
   app.get('/api/studio/fal/:task/estimate',need,(req,res)=>{
     const t=TASKS[req.params.task];if(!t)return res.status(404).json({error:'Task haijulikani.'});
     const secs=Math.max(1,Math.min(600,Math.round(+req.query.durationSeconds||5))),rate=price(t[2]);
@@ -77,7 +76,7 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
       if(s.status!=='COMPLETED'){db.prepare('UPDATE studio_fal_jobs SET status=?,updated_at=? WHERE id=?').run(s.status||'IN_PROGRESS',now(),j.id);return res.json({...view(j),status:s.status||'IN_PROGRESS',queuePosition:s.queue_position??null})}
       if(s.error||s.error_type){refund(j,'fal.ai generation imeshindwa: '+String(s.error||s.error_type));return res.json(view(db.prepare('SELECT * FROM studio_fal_jobs WHERE id=?').get(j.id)))}
       const result=await json(await fetch(url,{headers:{Authorization:'Key '+key()},signal:AbortSignal.timeout(60000)}));
-      db.prepare("UPDATE studio_fal_jobs SET status='COMPLETED',billing_status='captured',result_json=?,output_url=?,updated_at=? WHERE id=?").run(JSON.stringify(result).slice(0,200000),outputUrl(result),now(),j.id);
+      db.prepare("UPDATE studio_fal_jobs SET status='COMPLETED',billing_status='captured',result_json=?,output_url=?,updated_at=? WHERE id=?").run((JSON.stringify(result).length<=200000?JSON.stringify(result):JSON.stringify({truncated:true,outputUrl:outputUrl(result)})),outputUrl(result),now(),j.id);
       res.json(view(db.prepare('SELECT * FROM studio_fal_jobs WHERE id=?').get(j.id)));
     }catch(e){res.status(e.status||502).json({error:'Imeshindikana kupata matokeo ya fal.ai: '+e.message.slice(0,200)})}
   });
