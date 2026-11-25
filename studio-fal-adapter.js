@@ -14,7 +14,7 @@ const fail = (message,status=400) => Object.assign(new Error(message),{status});
 const json = async r => { const d=await r.json().catch(()=>({})); if(!r.ok) throw fail(String(d.detail||d.message||d.error||'fal.ai HTTP '+r.status).slice(0,500),r.status); return d; };
 export const modelPath = model => {
   const m=String(model||'').trim();
-  if(!/^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*){1,3}$/i.test(m)) throw fail('Admin hajaweka model ID sahihi ya fal.ai.',503);
+  if(!/^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*){1,5}$/i.test(m)) throw fail('Admin hajaweka model ID sahihi ya fal.ai.',503);
   return m.split('/').map(encodeURIComponent).join('/');
 };
 const https = (v,label) => { if(!v)return ''; try{const u=new URL(String(v));if(u.protocol!=='https:')throw 0;return u.toString()}catch{throw fail(label+' lazima iwe HTTPS.')} };
@@ -55,6 +55,8 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
       for(const v of t[5])if(!vars[v])throw fail(v==='audioUrl'?'Weka audio URL ya HTTPS.':'Andika prompt kwanza.');
       input=makeInput(env[t[1]],vars);if(JSON.stringify(input).length>20000)throw fail('Input ni kubwa mno.',413);
       const rate=price(t[2]),units=t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1;charge=units*rate;
+      const dailyJobs=db.prepare('SELECT COUNT(*) AS n FROM studio_fal_jobs WHERE user_id=? AND created_at>?').get(req.user.id,now()-86400000).n;
+      if(dailyJobs>=Math.max(1,Number(env.FAL_DAILY_JOBS||20)))throw fail('Umefikia kikomo cha kazi za fal.ai kwa saa 24. Jaribu baadaye.',429);
       if(charge<=0||Number(req.body?.expectedChargeTzs)!==charge)throw fail('Bei haijaidhinishwa au imebadilika. Kagua makadirio mapya.',409);
       if(cashWalletBalance(db,req.user.id)<charge)throw fail('Salio la Wallet halitoshi.',402);
       id=randomUUID();
