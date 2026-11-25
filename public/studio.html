@@ -731,13 +731,10 @@ async function startLiveAvatar(){
  if(!token){$('#liveStatus').textContent='Tafadhali ingia kwenye akaunti ya Mlimani kwanza.';return;}
  liveAvatarStarting=true;liveAvatarCancelRequested=false;
  $('#continueStudio').disabled=true;$('#continueStudio').textContent='Inaunganisha...';
- $('#stopLive').disabled=false;$('#liveStatus').textContent='Tunaomba ruhusa ya kamera na microphone...';
+ $('#stopLive').disabled=false;$('#liveStatus').textContent='Tunathibitisha muunganisho wa '+avatar+'...';
  try{
-  if(!navigator.mediaDevices?.getUserMedia)throw new Error('Browser hii haiwezi kufungua kamera. Tumia Chrome au Safari yenye ruhusa za kamera.');
-  localCameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});
-  $('#localCameraVideo').srcObject=localCameraStream;$('#localCameraTile').classList.remove('hidden');
-  $('#liveStatus').textContent='Kamera imefunguka. Tunaunganisha microphone na '+avatar+'...';
-  const response=await fetch('/api/liveavatar/session-token',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({character:avatar,avatarId:selectedLiveAvatarId,language:($('#liveLanguage')?.value||'sw')})});
+  // Thibitisha huduma, avatar, sauti na salio kabla ya kuomba ruhusa ya kamera.
+ const response=await fetch('/api/liveavatar/session-token',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({character:avatar,avatarId:selectedLiveAvatarId,language:($('#liveLanguage')?.value||'sw')})});
   const responseText=await response.text();
   let payload={};
   try{payload=responseText?JSON.parse(responseText):{};}catch(parseError){
@@ -745,7 +742,10 @@ async function startLiveAvatar(){
    throw new Error('Server imerudisha jibu lisilo JSON (HTTP '+response.status+'). '+(snippet||'Hakuna maelezo kutoka server.')+' Angalia kama umeingia upya kisha jaribu tena.');
   }
   if(!response.ok)throw new Error(payload.error||('Imeshindikana kuanzisha mazungumzo (HTTP '+response.status+').'));
-  liveBillingSessionId=payload.billingSessionId||null;liveBillingFinished=false;
+  if(!navigator.mediaDevices?.getUserMedia)throw new Error('Browser hii haiwezi kufungua kamera. Tumia Chrome au Safari yenye ruhusa za kamera.');
+   localCameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});
+   $('#localCameraVideo').srcObject=localCameraStream;$('#localCameraTile').classList.remove('hidden');
+   liveBillingSessionId=payload.billingSessionId||null;liveBillingFinished=false;
   $('#liveStatus').textContent='Hatua 2/3: Tunafungua video na microphone...';
   const sdk=await import('https://esm.sh/@heygen/liveavatar-web-sdk@0.0.20?bundle');
   if(typeof sdk.LiveAvatarSession!=='function')throw new Error('Huduma ya mazungumzo haikupakiwa vizuri. Tafadhali onyesha upya ukurasa ujaribu tena.');
