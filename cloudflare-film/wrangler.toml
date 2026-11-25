@@ -1,0 +1,31 @@
+name = "mlimani-film-orchestrator"
+main = "src/index.js"
+compatibility_date = "2026-11-25"
+compatibility_flags = ["nodejs_compat"]
+
+[[r2_buckets]]
+binding = "FILM_MEDIA"
+bucket_name = "mlimani-studio-media"
+
+[[workflows]]
+name = "mlimani-film-workflow"
+binding = "FILM_WORKFLOW"
+class_name = "FilmWorkflow"
+
+[[containers]]
+class_name = "FilmRenderer"
+image = "./Dockerfile"
+instance_type = "standard-2"
+max_instances = 2
+
+[[durable_objects.bindings]]
+name = "FILM_RENDERER"
+class_name = "FilmRenderer"
+
+[exports.FilmRenderer]
+type = "durable-object"
+storage = "sqlite"
+
+[vars]
+VIDEO_MODEL = "bytedance/seedance-2.0"
+MAX_SCENES = "120"
