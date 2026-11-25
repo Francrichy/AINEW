@@ -21,7 +21,7 @@ const https = (v,label) => { if(!v)return ''; try{const u=new URL(String(v));if(
 export function makeInput(templateText,vars) {
   let t;try{t=JSON.parse(templateText)}catch{throw fail('Input template ya fal.ai si JSON sahihi.',503)}
   if(!t||typeof t!=='object'||Array.isArray(t))throw fail('Input template lazima iwe JSON object.',503);
-  const walk=v=>Array.isArray(v)?v.map(walk):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,walk(x)])):typeof v==='string'?v.replace(/\{\{(prompt|durationSeconds|aspectRatio|audioUrl|imageUrl|voiceId|language)\}\}/g,(_m,k)=>String(vars[k]??'')):v;
+  const walk=v=>Array.isArray(v)?v.map(walk):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,walk(x)])):typeof v==='string'?(v.match(/^\{\{(prompt|durationSeconds|aspectRatio|audioUrl|imageUrl|voiceId|language)\}\}$/)?(vars[v.match(/^\{\{(prompt|durationSeconds|aspectRatio|audioUrl|imageUrl|voiceId|language)\}\}$/)[1]]??''):v.replace(/\{\{(prompt|durationSeconds|aspectRatio|audioUrl|imageUrl|voiceId|language)\}\}/g,(_m,k)=>String(vars[k]??''))):v;
   return walk(t);
 }
 export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance,consumeWalletCredits,creditCashWallet}) {
