@@ -34,3 +34,19 @@ Optional production character IDs:
 - `LIVEAVATAR_NGINA_AVATAR_ID`
 
 No new paid Cloudflare resources are required for this feature. Provider Live Talk credits and any custom-avatar subscription or slot are separate costs. Keep production pricing disabled until the provider account, avatar IDs, voices, Kiswahili quality and wallet billing have been tested end to end.
+
+## Real-human Live Talk requirement
+
+Live Talk exposes provider public human-presenter avatars. Private/custom avatars are hidden unless their IDs are explicitly approved by Admin through `LIVEAVATAR_REAL_HUMAN_AVATAR_IDS` (comma-separated). Ethan and Ngina each require their own approved production ID in `LIVEAVATAR_ETHAN_AVATAR_ID` and `LIVEAVATAR_NGINA_AVATAR_ID`. Live Talk no longer silently falls back to a sandbox demo character if these IDs are missing.
+
+## AI Video avatar quality pricing
+
+The Video Creator offers three styles, priced separately per five seconds:
+
+- `video_realistic_5s_tzs`: photorealistic human actors, highest tier
+- `video_stylized_5s_tzs`: semi-realistic/stylized characters, middle tier
+- `video_cartoon_5s_tzs`: animated cartoon characters, lower tier
+
+All three prices are Admin-controlled in Billing > Pricing. Each defaults to zero, which keeps that tier disabled until a price is approved. The Studio requests an estimate before generation, shows the total and wallet balance, and asks for confirmation. The server checks the expected estimate against the current Admin price and only debits the cash wallet after the provider returns a valid video. If generation fails, no debit is made.
+
+These quality tiers apply to AI Video Creator clips (5 or 15 seconds). They do not change the separate Film Studio per-minute price. Existing legacy video credits are not used by this new tiered cash-wallet flow; customers need sufficient TZS Wallet balance for the selected tier.

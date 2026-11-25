@@ -152,9 +152,17 @@ async function liveAvatarCatalog() {
     fetch(LIVEAVATAR_API + '/v1/languages', { signal: AbortSignal.timeout(15000) }).then(r => r.json()).catch(() => ({ data: [] })),
   ]);
   const rows = value => Array.isArray(value?.data) ? value.data : (value?.data?.results || []);
-  const avatars = [...rows(publicAvatars), ...rows(userAvatars)]
-    .filter(a => a && a.id && !a.is_expired)
-    .map(a => ({ id: a.id, name: a.name || 'Avatar', preview_url: a.preview_url || null, type: a.type || 'VIDEO', status: a.status || 'READY', gender: a.gender || null }));
+  // Live Talk is human-presenter only. Public LiveAvatar presets are the provider's
+  // lifelike human catalog; private/custom entries must be explicitly approved by Admin.
+  const approvedHumanIds = new Set([
+    env.LIVEAVATAR_ETHAN_AVATAR_ID,
+    env.LIVEAVATAR_NGINA_AVATAR_ID,
+    ...(String(env.LIVEAVATAR_REAL_HUMAN_AVATAR_IDS || '').split(','))
+  ].map(v => String(v || '').trim()).filter(Boolean));
+  const shapeAvatar = a => ({ id: a.id, name: a.name || 'Avatar', preview_url: a.preview_url || null, type: a.type || 'VIDEO', status: a.status || 'READY', gender: a.gender || null, appearance: 'real-human' });
+  const publicRows = rows(publicAvatars).filter(a => a && a.id && !a.is_expired);
+  const approvedPrivateRows = rows(userAvatars).filter(a => a && a.id && !a.is_expired && approvedHumanIds.has(String(a.id)));
+  const avatars = [...new Map([...publicRows, ...approvedPrivateRows].map(a => [String(a.id), shapeAvatar(a)])).values()];
   const voiceRows = rows(voices).map(v => ({ id: v.id, name: v.name, language: v.language, gender: v.gender }));
   const languageRows = (Array.isArray(languages?.data) ? languages.data : []).map(l => ({ code: l.code, language: l.language }));
   return { avatars, voices: voiceRows, languages: languageRows };
@@ -236,7 +244,7 @@ setInterval(() => {
 app.get('/api/liveavatar/catalog', need, async (_req, res) => {
   try {
     const catalog = await liveAvatarCatalog();
-    res.json({ connected: true, sandboxAvatarId: LIVEAVATAR_SANDBOX_AVATAR, ...catalog });
+    res.json({ connected: true, ...catalog });
   } catch (error) {
     res.status(502).json({ connected: false, error: error.message });
   }
@@ -248,17 +256,15 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
     const catalog = await liveAvatarCatalog();
     const requestedAvatarId = String(req.body?.avatarId || '').trim();
     let character = requestedCharacter || 'Mlimani Presenter';
-    let avatarId = LIVEAVATAR_SANDBOX_AVATAR;
+    let avatarId = null;
     let selectedAvatar = null;
-    let production = false;
+    const production = true;
     if (requestedCharacter) {
       const configuredAvatarId = env['LIVEAVATAR_' + requestedCharacter.toUpperCase() + '_AVATAR_ID'] || '';
-      production = Boolean(configuredAvatarId);
-      if (production) {
-        avatarId = String(configuredAvatarId);
-        selectedAvatar = catalog.avatars.find(a => String(a.id) === avatarId && ['READY', 'ACTIVE'].includes(String(a.status).toUpperCase()));
-        if (!selectedAvatar) return res.status(503).json({ error: 'Avatar maalum ya Mlimani (' + requestedCharacter + ') bado haijaunganishwa au haiko tayari kwenye LiveAvatar.' });
-      }
+      if (!configuredAvatarId) return res.status(503).json({ error: 'Avatar halisi ya ' + requestedCharacter + ' bado haijaunganishwa. Admin ataunganisha avatar yake maalumu kabla ya Live Talk kuwashwa.' });
+      avatarId = String(configuredAvatarId);
+      selectedAvatar = catalog.avatars.find(a => String(a.id) === avatarId && ['READY', 'ACTIVE'].includes(String(a.status).toUpperCase()));
+      if (!selectedAvatar) return res.status(503).json({ error: 'Avatar halisi ya Mlimani (' + requestedCharacter + ') bado haiko tayari kwenye LiveAvatar.' });
     } else {
       if (!requestedAvatarId) return res.status(400).json({ error: 'Chagua avatar kutoka kwenye maktaba ya Live Talk.' });
       selectedAvatar = catalog.avatars.find(a => String(a.id) === requestedAvatarId && ['READY', 'ACTIVE'].includes(String(a.status).toUpperCase()));
@@ -849,25 +855,48 @@ app.get('/api/video/reference/:id', (req, res) => {
   }
   res.set('Cache-Control', 'no-store, max-age=0').type(image.contentType).send(image.buffer);
 });
+const VIDEO_AVATAR_QUALITY = {
+  realistic: { key: 'video_realistic_5s_tzs', label: 'Avatar halisi' },
+  stylized: { key: 'video_stylized_5s_tzs', label: 'Avatar ya mtindo' },
+  cartoon: { key: 'video_cartoon_5s_tzs', label: 'Katuni' },
+};
+function videoQualityEstimate(db, duration, quality, walletBalanceTzs) {
+  const selected = VIDEO_AVATAR_QUALITY[quality];
+  if (!selected) return { enabled: false, error: 'Chagua ubora wa avatar unaotakiwa.' };
+  const rate = Number(db.prepare('SELECT customer_price FROM admin_pricing WHERE config_key=?').get(selected.key)?.customer_price || 0);
+  const charge = rate * Math.ceil(duration / 5);
+  return {
+    quality, qualityLabel: selected.label, duration, customerPricePer5SecondsTzs: rate,
+    estimatedChargeTzs: charge, walletBalanceTzs,
+    enabled: Boolean(PK && rate > 0 && walletBalanceTzs >= charge),
+    note: !PK ? 'Huduma ya video haijaunganishwa.' : rate <= 0 ? 'Admin bado hajaweka bei ya ubora huu.' : walletBalanceTzs < charge ? 'Salio la Wallet halitoshi.' : 'Bei na salio viko tayari.'
+  };
+}
+app.get('/api/video/estimate', need, (req, res) => {
+  const duration = Number(req.query.duration || 5);
+  const quality = String(req.query.quality || 'realistic');
+  if (![5, 15].includes(duration)) return res.status(400).json({ error: 'Chagua sekunde 5 au 15.' });
+  if (!VIDEO_AVATAR_QUALITY[quality]) return res.status(400).json({ error: 'Ubora wa avatar si sahihi.' });
+  res.json(videoQualityEstimate(db, duration, quality, cashWalletBalance(db, req.user.id)));
+});
 app.post('/api/video', need, (req, res) => {
-  const u = req.user, plan = PLANS[u.plan];
+  const u = req.user;
   const duration = Number(req.body?.duration || 5);
   if (![5, 15].includes(duration)) return res.status(400).json({ error: 'Kwa sasa video za sekunde 5 au 15 pekee ndizo zinazotumika.' });
+  const quality = String(req.body?.avatarQuality || 'realistic');
+  if (!VIDEO_AVATAR_QUALITY[quality]) return res.status(400).json({ error: 'Chagua ubora sahihi wa avatar.' });
+  const estimate = videoQualityEstimate(db, duration, quality, cashWalletBalance(db, u.id));
+  if (estimate.customerPricePer5SecondsTzs <= 0) return res.status(503).json({ error: estimate.note });
+  const expectedCharge = Number(req.body?.expectedChargeTzs);
+  if (!Number.isFinite(expectedCharge) || Math.abs(expectedCharge - estimate.estimatedChargeTzs) > 0.01) {
+    return res.status(409).json({ error: 'Bei imebadilika. Tafadhali kagua makadirio mapya kabla ya kuendelea.', currentEstimate: estimate });
+  }
+  const cashChargeTzs = estimate.estimatedChargeTzs;
+  if (cashWalletBalance(db, u.id) < cashChargeTzs) return res.status(402).json({ error: 'Salio la Wallet halitoshi kwa ubora huu wa video. Ongeza salio kuendelea.' });
+  if (!PK) return res.status(500).json({ error: 'Huduma ya video haijawekwa bado.' });
   const aspectRatio = ['9:16', '16:9', '1:1'].includes(req.body?.aspectRatio) ? req.body.aspectRatio : '9:16';
   const purpose = req.body?.purpose === 'advertisement' && duration === 15 ? 'advertisement' : 'video';
   const creditsRequired = Math.ceil(duration / 5);
-  const legacyAdPrice = Number(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='advertisement_15'").get()?.customer_price || 0);
-  const walletAd = purpose === 'advertisement' && walletModeEnabled(db, u.id, 'advertisement') && walletAvailable(db, u.id, 'advertisement') >= legacyAdPrice && legacyAdPrice > 0;
-  const walletVideo = walletModeEnabled(db, u.id, 'video') && walletAvailable(db, u.id, 'video') >= creditsRequired;
-  const oldVideoCredits = !walletAd && !walletVideo && u.video_expires > Date.now() && Number(u.video_credits || 0) >= creditsRequired;
-  const video5sTzs = Number(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='video_5s_tzs'").get()?.customer_price || 0);
-  const adTzsConfigured = Number(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='advertisement_15_tzs'").get()?.customer_price || 0);
-  const cashChargeTzs = purpose === 'advertisement' ? (adTzsConfigured || video5sTzs * 3) : video5sTzs * creditsRequired;
-  const cashVideo = !walletAd && !walletVideo && !oldVideoCredits;
-  if (cashVideo && cashChargeTzs <= 0) return res.status(503).json({ error: 'Bei ya Video bado haijawekwa na Admin. Jaribu tena baadaye.' });
-  if (cashVideo && cashWalletBalance(db, u.id) < cashChargeTzs) return res.status(402).json({ error: 'Salio la Wallet halitoshi kwa video hii. Ongeza salio kuendelea.' });
-  if (!cashVideo && !walletAd && !walletVideo && !oldVideoCredits) return res.status(402).json({ error: 'Huna salio la kutosha la Video.' });
-  if (!PK) return res.status(500).json({ error: 'Huduma ya video haijawekwa bado.' });
   const referenceId = String(req.body?.referenceId || '');
   const referenceImage = referenceId ? videoReferenceImages.get(referenceId) : null;
   if (referenceId && (!referenceImage || referenceImage.userId !== u.id || referenceImage.expiresAt <= Date.now())) return res.status(400).json({ error: 'Picha ya bidhaa imeisha muda. Chagua picha tena.' });
@@ -879,17 +908,21 @@ app.post('/api/video', need, (req, res) => {
   if (BAD.test(raw)) return res.status(400).json({ error: 'Maelezo haya hayaruhusiwi.' });
   if ([...jobs.values()].some(j => j.uid === u.id && j.status === 'working')) return res.status(429).json({ error: 'Subiri video ya kwanza imalizike.' });
   const k = 'vid:u' + u.id;
-  if (!cashVideo && used(k) >= VIDEO_DAILY) return res.status(429).json({ error: 'Video za leo zimeisha. Rudi kesho.' });
+  if (used(k) >= VIDEO_DAILY) return res.status(429).json({ error: 'Video za leo zimeisha. Rudi kesho.' });
   bump(k);
-  const id = randomUUID(), job = { uid: u.id, status: 'working', t: Date.now(), duration, creditsRequired, purpose, billingMode: cashVideo ? 'cash' : walletAd ? 'legacy_ad' : walletVideo ? 'legacy_wallet' : 'legacy_video', cashChargeTzs }; jobs.set(id, job);
+  const qualityInstructions = {
+    realistic: 'Photorealistic real human people, natural skin texture, realistic facial anatomy, lifelike eyes and hands, natural body movement, cinematic live-action footage. Do not use cartoon, anime, illustration or 3D character styling.',
+    stylized: 'Stylized cinematic character design, semi-realistic appearance, artistic lighting and textures, clearly not a fully photorealistic live-action person. Avoid cartoon exaggeration.',
+    cartoon: 'Clearly animated cartoon characters, expressive simplified shapes, illustrated textures, family-friendly animation style. Do not make the characters look like real people.'
+  };
+  const qualityPrompt = raw + '\n\nVISUAL AVATAR QUALITY: ' + qualityInstructions[quality];
+  const id = randomUUID(), job = { uid: u.id, status: 'working', t: Date.now(), duration, creditsRequired, purpose, avatarQuality: quality, billingMode: 'cash', cashChargeTzs };
+  jobs.set(id, job);
   (async () => {
     try {
-      const en = raw; // Preserve the customer-approved spoken script and its selected language.
       const model = duration === 15 ? (env.VIDEO_MODEL_15S || 'bytedance/seedance-2.0') : (env.VIDEO_MODEL || 'seedance');
       const referenceParam = referenceUrl ? '&reference_images=' + encodeURIComponent(JSON.stringify([referenceUrl])) : '';
-      // Pollinations returns a completed MP4 synchronously. Send only documented
-      // video parameters; reference_images must be an array, not a plain URL.
-      const videoUrl = `https://gen.pollinations.ai/video/${encodeURIComponent(en)}?model=${encodeURIComponent(model)}&duration=${duration}&aspectRatio=${encodeURIComponent(aspectRatio)}${referenceParam}`;
+      const videoUrl = `https://gen.pollinations.ai/video/${encodeURIComponent(qualityPrompt)}?model=${encodeURIComponent(model)}&duration=${duration}&aspectRatio=${encodeURIComponent(aspectRatio)}${referenceParam}`;
       const r = await fetch(videoUrl, { headers: { Authorization: `Bearer ${PK}`, Accept: 'video/mp4' }, signal: AbortSignal.timeout(290000) });
       const ct = r.headers.get('content-type') || '';
       if (!r.ok || !ct.startsWith('video/')) {
@@ -899,19 +932,14 @@ app.post('/api/video', need, (req, res) => {
       }
       job.buf = Buffer.from(await r.arrayBuffer()); job.ct = ct;
       if (job.buf.length > 20e6) throw new Error('video kubwa mno');
-      if (job.billingMode === 'cash') consumeWalletCredits(db, u.id, 'cash', job.cashChargeTzs, purpose === 'advertisement' ? 'Tangazo la sekunde 15' : 'Video ya sekunde ' + duration);
-      else if (job.billingMode === 'legacy_ad') consumeWalletCredits(db, u.id, 'advertisement', legacyAdPrice, 'Tangazo la sekunde 15');
-      else if (job.billingMode === 'legacy_wallet') consumeWalletCredits(db, u.id, 'video', creditsRequired, 'Kutengeneza video ya sekunde ' + duration);
-      else db.prepare('update users set video_credits=case when video_credits>=? then video_credits-? else 0 end where id=?').run(creditsRequired, creditsRequired, u.id);
+      consumeWalletCredits(db, u.id, 'cash', job.cashChargeTzs, 'AI Video ' + quality + ' sekunde ' + duration);
       job.status = 'done';
     } catch (e) { job.status = 'error'; bump(k, -1); console.error('video error:', e.message); }
     finally { if (referenceId) videoReferenceImages.delete(referenceId); }
   })();
   res.json({
-    id, duration, creditsRequired, purpose,
-    videoCredits: walletVideo ? walletAvailable(db, u.id, 'video') : (u.video_credits || 0),
-    advertisementCredits: walletAd ? walletAvailable(db, u.id, 'advertisement') : null,
-    chargedTzs: cashVideo ? cashChargeTzs : 0,
+    id, duration, creditsRequired, purpose, avatarQuality: quality,
+    chargedTzs: cashChargeTzs,
     walletBalanceTzs: cashWalletBalance(db, u.id)
   });
 });
