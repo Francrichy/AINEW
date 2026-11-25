@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
+import { registerStudioProviderRoutes } from './studio-provider-adapters.js';
 
 const json = (res, status, body) => res.status(status).json(body);
 const priceForMinute = db => Number(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='studio_film_minute_tzs'").get()?.customer_price || 0);
 
 function workerConfig(env) {
-  const base = String(env.MLIMANI_FILM_WORKER_URL || '').replace(/\/+$/, '');
+  const base = String(env.MLIMANI_FILM_WORKER_URL || '').replace(/\\/+$/, '');
   const token = String(env.MLIMANI_INTERNAL_TOKEN || '');
   return base && token ? { base, token } : null;
 }
@@ -21,6 +22,7 @@ async function workerFetch(config, path, options = {}) {
 }
 
 export function registerFilmJobRoutes(app, { db, need, env, cashWalletBalance, consumeWalletCredits, creditCashWallet }) {
+  registerStudioProviderRoutes(app, { db, need, env, cashWalletBalance, consumeWalletCredits, creditCashWallet });
   db.exec(`
     CREATE TABLE IF NOT EXISTS studio_film_jobs (
       id TEXT PRIMARY KEY,
