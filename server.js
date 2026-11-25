@@ -34,6 +34,8 @@ const PLANS = {
 const VIDEO_DAILY = +(env.VIDEO_DAILY || 5);
 const VIDEO_PACKAGES = { video_5:{name:'Video 5 kwa mwezi',price:7500,credits:5,days:30}, video_10:{name:'Video 10 kwa mwezi',price:15000,credits:10,days:30}, video_30:{name:'Video 30 kwa mwezi',price:45000,credits:30,days:30} };
 const PK = env.POLLINATIONS_API_KEY;
+const VIDEO_PROVIDER = String(env.VIDEO_PROVIDER || 'pollinations').toLowerCase();
+const OPENROUTER_VIDEO_MODEL = env.OPENROUTER_VIDEO_MODEL || 'bytedance/seedance-2.0';
 const OR_URL = env.OPENROUTER_URL || 'https://openrouter.ai/api/v1';
 const GH_API = env.GITHUB_API || 'https://api.github.com', RD_API = env.RENDER_API || 'https://api.render.com/v1';
 const PLUGIN_PLANS = (env.PLUGIN_PLANS || 'free,kawaida,biashara,kampuni').split(',');         // miunganisho ya GitHub na Render
@@ -260,7 +262,7 @@ app.post('/api/liveavatar/session-token', need, async (req, res) => {
     let character = requestedCharacter || 'Mlimani Presenter';
     let avatarId = null;
     let selectedAvatar = null;
-    const production = true;
+    let production = true;
     if (requestedCharacter) {
       const configuredAvatarId = env['LIVEAVATAR_' + requestedCharacter.toUpperCase() + '_AVATAR_ID'] || '';
       if (!configuredAvatarId) return res.status(503).json({ error: 'Avatar halisi ya ' + requestedCharacter + ' bado haijaunganishwa. Admin ataunganisha avatar yake maalumu kabla ya Live Talk kuwashwa.' });
@@ -867,8 +869,9 @@ function videoQualityEstimate(db, duration, quality, walletBalanceTzs) {
   return {
     quality, qualityLabel: selected.label, duration, customerPricePer5SecondsTzs: rate,
     estimatedChargeTzs: charge, walletBalanceTzs,
-    enabled: Boolean(PK && rate > 0 && walletBalanceTzs >= charge),
-    note: !PK ? 'Huduma ya video haijaunganishwa.' : rate <= 0 ? 'Admin bado hajaweka bei ya ubora huu.' : walletBalanceTzs < charge ? 'Salio la Wallet halitoshi.' : 'Bei na salio viko tayari.'
+    enabled: Boolean((VIDEO_PROVIDER === 'openrouter' ? OR_KEY : VIDEO_PROVIDER === 'pollinations' ? PK : false) && rate > 0 && walletBalanceTzs >= charge),
+    provider: VIDEO_PROVIDER,
+    note: !(VIDEO_PROVIDER === 'openrouter' ? OR_KEY : VIDEO_PROVIDER === 'pollinations' ? PK : false) ? 'API ya mtoa huduma wa video haijaunganishwa au VIDEO_PROVIDER si sahihi.' : rate <= 0 ? 'Admin bado hajaweka bei ya ubora huu.' : walletBalanceTzs < charge ? 'Salio la Wallet halitoshi.' : 'Bei na salio viko tayari.'
   };
 }
 app.get('/api/video/estimate', need, (req, res) => {
@@ -892,7 +895,9 @@ app.post('/api/video', need, (req, res) => {
   }
   const cashChargeTzs = estimate.estimatedChargeTzs;
   if (cashWalletBalance(db, u.id) < cashChargeTzs) return res.status(402).json({ error: 'Salio la Wallet halitoshi kwa ubora huu wa video. Ongeza salio kuendelea.' });
-  if (!PK) return res.status(500).json({ error: 'Huduma ya video haijawekwa bado.' });
+  if (VIDEO_PROVIDER === 'pollinations' && !PK) return res.status(503).json({ error: 'Pollinations API key haijawekwa kwenye Render.' });
+  if (VIDEO_PROVIDER === 'openrouter' && !OR_KEY) return res.status(503).json({ error: 'OpenRouter API key haijawekwa kwenye Render. Weka OPENROUTER_API_KEY.' });
+  if (!['pollinations', 'openrouter'].includes(VIDEO_PROVIDER)) return res.status(503).json({ error: 'VIDEO_PROVIDER lazima iwe pollinations au openrouter.' });
   const aspectRatio = ['9:16', '16:9', '1:1'].includes(req.body?.aspectRatio) ? req.body.aspectRatio : '9:16';
   const purpose = req.body?.purpose === 'advertisement' && duration === 15 ? 'advertisement' : 'video';
   const creditsRequired = Math.ceil(duration / 5);
@@ -919,17 +924,47 @@ app.post('/api/video', need, (req, res) => {
   jobs.set(id, job);
   (async () => {
     try {
-      const model = duration === 15 ? (env.VIDEO_MODEL_15S || 'bytedance/seedance-2.0') : (env.VIDEO_MODEL || 'seedance');
-      const referenceParam = referenceUrl ? '&reference_images=' + encodeURIComponent(JSON.stringify([referenceUrl])) : '';
-      const videoUrl = `https://gen.pollinations.ai/video/${encodeURIComponent(qualityPrompt)}?model=${encodeURIComponent(model)}&duration=${duration}&aspectRatio=${encodeURIComponent(aspectRatio)}${referenceParam}`;
-      const r = await fetch(videoUrl, { headers: { Authorization: `Bearer ${PK}`, Accept: 'video/mp4' }, signal: AbortSignal.timeout(290000) });
-      const ct = r.headers.get('content-type') || '';
-      if (!r.ok || !ct.startsWith('video/')) {
-        const providerDetail = (await r.text().catch(() => '')).replace(/\\s+/g, ' ').slice(0, 500);
-        console.error('video provider response:', r.status, ct, providerDetail);
-        throw new Error('Mlimani imeshindwa kupata video kutoka kwa huduma ya utengenezaji (HTTP ' + r.status + ').');
+      if (VIDEO_PROVIDER === 'openrouter') {
+        const payload = { model: OPENROUTER_VIDEO_MODEL, prompt: qualityPrompt, duration, aspect_ratio: aspectRatio,
+          resolution: env.OPENROUTER_VIDEO_RESOLUTION || '720p', generate_audio: env.OPENROUTER_VIDEO_AUDIO === 'true' };
+        if (referenceUrl) payload.input_references = [{ type: 'image_url', image_url: { url: referenceUrl } }];
+        const submitted = await fetch(OR_URL.replace(/\/+$/, '') + '/videos', { method: 'POST',
+          headers: { Authorization: `Bearer ${OR_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(30000) });
+        const submittedData = await submitted.json().catch(() => ({}));
+        if (!submitted.ok || !submittedData.id || !submittedData.polling_url) {
+          const detail = String(submittedData.error?.message || submittedData.error || submittedData.message || 'Ombi halikukubaliwa.').slice(0, 400);
+          throw new Error('OpenRouter: ' + detail);
+        }
+        const pollingUrl = new URL(submittedData.polling_url, OR_URL.replace(/\/+$/, '') + '/').toString();
+        const deadline = Date.now() + 12 * 60 * 1000;
+        let completed = null;
+        while (Date.now() < deadline) {
+          await new Promise(resolve => setTimeout(resolve, 15000));
+          const poll = await fetch(pollingUrl, { headers: { Authorization: `Bearer ${OR_KEY}` }, signal: AbortSignal.timeout(30000) });
+          const state = await poll.json().catch(() => ({}));
+          if (!poll.ok) throw new Error('OpenRouter imeshindwa kufuatilia video (HTTP ' + poll.status + ').');
+          if (state.status === 'completed') { completed = state; break; }
+          if (['failed', 'cancelled', 'expired'].includes(state.status)) throw new Error('OpenRouter video ' + state.status + ': ' + String(state.error || 'Sababu haikutolewa.').slice(0, 300));
+        }
+        if (!completed) throw new Error('OpenRouter bado inatengeneza video baada ya dakika 12. Jaribu tena baadaye.');
+        const contentUrl = completed.unsigned_urls?.[0] || (OR_URL.replace(/\/+$/, '') + '/videos/' + encodeURIComponent(submittedData.id) + '/content?index=0');
+        const downloaded = await fetch(contentUrl, { headers: { Authorization: `Bearer ${OR_KEY}` }, signal: AbortSignal.timeout(120000) });
+        const ct = downloaded.headers.get('content-type') || 'video/mp4';
+        if (!downloaded.ok || !ct.startsWith('video/')) throw new Error('OpenRouter imeshindwa kurudisha faili la video (HTTP ' + downloaded.status + ').');
+        job.buf = Buffer.from(await downloaded.arrayBuffer()); job.ct = ct;
+      } else {
+        const model = duration === 15 ? (env.VIDEO_MODEL_15S || 'bytedance/seedance-2.0') : (env.VIDEO_MODEL || 'seedance');
+        const referenceParam = referenceUrl ? '&reference_images=' + encodeURIComponent(JSON.stringify([referenceUrl])) : '';
+        const videoUrl = `https://gen.pollinations.ai/video/${encodeURIComponent(qualityPrompt)}?model=${encodeURIComponent(model)}&duration=${duration}&aspectRatio=${encodeURIComponent(aspectRatio)}${referenceParam}`;
+        const r = await fetch(videoUrl, { headers: { Authorization: `Bearer ${PK}`, Accept: 'video/mp4' }, signal: AbortSignal.timeout(290000) });
+        const ct = r.headers.get('content-type') || '';
+        if (!r.ok || !ct.startsWith('video/')) {
+          const providerDetail = (await r.text().catch(() => '')).replace(/\\s+/g, ' ').slice(0, 500);
+          console.error('video provider response:', r.status, ct, providerDetail);
+          throw new Error('Mlimani imeshindwa kupata video kutoka kwa huduma ya utengenezaji (HTTP ' + r.status + ').');
+        }
+        job.buf = Buffer.from(await r.arrayBuffer()); job.ct = ct;
       }
-      job.buf = Buffer.from(await r.arrayBuffer()); job.ct = ct;
       if (job.buf.length > 20e6) throw new Error('video kubwa mno');
       consumeWalletCredits(db, u.id, 'cash', job.cashChargeTzs, 'AI Video ' + quality + ' sekunde ' + duration);
       job.status = 'done';
