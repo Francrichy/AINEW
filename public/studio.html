@@ -603,6 +603,122 @@ input::placeholder,textarea::placeholder{color:#81798f!important}
 #videoFields .status{background:#211a2c!important}
 @media(max-width:640px){.studio-header{padding:13px 12px!important}.studio-nav{overflow-x:auto;max-width:100%;white-space:nowrap}.panel{box-shadow:none!important}}
 
+
+/* Mlimani Live Studio — approved white and blue professional layout */
+#liveFields:not(.hidden){
+  position:fixed!important;inset:0!important;z-index:10000!important;
+  display:block!important;overflow-y:auto!important;overscroll-behavior:contain;
+  background:#f4f7fb!important;color:#18364c!important;
+  padding:0 0 max(22px,env(safe-area-inset-bottom))!important;margin:0!important;
+  text-align:left!important;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif!important
+}
+#liveFields:not(.hidden)::before{
+  content:"MLIMANI  LIVE STUDIO";display:flex;align-items:center;
+  height:66px;padding:0 clamp(16px,4vw,48px);background:#fff;
+  border-bottom:1px solid #e4ebf1;color:#1d4f70;font-size:14px;
+  font-weight:850;letter-spacing:.09em
+}
+#liveFields .live-config{display:flex!important;align-items:center;justify-content:space-between;gap:18px;
+  max-width:1120px;margin:20px auto 14px!important;padding:14px 18px!important;
+  background:#fff!important;border:1px solid #e3eaf0!important;border-radius:16px!important;
+  box-shadow:0 5px 18px #173b5510!important;color:#294b63!important
+}
+#liveFields .live-config p{margin:0!important;color:#294b63!important}
+#liveFields .live-config label{margin:0 0 5px!important;color:#526d80!important;font-size:12px!important}
+#liveFields .live-config select{min-width:210px;background:#f8fafc!important;border:1px solid #d9e3eb!important;color:#18364c!important}
+#liveFields .preview{max-width:1120px;margin:0 auto!important;padding:14px!important;
+  background:transparent!important;border:0!important;box-shadow:none!important;display:block!important
+}
+#liveFields .call-stage{position:relative;max-width:100%;margin:0 auto}
+#liveAvatarVideo,#liveAvatarPlaceholder{
+  width:100%!important;height:min(64svh,690px)!important;min-height:300px!important;
+  max-height:690px!important;aspect-ratio:16/9!important;object-fit:contain!important;
+  border-radius:22px!important;background:#e8eef4!important;
+  border:1px solid #dce6ee!important;box-shadow:0 14px 34px #18364c12!important
+}
+#liveAvatarPlaceholder{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;padding:28px!important;color:#244b68!important;background:linear-gradient(145deg,#edf3f8,#e3edf5)!important
+}
+#liveAvatarPlaceholder>div{width:68px;height:68px;display:grid;place-items:center;border-radius:50%;
+  background:#fff;color:#315f7c;box-shadow:0 8px 22px #315f7c18;font-size:30px!important
+}
+#liveAvatarPlaceholder strong{font:500 clamp(1.3rem,3vw,2rem)/1.2 Georgia,serif!important;color:#183d58!important}
+#liveAvatarPlaceholder p{max-width:440px!important;color:#60788b!important;text-align:center}
+#localCameraTile{position:absolute!important;right:18px!important;bottom:84px!important;width:clamp(112px,16vw,180px)!important;
+  max-width:32%!important;margin:0!important;z-index:3!important
+}
+#localCameraVideo{width:100%!important;aspect-ratio:4/3!important;border:3px solid #fff!important;
+  border-radius:16px!important;object-fit:cover!important;box-shadow:0 8px 22px #142d4025!important
+}
+#localCameraTile small{color:#fff!important;text-shadow:0 1px 4px #000!important}
+#liveFields .call-stage>.actions{display:flex!important;justify-content:center!important;flex-wrap:wrap!important;
+  gap:10px!important;margin:16px auto 10px!important;position:static!important;width:auto!important
+}
+#liveFields .call-stage>.actions button{
+  min-height:48px!important;min-width:145px!important;padding:11px 18px!important;
+  border-radius:999px!important;background:#fff!important;color:#31566f!important;
+  border:1px solid #d7e2ea!important;box-shadow:0 4px 12px #18364c0c!important;font-weight:700!important
+}
+#liveFields .call-stage>.actions #stopLive{background:#fff1f0!important;color:#ad4039!important;border-color:#f1d4d1!important}
+#liveFields #liveSpeakingStatus{position:static!important;display:block!important;width:max-content;max-width:100%;
+  margin:12px auto!important;padding:8px 14px!important;border-radius:999px!important;
+  background:#e7f1f8!important;color:#315f7c!important;font-size:13px!important;text-align:center
+}
+#liveFields #liveStatus{max-width:100%;margin:10px auto!important;padding:13px 16px!important;
+  border:1px solid #e1e9ef!important;border-radius:14px!important;background:#fff!important;
+  color:#526b7d!important;text-align:center!important
+}
+#liveFields #liveEndActions{max-width:1120px;margin:14px auto!important;padding:20px!important;
+  border:1px solid #e1e9ef!important;border-radius:18px!important;background:#fff!important;
+  box-shadow:0 6px 20px #18364c0b!important;color:#18364c!important
+}
+#liveFields #liveEndActions strong{color:#183d58!important}
+#liveFields #voiceLog{max-width:1120px;min-height:130px;max-height:230px;margin:14px auto!important;
+  padding:14px!important;border:1px solid #e1e9ef!important;border-radius:16px!important;
+  background:#fff!important;color:#18364c!important
+}
+#liveFields #voiceLog .bubble.user{background:#e8f1f8!important;color:#234c68!important}
+#liveFields #voiceLog .bubble.assistant{background:#f2f5f8!important;color:#334f63!important}
+#liveFields .live-text-row{max-width:1120px;margin:12px auto!important;display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;gap:10px!important
+}
+#liveFields .live-text-row input{min-width:0;min-height:50px;padding:13px 16px!important;
+  border:1px solid #d8e3eb!important;border-radius:14px!important;background:#fff!important;color:#18364c!important
+}
+#liveFields .live-text-row button{min-width:112px;min-height:50px;padding:12px 22px!important;
+  border:0!important;border-radius:14px!important;background:#1d587d!important;color:#fff!important;font-weight:750!important
+}
+#liveFields>.note{max-width:1120px;margin:10px auto!important;color:#788b99!important;text-align:center!important}
+#liveFields button:focus-visible,#liveFields input:focus-visible,#liveFields select:focus-visible{
+  outline:3px solid #8bb7d2!important;outline-offset:2px!important
+}
+@media(max-width:700px){
+ #liveFields:not(.hidden){padding-bottom:calc(14px + env(safe-area-inset-bottom))!important}
+ #liveFields:not(.hidden)::before{height:54px;font-size:12px}
+ #liveFields .live-config{display:grid!important;grid-template-columns:1fr!important;gap:8px!important;
+   margin:10px 10px 8px!important;padding:12px!important
+ }
+ #liveFields .live-config select{width:100%;min-width:0}
+ #liveFields .preview{padding:8px!important}
+ #liveAvatarVideo,#liveAvatarPlaceholder{height:54svh!important;min-height:270px!important;max-height:620px!important;
+   aspect-ratio:4/5!important;border-radius:18px!important
+ }
+ #localCameraTile{right:10px!important;bottom:128px!important;width:104px!important}
+ #liveFields .call-stage>.actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important;margin:10px 0!important}
+ #liveFields .call-stage>.actions button{min-width:0!important;width:100%!important;min-height:46px!important;
+   padding:8px 5px!important;font-size:12px!important;border-radius:13px!important
+ }
+ #liveFields #liveSpeakingStatus{font-size:11px!important;margin:8px auto!important}
+ #liveFields #liveStatus{font-size:12px!important;padding:10px!important}
+ #liveFields #liveEndActions{margin:10px!important;padding:14px!important}
+ #liveFields #liveEndActions .actions{display:grid!important;grid-template-columns:1fr!important}
+ #liveFields #liveEndActions button{width:100%!important;min-height:46px!important}
+ #liveFields #voiceLog{margin:10px!important;min-height:100px;max-height:190px}
+ #liveFields .live-text-row{margin:10px!important;grid-template-columns:1fr!important}
+ #liveFields .live-text-row button{width:100%!important}
+ #liveFields>.note{margin:10px 14px!important;font-size:11px!important}
+}
+
 </style></head><body><header class="studio-header"><a class="studio-wordmark" href="/" aria-label="Mlimani Labs">MLIMANI <span>LABS</span></a><nav class="studio-nav" aria-label="Studio tools"><a href="/production-studio.html?mode=video">Video Creator</a><a href="/production-studio.html?mode=music">Music Generator</a><a href="/production-studio.html?mode=film">Film Studio</a><a href="/fal-studio.html">AI Media Studio</a><a href="#avatarLibrary">Avatar Library</a></nav><div class="studio-header-actions"><a href="/guide.html">Resources</a><a href="/">Mlimani Labs ↗</a></div></header><main>
 <section class="lab-home" aria-label="Mlimani Labs creative studio">
  <div class="lab-topline"><span class="lab-brandmark">M</span><span>MLIMANI LABS</span><span class="lab-topline-divider"></span><span class="lab-kicker">AI LIVE EXPERIENCE</span></div>
