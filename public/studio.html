@@ -977,6 +977,61 @@ body>.studio-header{display:none!important}
  #liveAvatarPlaceholder{height:58svh!important;min-height:280px!important}
 }
 
+
+/* Live call stays inside the right-hand video stage; the right side is the real call window. */
+.lab-home,.live-avatar-library,.ml-lower{display:none!important}
+.ml-dashboard-main .ml-upper{grid-template-columns:minmax(300px,.78fr) minmax(440px,1.22fr)!important;align-items:stretch}
+#livePanel{background:#fff!important;color:#10294b!important}
+#livePanel h2,#livePanel>p,#livePanel label,#livePanel small{color:#10294b!important}
+#livePanel .ml-avatar-choice{background:#fff!important;color:#10294b!important;border:2px solid #d9e3ef!important}
+#livePanel .ml-avatar-choice strong{color:#10294b!important}
+#livePanel .ml-avatar-choice small{color:#38516b!important}
+#livePanel .ml-avatar-choice.selected,#livePanel .ml-avatar-choice[aria-pressed=true]{border:2px solid #075cf0!important;box-shadow:0 0 0 3px #075cf01c!important}
+#livePanel .ml-avatar-choice.selected .ml-choice-check{display:grid!important}
+#livePanel .ml-choice-check{display:none;place-items:center;background:#075cf0;color:#fff!important}
+#livePanel .ml-cost-card,#livePanel .ml-spend-card{display:none!important}
+#livePanel .ml-cost-column{display:block!important}
+#livePanel .ml-start-live{width:100%;min-height:58px;border:0;border-radius:14px;background:#075cf0;color:#fff;font-size:17px;font-weight:800}
+#livePanel .ml-start-note{margin:9px 0 0;color:#526b7e!important;text-align:center;font-size:12px}
+#mlPreviewPanel.ml-live-call-launcher{display:block!important;min-height:540px!important;height:auto!important;padding:0!important;overflow:hidden!important;background:#071a2b!important;border:1px solid #203f59!important}
+#mlPreviewPanel .ml-preview-badge{z-index:5}
+#mlPreviewPanel #mlPreviewEmpty{min-height:530px!important;width:100%!important;box-sizing:border-box;padding:32px!important}
+#mlPreviewPanel #mlPreviewEmpty strong{color:#fff!important}
+#mlPreviewPanel #mlPreviewEmpty small{color:#d8e4ee!important}
+#mlPreviewPanel #liveFields:not(.hidden){position:relative!important;inset:auto!important;z-index:2!important;display:block!important;width:100%!important;max-width:none!important;height:auto!important;min-height:0!important;overflow:visible!important;overscroll-behavior:auto!important;box-sizing:border-box!important;padding:56px 16px 18px!important;margin:0!important;background:#071a2b!important;color:#f4f8fc!important;text-align:left!important}
+#mlPreviewPanel #liveFields .live-config{display:none!important}
+#mlPreviewPanel #liveFields .preview{max-width:none!important;width:100%!important;margin:0!important;padding:0!important;background:transparent!important;box-shadow:none!important}
+#mlPreviewPanel #liveFields .call-stage{position:relative!important;width:100%!important;max-width:none!important;margin:0!important}
+#mlPreviewPanel #liveAvatarVideo,#mlPreviewPanel #liveAvatarPlaceholder{width:100%!important;height:clamp(320px,52vw,620px)!important;min-height:320px!important;max-height:620px!important;aspect-ratio:16/9!important;object-fit:contain!important;border-radius:14px!important;background:#071a2b!important;border:1px solid #294761!important}
+#mlPreviewPanel #liveAvatarPlaceholder{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:26px!important;box-sizing:border-box;color:#fff!important;background:radial-gradient(ellipse at 50% 35%,#173e5d,#071a2b)!important}
+#mlPreviewPanel #liveAvatarPlaceholder strong{color:#fff!important;font-size:22px}
+#mlPreviewPanel #liveAvatarPlaceholder p{color:#d5e2ed!important;text-align:center}
+#mlPreviewPanel #localCameraTile{position:absolute!important;right:16px!important;bottom:76px!important;width:clamp(104px,17vw,160px)!important;max-width:34%!important;margin:0!important;z-index:4!important}
+#mlPreviewPanel #localCameraVideo{width:100%!important;aspect-ratio:4/3!important;object-fit:cover!important;border:2px solid #fff!important;border-radius:12px!important}
+#mlPreviewPanel #localCameraTile small{color:#fff!important}
+#mlPreviewPanel #liveSpeakingStatus{position:absolute!important;left:12px!important;bottom:12px!important;max-width:70%!important;margin:0!important;padding:7px 11px!important;border-radius:99px!important;background:#061321c9!important;color:#fff!important;font-size:12px!important}
+#mlPreviewPanel #liveFields .call-stage>.actions{display:flex!important;position:static!important;flex-direction:row!important;justify-content:center!important;flex-wrap:wrap!important;width:100%!important;margin:14px 0!important;gap:8px!important}
+#mlPreviewPanel #liveFields .call-stage>.actions button{min-width:0!important;min-height:46px!important;padding:9px 14px!important;border-radius:99px!important;background:#fff!important;color:#19344a!important;border:1px solid #d4e1eb!important}
+#mlPreviewPanel #liveFields .call-stage>.actions #stopLive{background:#b72e3d!important;color:#fff!important;border:0!important}
+#mlPreviewPanel #liveStatus{max-width:none!important;margin:10px 0!important;padding:11px 13px!important;border-radius:12px!important;background:#102d46!important;border:1px solid #31516b!important;color:#e3edf5!important}
+#mlPreviewPanel #liveFields #voiceLog{max-height:170px!important;overflow:auto!important;margin:12px 0!important;background:#0c2438!important;color:#fff!important}
+#mlPreviewPanel #liveFields .live-text-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;margin:10px 0!important;gap:8px!important}
+#mlPreviewPanel #liveFields .live-text-row input{min-width:0!important;background:#fff!important;color:#10294b!important}
+#mlPreviewPanel #liveFields .live-text-row button{min-height:44px!important}
+#mlPreviewPanel #liveEndActions{margin:12px 0!important;background:#102d46!important;color:#fff!important;border:1px solid #31516b!important}
+#mlPreviewPanel #liveFields .note{color:#d0dfeb!important}
+@media(max-width:900px){.ml-dashboard-main .ml-upper{grid-template-columns:1fr!important}#mlPreviewPanel.ml-live-call-launcher{min-height:380px!important}}
+@media(max-width:760px){
+ #mlPreviewPanel.ml-live-call-launcher{min-height:340px!important}
+ #mlPreviewPanel #mlPreviewEmpty{min-height:340px!important}
+ #mlPreviewPanel #liveFields:not(.hidden){padding:54px 10px 14px!important}
+ #mlPreviewPanel #liveAvatarVideo,#mlPreviewPanel #liveAvatarPlaceholder{height:58svh!important;min-height:280px!important;max-height:580px!important;aspect-ratio:4/5!important}
+ #mlPreviewPanel #localCameraTile{right:10px!important;bottom:68px!important;width:108px!important}
+ #mlPreviewPanel #liveFields .call-stage>.actions button{flex:1 1 28%;font-size:12px;padding:8px 6px!important}
+ #mlPreviewPanel #liveSpeakingStatus{font-size:10px!important;max-width:60%!important}
+ #livePanel .ml-avatar-choice .avatar-art{height:clamp(140px,42vw,210px)}
+}
+
 </style>
 </head><body><main><div class="ml-dashboard" id="mlDashboard">
 <aside class="ml-sidebar">
@@ -1111,7 +1166,8 @@ async function selectStudioAvatar(b){
   heroImage.alt=avatar;heroImage.dataset.selectedAvatar=avatar;
  }
  const featured=$$('#featuredAvatarChoices [data-avatar],#featuredAvatarLibraryGrid [data-avatar],#liveAvatarCatalogGrid [data-avatar]');
- featured.forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.avatar===avatar&&(x.dataset.avatarId||null)===selectedLiveAvatarId)));
+ featured.forEach(x=>{const active=x.dataset.avatar===avatar&&(x.dataset.avatarId||null)===selectedLiveAvatarId;x.setAttribute('aria-pressed',String(active));x.classList.toggle('selected',active);});
+ $('.ml-avatar-choice[data-avatar]').forEach(x=>{const active=x.dataset.avatar===avatar;x.setAttribute('aria-pressed',String(active));x.classList.toggle('selected',active);});
  const title=$('#liveTitle'),status=$('#liveStatus'),callButton=$('#continueStudio');
  if(title)title.textContent=avatar+' yuko tayari kuzungumza nawe';
  if(status)status.textContent=avatar+' amechaguliwa. Bonyeza Start Call kuanza mazungumzo.';
@@ -1293,7 +1349,27 @@ function deliverPresenterScript(){
  try{liveAvatarSession.message(script);addVoiceLine('user','Script ya kurekodi: '+script);$('#liveStatus').textContent='Script imetumwa kwa '+avatar+'. Avatar anaisoma; rekodi ya video inaendelea.';pendingPresenterScript='';}
  catch(error){$('#liveStatus').textContent='Script haikuweza kutumwa kwa avatar: '+(error.message||'Jaribu tena.');}
 }
-$('#continueStudio').addEventListener('click',()=>{if(mode==='video'){ $('#videoFields').classList.remove('hidden');$('#continueStudio').classList.add('hidden');refreshVideoWallet();$('#videoFields').scrollIntoView({behavior:'smooth',block:'start'});return;}$('#liveFields').classList.remove('hidden');$('#liveEndActions').classList.add('hidden');document.body.style.overflow='hidden';startLiveAvatar();});
+
+// Mount the actual Live Talk session UI into the right-side video call stage.
+(()=>{
+ const panel=$('#mlPreviewPanel'),fields=$('#liveFields');
+ if(panel&&fields)panel.appendChild(fields);
+ const language=$('#dashboardLanguage'),liveLanguage=$('#liveLanguage');
+ if(language&&liveLanguage){liveLanguage.value=language.value==='sw'?'sw':'en';language.addEventListener('change',()=>{liveLanguage.value=language.value==='sw'?'sw':'en';});}
+ // Remove legacy lower-page panels and unused cost/limit cards from the visible dashboard.
+ document.querySelectorAll('.ml-cost-card,.ml-spend-card,.lab-home,.live-avatar-library').forEach(node=>node.remove());
+})();
+$('#continueStudio').addEventListener('click',()=>{
+ if(mode==='video'){ $('#videoFields').classList.remove('hidden');$('#continueStudio').classList.add('hidden');refreshVideoWallet();$('#videoFields').scrollIntoView({behavior:'smooth',block:'start'});return;}
+ const panel=$('#mlPreviewPanel'),fields=$('#liveFields'),empty=$('#mlPreviewEmpty');
+ if(panel&&fields&&fields.parentElement!==panel)panel.appendChild(fields);
+ if(empty)empty.style.display='none';
+ fields.classList.remove('hidden');
+ $('#liveEndActions').classList.add('hidden');
+ document.body.style.overflow='';
+ $('#liveStatus').textContent='Tunaanzisha video call. Ruhusu kamera unapoombwa; '+avatar+' ataonekana hapa akishaunganishwa.';
+ startLiveAvatar();
+});
 $('#stopLive').addEventListener('click',async()=>{
  if(liveAvatarStarting){liveAvatarCancelRequested=true;$('#stopLive').disabled=true;$('#liveStatus').textContent='Tunafunga kikao kinachoendelea kuunganishwa...';return;}
  const session=liveAvatarSession;$('#stopLive').disabled=true;$('#liveStatus').textContent='Tunafunga mazungumzo...';
