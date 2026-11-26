@@ -907,6 +907,15 @@ body>.studio-header{display:none!important}
 .lab-home,.live-avatar-library{display:none!important}
 @media(max-width:1100px){.ml-dashboard{grid-template-columns:190px minmax(0,1fr)}.ml-sidebar{padding-inline:9px}.ml-side-nav a{font-size:14px;padding:0 10px}.ml-upper{grid-template-columns:1fr 1fr}.ml-avatar-panel{padding:18px}.ml-avatar-options{gap:10px}.ml-lower{grid-template-columns:1fr}.ml-cost-column{max-width:none}}
 @media(max-width:760px){.ml-dashboard{display:block}.ml-sidebar{position:relative;height:auto;min-height:0;padding:10px 12px}.ml-side-brand{height:auto;margin:0 0 10px;flex-direction:row;gap:8px;justify-content:flex-start}.ml-mountain-mark{font-size:25px}.ml-side-brand strong{font-size:17px}.ml-side-brand small{display:none}.ml-side-nav{display:flex;overflow-x:auto;gap:6px;padding-bottom:3px}.ml-side-nav a{flex:0 0 auto;min-height:39px;padding:0 10px;font-size:12px;gap:6px}.ml-side-nav a span{font-size:15px;width:auto}.ml-trial{display:none}.ml-topbar{min-height:82px;padding:12px 14px}.ml-topbar h1{font-size:22px}.ml-topbar p{font-size:13px}.ml-top-actions{gap:7px}.ml-language{padding:5px 7px;font-size:12px}.ml-language select{max-width:75px;font-size:12px}.ml-account{font-size:0}.ml-account b{width:36px;height:36px;font-size:13px}.ml-dashboard-main{padding:12px}.ml-upper{grid-template-columns:1fr;gap:12px}.ml-avatar-panel{padding:15px}.ml-avatar-panel h2{font-size:21px}.ml-avatar-panel>p{font-size:14px;margin-bottom:14px}.ml-avatar-options{gap:10px}.ml-avatar-choice .avatar-art{height:clamp(150px,48vw,230px)}.ml-avatar-choice strong{font-size:16px}.ml-avatar-choice small{font-size:11px}.ml-preview-panel{min-height:260px;max-height:360px}.ml-preview-panel>img{min-height:260px;max-height:360px}.ml-preview-panel>video{min-height:260px;max-height:360px}.ml-lower{grid-template-columns:1fr;gap:16px;margin-top:16px}.ml-compose h3{font-size:17px}.ml-action-tabs{gap:6px;margin-bottom:16px}.ml-action-tabs button{font-size:11px;min-height:48px;padding:7px 4px}.ml-compose label{font-size:15px}.ml-compose textarea{font-size:15px;min-height:120px}.ml-cost-column{grid-template-columns:1fr 1fr;gap:8px}.ml-cost-card,.ml-spend-card{padding:13px 11px;min-height:126px}.ml-cost-card h3,.ml-spend-card h3{font-size:14px;margin-bottom:12px}.ml-cost-card>strong{font-size:22px}.ml-cost-card>span{font-size:11px}.ml-spend-card>strong{font-size:18px}.ml-start-live{min-height:52px;font-size:16px}.ml-start-note{font-size:11px}}
+
+/* Live presenter preview and native video controls inside the right-side player */
+#mlPreviewPanel{position:relative}
+#mlPreviewPanel #liveAvatarVideo{z-index:2}
+#mlPreviewPanel #liveAvatarPlaceholder{position:absolute!important;inset:0!important;z-index:2;min-height:0!important;height:auto!important;display:flex;align-items:flex-end;justify-content:flex-start;padding:24px!important;box-sizing:border-box;background:linear-gradient(transparent 42%,#07182dbb)!important;color:#fff!important;text-align:left}
+#mlPreviewPanel #liveAvatarPlaceholder>div{display:none}
+#mlPreviewPanel #liveAvatarPlaceholder strong{font-size:20px;color:#fff}
+#mlPreviewPanel #liveAvatarPlaceholder p{margin:4px 0 0;color:#f2f6fb;max-width:420px}
+@media(max-width:760px){#mlPreviewPanel #liveAvatarPlaceholder{padding:16px!important}#mlPreviewPanel #liveAvatarPlaceholder strong{font-size:16px}}
 </style></head><body><main><div class="ml-dashboard" id="mlDashboard">
 <aside class="ml-sidebar">
 <a class="ml-side-brand" href="/" aria-label="Mlimani Labs"><span class="ml-mountain-mark">▲</span><strong>Mlimani Labs</strong><small>AI for Africa</small></a>
@@ -1398,7 +1407,7 @@ $('#closeLiveResults').addEventListener('click',()=>{
   if(btn.dataset.studioAction==='promote')window.location.href='/production-studio.html?mode=video';
  }));
  const stream=$('#liveAvatarVideo'),placeholder=$('#liveAvatarPlaceholder'),stage=$('#mlPreviewPanel');
- if(stream&&stage)stage.appendChild(stream);if(placeholder&&stage)stage.appendChild(placeholder);
+ if(stream&&stage){stream.controls=true;stage.appendChild(stream);}if(placeholder&&stage)stage.appendChild(placeholder);
  const start=$('#continueStudio');start.addEventListener('click',()=>{const value=prompt.value.trim();if(value)pendingPresenterScript=value;});
  $('#dashboardLanguage').addEventListener('change',e=>{const target=$('#liveLanguage');if(target)target.value=e.target.value==='sw'?'sw':'en';});
  const token=localStorage.getItem('t')||'';
