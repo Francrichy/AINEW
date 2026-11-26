@@ -1459,7 +1459,6 @@ $('#closeLiveResults').addEventListener('click',()=>{
   if(name==='live'){
    if(live && live.srcObject){live.classList.remove('hidden');panel.appendChild(live);if(empty)empty.style.display='none';}
    else {if(live)live.classList.add('hidden');if(player)player.classList.add('hidden');if(empty){empty.style.display='flex';empty.querySelector('strong').textContent='Live Talk preview';empty.querySelector('small').textContent='Chagua Ngina au Ethan, kisha bonyeza Start Live Talk kuanzisha video ya moja kwa moja.';}}
-   document.getElementById('liveFields')?.classList.remove('hidden');
   } else if(name==='video'){
    if(live)live.classList.add('hidden');
    if(generated?.src){player.src=generated.src;player.classList.remove('hidden');if(empty)empty.style.display='none';}
