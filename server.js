@@ -98,6 +98,8 @@ const app = express();
 app.set('trust proxy', 1);
 app.use(express.json({ limit: '100kb' }));
 app.use('/studio.html', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate'); res.setHeader('Pragma', 'no-cache'); res.setHeader('Expires', '0'); next(); });
+app.get('/register', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'register.html')));
+app.get('/login', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 try { db.exec('alter table users add column phone text'); } catch {}
