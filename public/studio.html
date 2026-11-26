@@ -1033,6 +1033,31 @@ body>.studio-header{display:none!important}
 }
 
 </style>
+
+<style>
+/* Remove the dark band below the live video while preserving the dark video canvas. */
+#mlPreviewPanel #liveFields:not(.hidden){
+  background:#fff!important;
+  color:#10294b!important;
+  border-top:1px solid #e0e9f4!important;
+  border-radius:0!important;
+}
+#mlPreviewPanel #liveFields #liveStatus{
+  background:#f2f6fb!important;
+  border:1px solid #dce6f0!important;
+  color:#24415e!important;
+}
+#mlPreviewPanel #liveFields .note,
+#mlPreviewPanel #liveFields #liveSpeakingStatus{
+  color:#38516b!important;
+}
+#mlPreviewPanel #liveFields .call-stage>.actions button{
+  background:#f7f9fc!important;
+  color:#19344a!important;
+  border:1px solid #d4e1eb!important;
+}
+</style>
+
 </head><body><main><div class="ml-dashboard" id="mlDashboard">
 <aside class="ml-sidebar">
 <a class="ml-side-brand" href="/" aria-label="Mlimani Labs"><span class="ml-mountain-mark">▲</span><strong>Mlimani Labs</strong><small>AI for Africa</small></a>
