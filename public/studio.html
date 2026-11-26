@@ -1058,6 +1058,25 @@ body>.studio-header{display:none!important}
 }
 </style>
 
+
+<style id="ml-studio-layout-final">
+/* Align the Ngina/Ethan area with the Live Video Call stage and extend the page backgrounds. */
+.ml-dashboard{min-height:100vh;align-items:stretch;background:#dbe7f5!important}
+.ml-sidebar{position:sticky;top:0;align-self:start;height:100vh;min-height:100vh;background:#0d2d52!important}
+.ml-workspace{display:flex;flex-direction:column;min-height:100vh;background:#dbe7f5!important}
+.ml-topbar{background:#0d2d52!important;border-bottom:1px solid #23476d!important;color:#fff!important}
+.ml-topbar h1,.ml-topbar p{color:#fff!important}
+.ml-dashboard-main{flex:1 0 auto;min-height:calc(100vh - 112px);background:#dbe7f5!important}
+.ml-avatar-panel{background:#dbe7f5!important;border-color:#c3d4e8!important;box-shadow:none!important}
+.ml-preview-panel{background:#dbe7f5!important;border-color:#c3d4e8!important}
+@media(max-width:760px){
+ .ml-sidebar{position:relative;top:auto;align-self:stretch;height:auto;min-height:0;background:#0d2d52!important}
+ .ml-workspace{min-height:calc(100vh - 62px)}
+ .ml-dashboard-main{min-height:calc(100vh - 144px);background:#dbe7f5!important}
+ .ml-avatar-panel,.ml-preview-panel{background:#dbe7f5!important}
+}
+</style>
+
 </head><body><main><div class="ml-dashboard" id="mlDashboard">
 <aside class="ml-sidebar">
 <a class="ml-side-brand" href="/" aria-label="Mlimani Labs"><span class="ml-mountain-mark">▲</span><strong>Mlimani Labs</strong><small>AI for Africa</small></a>
