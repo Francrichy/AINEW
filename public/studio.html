@@ -1077,6 +1077,67 @@ body>.studio-header{display:none!important}
 }
 </style>
 
+
+<style id="ml-studio-all-black-background">
+/* User-requested unified black Studio theme: all page, avatar, navigation and call-stage surfaces. */
+html,body,body>main,.ml-dashboard,.ml-workspace,.ml-dashboard-main,
+.ml-sidebar,.ml-topbar,.ml-avatar-panel,.ml-preview-panel,.ml-lower,
+.ml-compose,.ml-cost-column,.ml-cost-card,.ml-spend-card,
+#mlPreviewPanel,#mlPreviewPanel #liveFields:not(.hidden),
+#mlPreviewPanel #liveFields .preview,#mlPreviewPanel #liveFields .call-stage,
+#mlPreviewPanel #liveStatus,#mlPreviewPanel #liveEndActions,
+#mlPreviewPanel #liveFields #voiceLog,.ml-action-tabs button,
+.ml-avatar-choice,.ml-language,.ml-language select,
+#mlPreviewPanel #liveFields .live-text-row input {
+  background:#000!important;
+  background-image:none!important;
+  color:#fff!important;
+  border-color:#292929!important;
+  box-shadow:none!important;
+}
+.ml-dashboard{min-height:100vh!important;align-items:stretch!important}
+.ml-sidebar{height:100vh!important;min-height:100vh!important;align-self:stretch!important}
+.ml-workspace{min-height:100vh!important;background:#000!important}
+.ml-dashboard-main{min-height:calc(100vh - 112px)!important;background:#000!important}
+.ml-topbar{border-bottom:1px solid #292929!important}
+.ml-topbar h1,.ml-topbar p,.ml-account,.ml-language,
+.ml-avatar-panel h2,.ml-avatar-panel>p,.ml-avatar-choice strong,
+.ml-avatar-choice small,.ml-compose h3,.ml-compose label,
+.ml-char-count,.ml-start-note,.ml-cost-card h3,.ml-spend-card h3,
+.ml-cost-card>span,.ml-cost-card p,.ml-spend-card small,
+#mlPreviewPanel #liveStatus,#mlPreviewPanel #liveFields .note,
+#mlPreviewPanel #liveFields #liveSpeakingStatus {
+  color:#fff!important;
+}
+.ml-avatar-choice .avatar-art{background:#000!important}
+.ml-avatar-choice.selected,.ml-avatar-choice[aria-pressed=true]{
+  background:#000!important;border-color:#fff!important;
+}
+.ml-side-nav a{color:#fff!important}
+.ml-side-nav a.active{background:#252525!important;box-shadow:none!important}
+.ml-trial{background:#000!important;border-color:#333!important;color:#fff!important}
+.ml-trial span{color:#ddd!important}
+.ml-preview-panel,.ml-preview-panel>video,#mlPreviewPanel #liveAvatarVideo,
+#mlPreviewPanel #liveAvatarPlaceholder{background:#000!important}
+#mlPreviewPanel #liveFields .call-stage>.actions button{
+  background:#1b1b1b!important;color:#fff!important;border:1px solid #444!important;
+}
+#mlPreviewPanel #liveFields .call-stage>.actions #stopLive{
+  background:#8f1d28!important;color:#fff!important;border:0!important;
+}
+.ml-compose textarea,#mlPreviewPanel #liveFields .live-text-row input,
+.ml-language select{background:#111!important;color:#fff!important;border:1px solid #444!important}
+.ml-compose textarea::placeholder{color:#aaa!important}
+.ml-start-live{background:#252525!important;color:#fff!important;border:1px solid #555!important}
+@media(max-width:760px){
+ .ml-dashboard{background:#000!important}
+ .ml-sidebar{height:auto!important;min-height:0!important;background:#000!important}
+ .ml-workspace,.ml-dashboard-main{min-height:0!important;background:#000!important}
+ .ml-topbar{background:#000!important}
+ .ml-avatar-panel,.ml-preview-panel{background:#000!important}
+}
+</style>
+
 </head><body><main><div class="ml-dashboard" id="mlDashboard">
 <aside class="ml-sidebar">
 <a class="ml-side-brand" href="/" aria-label="Mlimani Labs"><span class="ml-mountain-mark">▲</span><strong>Mlimani Labs</strong><small>AI for Africa</small></a>
