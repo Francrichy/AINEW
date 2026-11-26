@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="sw"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#10121a"><title>Jisajili | Mlimani Labs</title>
+<style>
+:root{color-scheme:dark;--bg:#090b12;--panel:#131724;--line:#2b3447;--text:#f4f6fb;--muted:#a4afc1;--accent:#9b8cff;--accent2:#68d6e8}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:22px;background:radial-gradient(ellipse at 50% 0,#34275b 0,transparent 48%),var(--bg);font-family:Inter,system-ui,sans-serif;color:var(--text)}
+main{width:min(100%,460px)}.brand{font-weight:900;letter-spacing:.13em;font-size:.9rem}.brand span{color:var(--accent)}.subbrand{color:var(--muted);font-size:.68rem;letter-spacing:.22em;margin:4px 0 24px}
+.card{border:1px solid var(--line);background:#131724ed;border-radius:22px;padding:clamp(20px,5vw,32px);box-shadow:0 24px 80px #0007}h1{font-size:1.8rem;letter-spacing:-.04em;margin:0 0 7px}p{color:var(--muted);line-height:1.55;margin:0 0 22px;font-size:.92rem}
+label{display:block;font-size:.83rem;font-weight:700;margin:15px 0 7px}input{width:100%;padding:14px;border:1px solid #39445a;border-radius:12px;background:#0b0f19;color:white;font:inherit;outline:none}input:focus{border-color:var(--accent);box-shadow:0 0 0 3px #9b8cff22}
+button{width:100%;margin-top:20px;padding:14px;border:0;border-radius:12px;background:linear-gradient(100deg,#b8aaff,#80dceb);color:#151322;font-weight:900;font-size:.96rem;cursor:pointer}button:disabled{opacity:.6;cursor:wait}
+.message{display:none;margin-top:14px;padding:12px;border-radius:11px;background:#2a2029;color:#ffd5d5;font-size:.85rem;line-height:1.5}.message.ok{background:#172b25;color:#b7f4d1}
+.links{text-align:center;margin-top:18px;font-size:.86rem;color:var(--muted)}a{color:#c7bbff;text-decoration:none}a:hover{text-decoration:underline}.fine{font-size:.75rem;color:#78859a;margin-top:17px;text-align:center}
+</style></head><body><main><a class="brand" href="/">MLIMANI <span>LABS</span></a><div class="subbrand">CREATIVE STUDIO</div>
+<section class="card"><h1>Fungua akaunti yako</h1><p>Jisajili bure kuanza kutumia Mlimani Labs Studio. Utalipia huduma zinazotozwa pale utakapoamua kuzitumia.</p>
+<form id="registerForm">
+<label for="name">Jina lako</label><input id="name" name="name" autocomplete="name" maxlength="60" required placeholder="Mfano: Amina Juma">
+<label for="login">Namba ya simu au barua pepe</label><input id="login" name="login" autocomplete="username" required placeholder="07XXXXXXXX au jina@email.com">
+<label for="password">Tengeneza nenosiri</label><input id="password" name="password" type="password" minlength="6" autocomplete="new-password" required placeholder="Angalau herufi 6">
+<label for="confirm">Rudia nenosiri</label><input id="confirm" name="confirm" type="password" minlength="6" autocomplete="new-password" required placeholder="Rudia nenosiri lako">
+<button id="submit" type="submit">Jisajili bure</button><div class="message" id="message" role="alert"></div>
+</form><div class="links">Tayari una akaunti? <a href="/login">Ingia hapa</a></div></section>
+<div class="fine"><a href="/">← Rudi Mlimani Labs</a></div></main>
+<script>
+const form=document.getElementById('registerForm'),msg=document.getElementById('message'),btn=document.getElementById('submit');
+form.addEventListener('submit',async e=>{e.preventDefault();msg.style.display='none';const name=document.getElementById('name').value.trim(),login=document.getElementById('login').value.trim(),password=document.getElementById('password').value,confirm=document.getElementById('confirm').value;if(password!==confirm){msg.textContent='Nenosiri mbili hazifanani.';msg.style.display='block';return}btn.disabled=true;btn.textContent='Tunasajili akaunti...';try{const r=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,login,password})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Usajili haujakamilika.');if(!d.token)throw new Error('Akaunti imeundwa lakini hatukupokea token ya kuingia.');localStorage.setItem('t',d.token);msg.className='message ok';msg.textContent='Akaunti imefunguliwa. Tunakuelekeza Studio...';msg.style.display='block';setTimeout(()=>location.href='/studio.html',500)}catch(err){msg.className='message';msg.textContent=err.message;msg.style.display='block'}finally{btn.disabled=false;btn.textContent='Jisajili bure'}});
+</script></body></html>
