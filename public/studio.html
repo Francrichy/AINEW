@@ -1138,6 +1138,29 @@ html,body,body>main,.ml-dashboard,.ml-workspace,.ml-dashboard-main,
 }
 </style>
 
+
+<style id="ml-studio-avatar-picture-black">
+/* Remove the remaining light card and image-frame backgrounds around Ngina and Ethan. */
+#livePanel,.ml-avatar-panel,#livePanel .ml-avatar-options,
+#livePanel .ml-avatar-choice,
+#livePanel .ml-avatar-choice.selected,
+#livePanel .ml-avatar-choice[aria-pressed="true"],
+#livePanel .ml-avatar-choice[aria-pressed="false"]{
+  background:#000!important;background-image:none!important;color:#fff!important;
+  border-color:#292929!important;box-shadow:none!important;
+}
+#livePanel .ml-avatar-choice .avatar-art,
+#livePanel .ml-avatar-choice img,
+#livePanel .ml-avatar-choice.selected .avatar-art{
+  background:#000!important;border-color:#000!important;box-shadow:none!important;
+}
+#livePanel .ml-avatar-choice strong,
+#livePanel .ml-avatar-choice small{color:#fff!important}
+#livePanel .ml-avatar-choice .ml-choice-check{
+  background:#000!important;color:#fff!important;border-color:#555!important;
+}
+</style>
+
 </head><body><main><div class="ml-dashboard" id="mlDashboard">
 <aside class="ml-sidebar">
 <a class="ml-side-brand" href="/" aria-label="Mlimani Labs"><span class="ml-mountain-mark">▲</span><strong>Mlimani Labs</strong><small>AI for Africa</small></a>
