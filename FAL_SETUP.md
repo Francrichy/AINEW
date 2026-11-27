@@ -4,7 +4,19 @@ Mlimani uses fal.ai's server-side Queue API. The API key is never sent to the br
 
 ## Render Environment
 
-Set `FAL_API_KEY` as a secret in Render. Do not put the key in GitHub or in browser code.
+Set `FAL_API_KEY` as a secret in Render. Do not put the key in GitHub or in browser code. The first launch uses one fal.ai account and one key for all selected models.
+
+## First launch models
+
+| Mlimani feature | fal.ai model ID | Required inputs | Default output |
+|---|---|---|---|
+| Video Creator Lite | `minimax/h3-max/image-to-video` | prompt; optional image and soundtrack | 768P, 5–15 second clips |
+| Talking Avatar | `minimax/h3-max/lip-sync/image-to-video` | image URL and audio URL | 768P; lip-sync follows audio length |
+| Full Motion Avatar | `minimax/h3-max/reference-to-video` | prompt and reference image; optional soundtrack | 768P, motion and generated scene audio |
+
+Mlimani offers 1080P as Premium. The model endpoint's current price is synced from fal.ai by Admin; do not hardcode prices. H3 Max Lip Sync currently has a 1.2× multiplier for output longer than 15 seconds, which the Mlimani estimate and charge calculation apply. The Talking Avatar currently requires uploaded/hosted audio; script-to-speech generation will be a later step, using another fal.ai endpoint under the same account.
+
+Image/audio uploads use the customer's private Mlimani Cloud project space. The server creates a short-lived signed URL for fal.ai; the URL is issued only to the authenticated owner and expires after six hours.
 
 For each task, configure both a model ID and an input-template JSON string:
 
