@@ -34,6 +34,8 @@ button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#191919;col
 <label for="task">Huduma unayotaka</label>
 <select id="task">
 <option value="video">Video Creator Lite · Tengeneza video kutoka maelezo/picha</option>
+<option value="voice">Mlimani Voice-over · AI isome script yako</option>
+<option value="music">Mlimani Soundtrack Creator · Tengeneza muziki wa video</option>
 <option value="avatar_video">Talking Avatar · Picha inayozungumza kwa sauti yako</option>
 <option value="motion">Full Motion Avatar · Avatar yenye vitendo na movement</option>
 </select>
@@ -66,13 +68,13 @@ const task=$('task');
 function setStatus(message){$('status').textContent=message}
 function scriptMode(){return task.value==='avatar_video'&&$('voiceMode').value==='script'}
 function fields(){
- const t=task.value,tts=scriptMode();
+ const t=task.value,tts=scriptMode(),standaloneVoice=t==='voice',musicTask=t==='music';
  $('voiceModeWrap').classList.toggle('hidden',t!=='avatar_video');
- $('ttsVoiceWrap').classList.toggle('hidden',!tts);
+ $('ttsVoiceWrap').classList.toggle('hidden',!(tts||standaloneVoice));
  $('promptWrap').classList.toggle('hidden',t==='avatar_video'&&!tts);
- document.querySelector('label[for="prompt"]').textContent=tts?'Script ya maneno ambayo avatar itazungumza':'Eleza video au kitendo cha avatar';
- $('imageWrap').classList.toggle('hidden',false);
- $('audioWrap').classList.toggle('hidden',t==='avatar_video'&&tts);
+ document.querySelector('label[for="prompt"]').textContent=tts?'Script ya maneno ambayo avatar itazungumza':standaloneVoice?'Script ya sauti itakayosomwa na AI':musicTask?'Eleza aina ya soundtrack unayotaka':'Eleza video au kitendo cha avatar';
+ $('imageWrap').classList.toggle('hidden',standaloneVoice||musicTask);
+ $('audioWrap').classList.toggle('hidden',standaloneVoice||musicTask||(t==='avatar_video'&&tts));
  $('imageFile').required=t==='motion'||t==='avatar_video';
  $('audioFile').required=t==='avatar_video'&&!tts;
  $('duration').disabled=t==='avatar_video'&&(tts||audioSeconds>0);
@@ -86,7 +88,7 @@ $('voiceMode').addEventListener('change',fields);
 function invalidateEstimate(){if(estimate){estimate=null;$('generate').disabled=true;setStatus('Umebadilisha taarifa. Kagua bei upya kabla ya kutengeneza video.')}}
 ['prompt','imageFile','imageUrl','audioFile','audioUrl','duration','resolution','ratio','language','ttsVoice'].forEach(id=>$(id).addEventListener(id.endsWith('File')?'change':'input',invalidateEstimate));
 function getDuration(){
- if(scriptMode()){const words=$('prompt').value.trim().split(/\s+/).filter(Boolean).length;return Math.max(5,Math.ceil(words/2.5))}
+ if(scriptMode()||task.value==='voice'){const words=$('prompt').value.trim().split(/\s+/).filter(Boolean).length;return Math.max(5,Math.ceil(words/2.5))}
  if(task.value==='avatar_video'&&audioSeconds>0)return Math.ceil(audioSeconds);
  return Number($('duration').value);
 }
@@ -143,7 +145,13 @@ $('estimate').addEventListener('click',async()=>{
  try{
   const durationSeconds=getDuration();
   if(task.value==='avatar_video'&&!scriptMode()&&audioSeconds>0&&audioSeconds<5)throw new Error('Sauti lazima iwe angalau sekunde 5.');
-  if(task.value==='avatar_video'&&scriptMode()){
+  if(task.value==='voice'){
+   const text=$('prompt').value.trim(),words=text.split(/\s+/).filter(Boolean).length;
+   if(text.length<30||words<6)throw new Error('Andika script yenye angalau maneno 6.');
+   const voice=await quote('voice',5,text.length);
+   estimate={...voice,tts:voice,estimatedSeconds:durationSeconds};
+   setStatus('Mlimani Voice-over · Script-to-speech\nAI Voice: '+$('ttsVoice').value+'\nHerufi: '+text.length+'\nMakadirio: TZS '+Number(voice.estimatedChargeTzs).toLocaleString()+'\nWallet: TZS '+Number(voice.walletBalanceTzs).toLocaleString()+'\n'+(voice.enabled?'Unaweza kuendelea.':'Huduma haijawezeshwa au salio/bei haitoshi.'));
+  }else if(task.value==='avatar_video'&&scriptMode()){
    const text=$('prompt').value.trim(),words=text.split(/\s+/).filter(Boolean).length;
    if(text.length<40||words<12)throw new Error('Andika script yenye angalau maneno 12 ili sauti iwe na urefu wa kutosha kwa lip-sync.');
    const [voice,avatar]=await Promise.all([quote('voice',5,text.length),quote('avatar_video',Math.max(5,durationSeconds))]);
@@ -179,7 +187,15 @@ $('generate').addEventListener('click',async()=>{
  try{
   const t=task.value,assets=await resolveAssets();
   if((t==='motion'||t==='avatar_video')&&!assets.imageUrl)throw new Error('Pakia picha ya avatar au weka kiungo cha picha.');
-  if(t==='avatar_video'&&scriptMode()){
+  if(t==='voice'){
+   const voiceJob=await submitJob('voice',{prompt:$('prompt').value.trim(),voiceId:$('ttsVoice').value,language:$('language').value,durationSeconds:5,expectedChargeTzs:estimate.estimatedChargeTzs});
+   setStatus('Inatengeneza voice-over yako... Ada: TZS '+Number(voiceJob.chargedTzs).toLocaleString());
+   await poll(voiceJob.jobId,'voice',true);
+  }else if(t==='music'){
+   const musicJob=await submitJob('music',{prompt:$('prompt').value.trim(),durationSeconds:getDuration(),expectedChargeTzs:estimate.estimatedChargeTzs});
+   setStatus('Inatengeneza soundtrack yako... Ada: TZS '+Number(musicJob.chargedTzs).toLocaleString());
+   await poll(musicJob.jobId,'music',true);
+  }else if(t==='avatar_video'&&scriptMode()){
    const voiceJob=await submitJob('voice',{prompt:$('prompt').value.trim(),voiceId:$('ttsVoice').value,language:$('language').value,durationSeconds:5,expectedChargeTzs:estimate.tts.estimatedChargeTzs});
    setStatus('Inatengeneza sauti ya AI kwanza... Ada ya sauti: TZS '+Number(voiceJob.chargedTzs).toLocaleString());
    const voiceDone=await poll(voiceJob.jobId,'AI Voice',false);
@@ -210,14 +226,14 @@ $('generate').addEventListener('click',async()=>{
 function showResult(d,taskName){
  $('result').replaceChildren();
  if(d.outputUrl){
-  const media=taskName==='voice'?document.createElement('audio'):document.createElement('video');
+  const media=['voice','music'].includes(taskName)?document.createElement('audio'):document.createElement('video');
   media.controls=true;media.playsInline=true;media.src=d.outputUrl;$('result').append(media);
-  const a=document.createElement('a');a.href=d.outputUrl;a.target='_blank';a.rel='noopener noreferrer';a.textContent=taskName==='voice'?'Fungua au pakua sauti':'Fungua au pakua video';a.style.display='inline-block';a.style.marginTop='12px';$('result').append(a);
+  const a=document.createElement('a');a.href=d.outputUrl;a.target='_blank';a.rel='noopener noreferrer';a.textContent=taskName==='voice'?'Fungua au pakua voice-over':taskName==='music'?'Fungua au pakua soundtrack':'Fungua au pakua video';a.style.display='inline-block';a.style.marginTop='12px';$('result').append(a);
  }
  if(d.error){const p=document.createElement('p');p.textContent=d.error;$('result').append(p)}
 }
 fields();
 if(token())loadAvatarLibrary();
-const startup=new URLSearchParams(location.search);if(['video','motion','avatar_video'].includes(startup.get('task'))){task.value=startup.get('task');fields()}
+const startup=new URLSearchParams(location.search);if(['video','motion','avatar_video','voice','music'].includes(startup.get('task'))){task.value=startup.get('task');fields()}
 </script>
 </body></html>
