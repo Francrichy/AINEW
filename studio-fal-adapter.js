@@ -26,7 +26,7 @@ export function calculateTalkingAvatarCharge(durationSeconds, lipSyncPricePerSec
   const lipSyncRate = Number(lipSyncPricePerSecond);
   const videoRate = Number(videoPricePer5Seconds);
   const factor = Number(multiplier);
-  if (![lipSyncRate, videoRate, factor].every(Number.isFinite) || lipSyncRate <= 0 || videoRate <= 0 || factor <= 0) {
+  if (![lipSyncRate, videoRate, factor].every(Number.isFinite) || lipSyncRate < 0 || videoRate < 0 || factor <= 0) {
     throw fail('Bei ya Lip-sync na Video Generation lazima ziwe zaidi ya sifuri.');
   }
   const videoUnits = Math.ceil(seconds / 5);
