@@ -37,6 +37,8 @@ button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#191919;col
 <option value="avatar_video">Talking Avatar · Picha inayozungumza kwa sauti yako</option>
 <option value="motion">Full Motion Avatar · Avatar yenye vitendo na movement</option>
 </select>
+<div id="voiceModeWrap" class="hidden"><label for="voiceMode">Sauti ya Talking Avatar</label><select id="voiceMode"><option value="upload">Nina sauti yangu (upload)</option><option value="script">Andika script · AI itazungumza</option></select></div>
+<div id="ttsVoiceWrap" class="hidden"><label for="ttsVoice">Chagua sauti ya AI</label><select id="ttsVoice"><option>Aria</option><option>Sarah</option><option>Roger</option><option>Laura</option><option>Charlie</option><option>George</option><option>Matilda</option><option>Jessica</option></select></div>
 <div id="promptWrap"><label for="prompt">Eleza video au kitendo cha avatar</label><textarea id="prompt" maxlength="6000" placeholder="Mfano: Ngina anatembea ndani ya duka la kisasa, anachukua pakiti ya kahawa na kuionyesha kamera. Mwanga wa kitaalamu, movement ya asili..."></textarea></div>
 <div id="imageWrap"><label for="imageFile">Picha ya kuanzia / picha ya avatar</label><input id="imageFile" type="file" accept="image/jpeg,image/png,image/webp"><label for="imageUrl">Au kiungo cha picha (HTTPS)</label><input id="imageUrl" type="url" placeholder="https://..."><p class="help">Pakia picha ya mtu au avatar unayomiliki au una ruhusa ya kuitumia.</p></div>
 <div id="audioWrap"><label for="audioFile">Sauti ya avatar / soundtrack (hiari kwa Video Creator, lazima kwa Talking Avatar)</label><input id="audioFile" type="file" accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/mp4,audio/webm"><label for="audioUrl">Au kiungo cha sauti (HTTPS)</label><input id="audioUrl" type="url" placeholder="https://..."><p class="help">Talking Avatar hutumia sauti hii kulandanisha midomo. Hakikisha una haki ya kutumia sauti na ruhusa ya mtu husika.</p></div>
@@ -58,36 +60,45 @@ button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#191919;col
 const $=id=>document.getElementById(id);
 const token=()=>localStorage.t||localStorage.getItem('mlimani_token')||localStorage.getItem('token')||'';
 const headers=(extra={})=>({...extra,Authorization:'Bearer '+token()});
-let estimate=null,activeJob=null,uploadedImageUrl='',uploadedAudioUrl='',audioSeconds=0;
+let estimate=null,uploadedImageUrl='',uploadedAudioUrl='',audioSeconds=0;
 const task=$('task');
 function setStatus(message){$('status').textContent=message}
+function scriptMode(){return task.value==='avatar_video'&&$('voiceMode').value==='script'}
 function fields(){
- const t=task.value;
- $('promptWrap').classList.toggle('hidden',t==='avatar_video');
- $('imageWrap').classList.toggle('hidden',t==='video');
- $('audioWrap').classList.toggle('hidden',t==='motion' ? false : t==='avatar_video' ? false : false);
+ const t=task.value,tts=scriptMode();
+ $('voiceModeWrap').classList.toggle('hidden',t!=='avatar_video');
+ $('ttsVoiceWrap').classList.toggle('hidden',!tts);
+ $('promptWrap').classList.toggle('hidden',t==='avatar_video'&&!tts);
+ $('imageWrap').classList.toggle('hidden',false);
+ $('audioWrap').classList.toggle('hidden',t==='avatar_video'&&tts);
  $('imageFile').required=t==='motion'||t==='avatar_video';
- $('audioFile').required=t==='avatar_video';
- $('duration').disabled=t==='avatar_video'&&audioSeconds>0;
+ $('audioFile').required=t==='avatar_video'&&!tts;
+ $('duration').disabled=t==='avatar_video'&&(tts||audioSeconds>0);
  $('result').replaceChildren();estimate=null;$('generate').disabled=true;
  setStatus('Kagua bei kabla ya kuanza.');
 }
 task.addEventListener('change',fields);
-function getDuration(){return task.value==='avatar_video'&&audioSeconds>0?Math.ceil(audioSeconds):Number($('duration').value)}
+$('voiceMode').addEventListener('change',fields);
+function getDuration(){
+ if(task.value==='avatar_video'&&audioSeconds>0)return Math.ceil(audioSeconds);
+ if(scriptMode()){const words=$('prompt').value.trim().split(/\s+/).filter(Boolean).length;return Math.max(5,Math.ceil(words/2.5))}
+ return Number($('duration').value);
+}
+async function apiJson(url,options={}){
+ const r=await fetch(url,{...options,headers:headers(options.headers||{})});
+ const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Ombi halikukamilika.');return d;
+}
 async function uploadAsset(file,type){
  if(!token())throw new Error('Ingia kwanza kwenye akaunti yako ya Mlimani.');
- const p=await fetch('/api/studio/uploads/presign',{method:'POST',headers:headers({'Content-Type':'application/json'}),body:JSON.stringify({filename:file.name,contentType:file.type,sizeBytes:file.size,projectType:type,title:'fal.ai '+type+' input'})});
- const pd=await p.json();if(!p.ok)throw new Error(pd.error||'Imeshindikana kuandaa upload.');
+ const pd=await apiJson('/api/studio/uploads/presign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file.name,contentType:file.type,sizeBytes:file.size,projectType:type,title:'fal.ai '+type+' input'})});
  const put=await fetch(pd.uploadUrl,{method:'PUT',headers:pd.headers,body:file});if(!put.ok)throw new Error('Upload haikukamilika. Hakikisha Cloud storage imeunganishwa.');
- const done=await fetch('/api/studio/projects/complete',{method:'POST',headers:headers({'Content-Type':'application/json'}),body:JSON.stringify({projectId:pd.projectId,storageKey:pd.storageKey,title:'fal.ai '+type+' input',type,durationSeconds:type==='voice'?audioSeconds:0})});
- const dd=await done.json();if(!done.ok)throw new Error(dd.error||'Imeshindikana kuthibitisha upload.');
- const signed=await fetch('/api/studio/projects/'+encodeURIComponent(pd.projectId)+'/fal-url',{headers:headers()});
- const sd=await signed.json();if(!signed.ok)throw new Error(sd.error||'Imeshindikana kupata kiungo salama cha fal.ai.');
+ await apiJson('/api/studio/projects/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({projectId:pd.projectId,storageKey:pd.storageKey,title:'fal.ai '+type+' input',type,durationSeconds:type==='voice'?audioSeconds:0})});
+ const sd=await apiJson('/api/studio/projects/'+encodeURIComponent(pd.projectId)+'/fal-url');
  return sd.url;
 }
 $('audioFile').addEventListener('change',()=>{
  audioSeconds=0;const f=$('audioFile').files[0];if(!f){fields();return}
- const probe=new Audio();probe.preload='metadata';probe.onloadedmetadata=()=>{audioSeconds=Number.isFinite(probe.duration)?probe.duration:0;if(audioSeconds>600){setStatus('Sauti imezidi dakika 10. Tafadhali tumia sauti fupi zaidi.');$('generate').disabled=true}else if(task.value==='avatar_video'){$('duration').value=String(Math.max(5,Math.ceil(audioSeconds)));$('duration').disabled=true}};probe.onerror=()=>setStatus('Imeshindikana kusoma muda wa sauti.');probe.src=URL.createObjectURL(f);
+ const probe=new Audio();probe.preload='metadata';probe.onloadedmetadata=()=>{audioSeconds=Number.isFinite(probe.duration)?probe.duration:0;if(audioSeconds>600){setStatus('Sauti imezidi dakika 10. Tafadhali tumia sauti fupi zaidi.');$('generate').disabled=true}else if(task.value==='avatar_video'&&audioSeconds<5){setStatus('Talking Avatar inahitaji sauti ya angalau sekunde 5.');$('generate').disabled=true}else if(task.value==='avatar_video'){$('duration').value=String(Math.max(5,Math.ceil(audioSeconds)));$('duration').disabled=true}};probe.onerror=()=>setStatus('Imeshindikana kusoma muda wa sauti.');probe.src=URL.createObjectURL(f);
 });
 async function resolveAssets(){
  uploadedImageUrl=$('imageUrl').value.trim();uploadedAudioUrl=$('audioUrl').value.trim();
@@ -96,47 +107,85 @@ async function resolveAssets(){
  if(audio){setStatus('Inapakia sauti salama kwenye Cloud...');uploadedAudioUrl=await uploadAsset(audio,'voice')}
  return {imageUrl:uploadedImageUrl,audioUrl:uploadedAudioUrl};
 }
+async function quote(taskName,durationSeconds,characters){
+ const q=new URLSearchParams({durationSeconds:String(durationSeconds||5)});
+ if(characters)q.set('characters',String(characters));
+ return apiJson('/api/studio/fal/'+encodeURIComponent(taskName)+'/estimate?'+q.toString());
+}
 $('estimate').addEventListener('click',async()=>{
  $('generate').disabled=true;estimate=null;
  if(!token()){setStatus('Tafadhali ingia kwanza. Fungua /login kisha urudi hapa.');return}
  try{
   const durationSeconds=getDuration();
-  const r=await fetch('/api/studio/fal/'+encodeURIComponent(task.value)+'/estimate?durationSeconds='+encodeURIComponent(durationSeconds),{headers:headers()});
-  const d=await r.json();if(!r.ok)throw new Error(d.error||'Makadirio hayakupatikana.');
-  estimate=d;
-  setStatus('Provider: fal.ai\nHuduma: '+task.options[task.selectedIndex].text+'\nUbora: '+$('resolution').selectedOptions[0].text+'\nMuda: '+durationSeconds+' sec\nBei: TZS '+Number(d.estimatedChargeTzs).toLocaleString()+'\nWallet: TZS '+Number(d.walletBalanceTzs).toLocaleString()+'\n'+(d.enabled?'Unaweza kuendelea.':'Huduma bado haijawezeshwa au salio/bei haitoshi.'));
-  $('generate').disabled=!d.enabled;
+  if(task.value==='avatar_video'&&scriptMode()){
+   const text=$('prompt').value.trim(),words=text.split(/\s+/).filter(Boolean).length;
+   if(text.length<20||words<8)throw new Error('Andika script yenye angalau maneno 8 ili sauti iwe na urefu wa kutosha.');
+   const [voice,avatar]=await Promise.all([quote('voice',5,text.length),quote('avatar_video',Math.max(5,durationSeconds))]);
+   estimate={enabled:voice.enabled&&avatar.enabled,tts:voice,avatar,estimatedSeconds:durationSeconds,estimatedChargeTzs:voice.estimatedChargeTzs+avatar.estimatedChargeTzs};
+   setStatus('Talking Avatar · Script-to-speech\nSauti ya AI: TZS '+Number(voice.estimatedChargeTzs).toLocaleString()+'\nLip-sync ya avatar (makadirio '+durationSeconds+' sec): TZS '+Number(avatar.estimatedChargeTzs).toLocaleString()+'\nJumla ya makadirio: TZS '+Number(estimate.estimatedChargeTzs).toLocaleString()+'\nWallet: TZS '+Number(avatar.walletBalanceTzs).toLocaleString()+'\n'+(estimate.enabled?'Unaweza kuendelea.':'Huduma moja haijawezeshwa au salio/bei haitoshi.'));
+  }else{
+   const d=await quote(task.value,durationSeconds);
+   estimate={...d,estimatedChargeTzs:d.estimatedChargeTzs};
+   setStatus('Provider: fal.ai\nHuduma: '+task.options[task.selectedIndex].text+'\nUbora: '+$('resolution').selectedOptions[0].text+'\nMuda: '+durationSeconds+' sec\nBei: TZS '+Number(d.estimatedChargeTzs).toLocaleString()+'\nWallet: TZS '+Number(d.walletBalanceTzs).toLocaleString()+'\n'+(d.enabled?'Unaweza kuendelea.':'Huduma bado haijawezeshwa au salio/bei haitoshi.'));
+  }
+  $('generate').disabled=!estimate.enabled;
  }catch(e){setStatus(e.message)}
 });
-$('generate').addEventListener('click',async()=>{
- if(!estimate||!estimate.enabled)return;
- $('generate').disabled=true;$('status').textContent='Inatuma ombi...';$('result').replaceChildren();
- try{
-  const assets=await resolveAssets();
-  const t=task.value;
-  if((t==='motion'||t==='avatar_video')&&!assets.imageUrl)throw new Error('Pakia picha ya avatar au weka kiungo cha picha.');
-  if(t==='avatar_video'&&!assets.audioUrl)throw new Error('Talking Avatar inahitaji sauti. Pakia MP3/WAV au weka kiungo cha HTTPS.');
-  const body={prompt:$('prompt').value.trim(),durationSeconds:getDuration(),aspectRatio:$('ratio').value,imageUrl:assets.imageUrl,audioUrl:assets.audioUrl,language:$('language').value,resolution:$('resolution').value,expectedChargeTzs:estimate.estimatedChargeTzs};
-  const r=await fetch('/api/studio/fal/'+encodeURIComponent(t)+'/jobs',{method:'POST',headers:headers({'Content-Type':'application/json'}),body:JSON.stringify(body)});
-  const d=await r.json();if(!r.ok)throw new Error(d.error||'Ombi limeshindwa.');
-  activeJob=d.jobId;setStatus('Ombi limepokelewa.\nJob ID: '+activeJob+'\nHali: '+d.status+'\nAda iliyohifadhiwa: TZS '+Number(d.chargedTzs).toLocaleString()+'\nInasubiri fal.ai...');
-  await poll(activeJob);
- }catch(e){setStatus(e.message);$('generate').disabled=false}
-});
-async function poll(id){
+async function submitJob(taskName,body){
+ return apiJson('/api/studio/fal/'+encodeURIComponent(taskName)+'/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+}
+async function poll(id,taskName,show=true){
  for(let i=0;i<180;i++){
   await new Promise(resolve=>setTimeout(resolve,5000));
-  const r=await fetch('/api/studio/fal/jobs/'+encodeURIComponent(id),{headers:headers()});const d=await r.json();
-  if(!r.ok)throw new Error(d.error||'Imeshindikana kufuatilia kazi.');
-  setStatus('Job ID: '+id+'\nHali: '+d.status+'\nMalipo: '+d.billingStatus+'\n'+(d.error||''));
-  if(d.status==='COMPLETED'){showResult(d);$('generate').disabled=false;return}
-  if(d.status==='FAILED'){showResult(d);$('generate').disabled=false;return}
+  const d=await apiJson('/api/studio/fal/jobs/'+encodeURIComponent(id));
+  setStatus(taskName+' · Job ID: '+id+'\nHali: '+d.status+'\nMalipo: '+d.billingStatus+'\n'+(d.error||''));
+  if(d.status==='COMPLETED'||d.status==='FAILED'){if(show)showResult(d,taskName);return d}
  }
- setStatus('Kazi bado inaendelea. Rudi baadaye kuangalia Job ID: '+id);$('generate').disabled=false;
+ setStatus('Kazi bado inaendelea. Rudi baadaye kuangalia Job ID: '+id);return null;
 }
-function showResult(d){
+function audioDuration(url){
+ return new Promise((resolve,reject)=>{const a=new Audio();a.preload='metadata';a.onloadedmetadata=()=>resolve(Math.ceil(a.duration));a.onerror=()=>reject(new Error('Imeshindikana kusoma muda wa sauti iliyotengenezwa.'));a.src=url});
+}
+$('generate').addEventListener('click',async()=>{
+ if(!estimate||!estimate.enabled)return;
+ $('generate').disabled=true;$('status').textContent='Inaanzisha kazi...';$('result').replaceChildren();
+ try{
+  const t=task.value,assets=await resolveAssets();
+  if((t==='motion'||t==='avatar_video')&&!assets.imageUrl)throw new Error('Pakia picha ya avatar au weka kiungo cha picha.');
+  if(t==='avatar_video'&&scriptMode()){
+   const voiceJob=await submitJob('voice',{prompt:$('prompt').value.trim(),voiceId:$('ttsVoice').value,language:$('language').value,durationSeconds:5,expectedChargeTzs:estimate.tts.estimatedChargeTzs});
+   setStatus('Inatengeneza sauti ya AI kwanza... Ada ya sauti: TZS '+Number(voiceJob.chargedTzs).toLocaleString());
+   const voiceDone=await poll(voiceJob.jobId,'AI Voice',false);
+   if(!voiceDone||voiceDone.status!=='COMPLETED'||!voiceDone.outputUrl)throw new Error(voiceDone?.error||'Sauti ya AI haikutengenezwa. Hakuna lip-sync iliyotozwa.');
+   const actualSeconds=await audioDuration(voiceDone.outputUrl);
+   if(actualSeconds<5)throw new Error('Sauti iliyotengenezwa ni fupi sana kwa lip-sync. Ongeza script; sauti yako imehifadhiwa: '+voiceDone.outputUrl);
+   if(actualSeconds>600)throw new Error('Sauti imezidi dakika 10. Tumia script fupi zaidi.');
+   const avatarQuote=await quote('avatar_video',actualSeconds);
+   if(!avatarQuote.enabled)throw new Error('Sauti imetengenezwa lakini lip-sync haijawezeshwa au Wallet haitoshi. Sauti: '+voiceDone.outputUrl);
+   const combined=estimate.tts.estimatedChargeTzs+avatarQuote.estimatedChargeTzs;
+   if(Math.abs(combined-estimate.estimatedChargeTzs)>1&&!window.confirm('Makadirio halisi baada ya kutengeneza sauti ni TZS '+Number(combined).toLocaleString()+'. Endelea na lip-sync? Sauti tayari imetengenezwa na unaweza kuitumia tena.')){setStatus('Umeacha lip-sync. Sauti yako ya AI: '+voiceDone.outputUrl);$('generate').disabled=false;return}
+   setStatus('Sauti imekamilika. Inatengeneza video ya Ngina/Ethan...');
+   const avatarJob=await submitJob('avatar_video',{imageUrl:assets.imageUrl,audioUrl:voiceDone.outputUrl,durationSeconds:actualSeconds,aspectRatio:$('ratio').value,language:$('language').value,resolution:$('resolution').value,expectedChargeTzs:avatarQuote.estimatedChargeTzs});
+   const done=await poll(avatarJob.jobId,'Talking Avatar',true);
+   if(done?.status==='COMPLETED')setStatus('Video ya Talking Avatar imekamilika. Sauti na lip-sync vimeunganishwa.');
+  }else{
+   if(t==='avatar_video'&&!assets.audioUrl)throw new Error('Talking Avatar inahitaji sauti. Pakia MP3/WAV au weka kiungo cha HTTPS.');
+   if(t==='avatar_video'&&audioSeconds>0&&audioSeconds<5)throw new Error('Sauti lazima iwe angalau sekunde 5.');
+   const body={prompt:$('prompt').value.trim(),durationSeconds:getDuration(),aspectRatio:$('ratio').value,imageUrl:assets.imageUrl,audioUrl:assets.audioUrl,language:$('language').value,resolution:$('resolution').value,expectedChargeTzs:estimate.estimatedChargeTzs};
+   const job=await submitJob(t,body);
+   setStatus('Ombi limepokelewa.\nJob ID: '+job.jobId+'\nHali: '+job.status+'\nAda iliyohifadhiwa: TZS '+Number(job.chargedTzs).toLocaleString()+'\nInasubiri fal.ai...');
+   await poll(job.jobId,t,true);
+  }
+ }catch(e){setStatus(e.message)}
+ finally{$('generate').disabled=false}
+});
+function showResult(d,taskName){
  $('result').replaceChildren();
- if(d.outputUrl){const video=document.createElement('video');video.controls=true;video.playsInline=true;video.src=d.outputUrl;$('result').append(video);const a=document.createElement('a');a.href=d.outputUrl;a.target='_blank';a.rel='noopener noreferrer';a.download='mlimani-ai-video.mp4';a.textContent='Fungua au pakua video';a.style.display='inline-block';a.style.marginTop='12px';$('result').append(a)}
+ if(d.outputUrl){
+  const media=taskName==='voice'?document.createElement('audio'):document.createElement('video');
+  media.controls=true;media.playsInline=true;media.src=d.outputUrl;$('result').append(media);
+  const a=document.createElement('a');a.href=d.outputUrl;a.target='_blank';a.rel='noopener noreferrer';a.textContent=taskName==='voice'?'Fungua au pakua sauti':'Fungua au pakua video';a.style.display='inline-block';a.style.marginTop='12px';$('result').append(a);
+ }
  if(d.error){const p=document.createElement('p');p.textContent=d.error;$('result').append(p)}
 }
 fields();
