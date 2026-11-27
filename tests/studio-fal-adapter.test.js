@@ -28,7 +28,7 @@ test('fal supplier prices convert to TZS and apply the minimum x4 markup', () =>
     providerCost: 130, customerPrice: 520, factor: 1, unit: 'second'
   });
   assert.deepEqual(normalizeSupplierPrice('voice', '1000 characters', 0.1, 2600), {
-    providerCost: 260, customerPrice: 910, factor: 1, unit: '1000 characters'
+    providerCost: 260, customerPrice: 1040, factor: 1, unit: '1000 characters'
   });
 });
 
@@ -47,7 +47,7 @@ test('Talking Avatar charges lip-sync and video generation as separate component
   assert.equal(quote.totalChargeTzs, 17745);
 });
 
-test('Talking Avatar video generation is rounded up to complete 5-second units', () => {
+test('Talking Avatar video generation is billed for each exact second', () => {
   const quote = calculateTalkingAvatarCharge(16, 100, 100, 1.2);
   assert.equal(quote.lipSyncChargeTzs, 1920);
   assert.equal(quote.videoUnits, 16);
