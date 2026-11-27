@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 const TASKS = {
   image: ['FAL_IMAGE_MODEL','FAL_IMAGE_INPUT_TEMPLATE','fal_image_tzs','Image','per_image',['prompt']],
-  video: ['FAL_VIDEO_MODEL','FAL_VIDEO_INPUT_TEMPLATE','fal_video_5s_tzs','Video','per_5_seconds',['prompt']],
+  video: ['FAL_VIDEO_MODEL','FAL_VIDEO_INPUT_TEMPLATE','fal_video_second_tzs','Video','per_second',['prompt']],
   music: ['FAL_MUSIC_MODEL','FAL_MUSIC_INPUT_TEMPLATE','fal_music_minute_tzs','Music','per_minute',['prompt']],
   voice: ['FAL_VOICE_MODEL','FAL_VOICE_INPUT_TEMPLATE','fal_voice_1000_chars_tzs','AI voice · text to speech','per_1000_chars',['prompt']],
   speech: ['FAL_SPEECH_MODEL','FAL_SPEECH_INPUT_TEMPLATE','fal_speech_minute_tzs','Speech recognition','per_minute',['audioUrl']],
@@ -13,25 +13,25 @@ const TASKS = {
 const fail = (message,status=400) => Object.assign(new Error(message),{status});
 const json = async r => { const d=await r.json().catch(()=>({})); if(!r.ok) throw fail(String(d.detail||d.message||d.error||'fal.ai HTTP '+r.status).slice(0,500),r.status); return d; };
 export function normalizeSupplierPrice(task,unit,unitPrice,exchangeRate) {
-  const factors={image:{image:1,images:1},video:{second:5,seconds:5},music:{minute:1,minutes:1,second:60,seconds:60},voice:{'1000 characters':1,'1000 character':1,character:1000,characters:1000},speech:{minute:1,minutes:1,second:60,seconds:60},animation:{request:1,requests:1,generation:1,generations:1},motion:{second:1,seconds:1},avatar_video:{second:1,seconds:1}};
+  const factors={image:{image:1,images:1},video:{second:1,seconds:1},music:{minute:1,minutes:1,second:60,seconds:60},voice:{'1000 characters':1,'1000 character':1,character:1000,characters:1000},speech:{minute:1,minutes:1,second:60,seconds:60},animation:{request:1,requests:1,generation:1,generations:1},motion:{second:1,seconds:1},avatar_video:{second:1,seconds:1}};
   const normalized=String(unit||'').toLowerCase().trim(),factor=factors[task]?.[normalized];
   const price=Number(unitPrice),fx=Number(exchangeRate);
   if(!factor)throw fail('Unit ya fal.ai ni '+normalized+'; haiwezi kulinganishwa salama na kipimo cha Mlimani. Badili model au weka bei kwa mkono.',422);
   if(!Number.isFinite(price)||price<=0||!Number.isFinite(fx)||fx<=0)throw fail('Bei ya supplier au kiwango cha USD/TZS si sahihi.',422);
   const providerCost=Math.round(price*factor*fx*1000000)/1000000;
-  return {providerCost,customerPrice:Math.round(providerCost*3.5*1000000)/1000000,factor,unit:normalized};
+  return {providerCost,customerPrice:Math.round(providerCost*4*1000000)/1000000,factor,unit:normalized};
 }
-export function calculateTalkingAvatarCharge(durationSeconds, lipSyncPricePerSecond, videoPricePer5Seconds, multiplier = 1) {
+export function calculateTalkingAvatarCharge(durationSeconds, lipSyncPricePerSecond, videoPricePerSecond, multiplier = 1) {
   const seconds = Math.max(5, Math.min(600, Math.ceil(Number(durationSeconds) || 5)));
   const lipSyncRate = Number(lipSyncPricePerSecond);
-  const videoRate = Number(videoPricePer5Seconds);
+  const videoRate = Number(videoPricePerSecond);
   const factor = Number(multiplier);
   if (![lipSyncRate, videoRate, factor].every(Number.isFinite) || lipSyncRate < 0 || videoRate < 0 || factor <= 0) {
     throw fail('Bei ya Lip-sync na Video Generation lazima ziwe zaidi ya sifuri.');
   }
-  const videoUnits = Math.ceil(seconds / 5);
+  const videoUnits = seconds;
   const lipSyncChargeTzs = seconds * lipSyncRate * factor;
-  const videoGenerationChargeTzs = videoUnits * videoRate;
+  const videoGenerationChargeTzs = seconds * videoRate;
   return { durationSeconds: seconds, lipSyncChargeTzs, videoUnits, videoGenerationChargeTzs, totalChargeTzs: lipSyncChargeTzs + videoGenerationChargeTzs };
 }
 export const modelPath = model => {
@@ -109,7 +109,7 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
       ON CONFLICT(task) DO UPDATE SET model=excluded.model,input_template=excluded.input_template,updated_at=excluded.updated_at`).run(task,model,template,now());
     res.json({ok:true,task,model,templateSaved:true});
   });
-  // Sync live supplier price and convert it into the app's billing unit before applying x3.5.
+  // Sync live supplier price and convert it into the app's billing unit before applying the minimum x4 markup.
   app.get('/api/admin/fal/pricing/:task',admin,async(req,res)=>{
     const task=String(req.params.task||''),t=TASKS[task];
     if(!t)return res.status(404).json({error:'Huduma ya fal.ai haijulikani.'});
@@ -131,7 +131,7 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
       const stamp=now(),priceKey=t[2];
       const note=('fal.ai live price · '+model+' · USD '+item.unit_price+'/'+unit+' · FX '+fx+' TZS/USD · unit factor '+factor+' · synced '+new Date(stamp).toISOString()).slice(0,500);
       db.prepare("UPDATE admin_pricing SET provider_cost=?,customer_price=?,currency='TZS',notes=?,updated_at=? WHERE config_key=?").run(providerCost,customerPrice,note,stamp,priceKey);
-      res.json({ok:true,task,model,sourceUnit:unit,sourceUnitPrice:Number(item.unit_price),currency:'USD',exchangeRate:fx,billingUnit:t[4],unitFactor:factor,providerCostTzs:providerCost,customerPriceTzs:customerPrice,markup:3.5,priceKey,updatedAt:stamp});
+      res.json({ok:true,task,model,sourceUnit:unit,sourceUnitPrice:Number(item.unit_price),currency:'USD',exchangeRate:fx,billingUnit:t[4],unitFactor:factor,providerCostTzs:providerCost,customerPriceTzs:customerPrice,markup:4,priceKey,updatedAt:stamp});
     }catch(e){res.status(e.status||502).json({error:'Imeshindikana kupata bei ya fal.ai: '+e.message.slice(0,350)});}
   });
   app.get('/api/admin/fal/status',admin,(_q,res)=>res.json({keyConfigured:!!key(),tasks:Object.entries(TASKS).map(([id,t])=>{const c=config(id);return {id,label:t[3],modelVariable:t[0],modelConfigured:!!c.model,templateVariable:t[1],templateConfigured:!!c.template,priceKey:t[2],priceConfigured:price(t[2])>0,ready:!!(key()&&c.model&&c.template&&price(t[2])>0)}})}));
@@ -140,14 +140,14 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
     const cfg=config(req.params.task);
     const secs=Math.max(req.params.task==='avatar_video'?5:2,Math.min(600,Math.round(+req.query.durationSeconds||5))),rate=price(t[2]),characters=Math.max(1,Math.min(12000,Math.round(+req.query.characters||1000)));
     const units=t[4]==='per_1000_chars'?Math.ceil(characters/1000):t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1,multiplier=req.params.task==='avatar_video'&&secs>15?1.2:1;
-    const avatarCosts=req.params.task==='avatar_video'?calculateTalkingAvatarCharge(secs,rate,price('fal_video_5s_tzs'),multiplier):null;
+    const avatarCosts=req.params.task==='avatar_video'?calculateTalkingAvatarCharge(secs,rate,price('fal_video_second_tzs'),multiplier):null;
     const lipSyncCharge=avatarCosts?.lipSyncChargeTzs||0;
     const videoUnits=avatarCosts?.videoUnits||0;
-    const videoRate=req.params.task==='avatar_video'?price('fal_video_5s_tzs'):0;
+    const videoRate=req.params.task==='avatar_video'?price('fal_video_second_tzs'):0;
     const videoGenerationCharge=avatarCosts?.videoGenerationChargeTzs||0;
     const charge=avatarCosts?avatarCosts.totalChargeTzs:units*rate*multiplier;
     const balance=cashWalletBalance(db,req.user.id);
-    res.json({provider:'fal.ai',task:req.params.task,modelConfigured:!!cfg.model,templateConfigured:!!cfg.template,durationSeconds:secs,characters,units,unit:t[4],customerPricePerUnitTzs:rate,pricingMultiplier:multiplier,lipSyncChargeTzs:lipSyncCharge,videoGenerationUnits:videoUnits,videoGenerationPricePer5SecondsTzs:videoRate,videoGenerationChargeTzs:videoGenerationCharge,estimatedChargeTzs:charge,walletBalanceTzs:balance,enabled:!!(key()&&cfg.model&&cfg.template&&rate>0&&(req.params.task!=='avatar_video'||videoRate>0)&&balance>=charge)});
+    res.json({provider:'fal.ai',task:req.params.task,modelConfigured:!!cfg.model,templateConfigured:!!cfg.template,durationSeconds:secs,characters,units,unit:t[4],customerPricePerUnitTzs:rate,pricingMultiplier:multiplier,lipSyncChargeTzs:lipSyncCharge,videoGenerationSeconds:videoUnits,videoGenerationPricePerSecondTzs:videoRate,videoGenerationChargeTzs:videoGenerationCharge,estimatedChargeTzs:charge,walletBalanceTzs:balance,enabled:!!(key()&&cfg.model&&cfg.template&&rate>0&&(req.params.task!=='avatar_video'||videoRate>0)&&balance>=charge)});
   });
   app.post('/api/studio/fal/:task/jobs',need,async(req,res)=>{
     const taskId=req.params.task,t=TASKS[taskId];if(!t)return res.status(404).json({error:'Task haijulikani.'});

@@ -9,7 +9,7 @@
 
 ## Credit units
 - **Chat:** Wallet amount is denominated in TZS-equivalent usage. Runtime Chat pricing uses the configured markup multiplier and USD/TZS rate.
-- **Video:** One credit represents one 5-second generation. A 15-second generation uses three Video credits. The Video price row is for cost planning; the actual debit is the number of plan credits.
+- **Video:** Mlimani Studio video and avatar generation are priced by the exact generated duration in seconds. Customer quotes use one bundled total for the selected video and required components (such as voice and lip-sync); supplier cost details are internal Admin information. Provider minimum/maximum durations still apply. Wallet and deposit rules are unchanged by per-second pricing.
 - **Live Talk:** One Mlimani Wallet credit represents one minute. Production avatar sessions are limited to the number of available whole minutes and charged by rounded-up elapsed minutes. Sandbox sessions are not charged. LiveAvatar FULL mode itself uses one provider credit per 30 seconds, so Admin must use the provider's current plan rate when setting the Mlimani price. The Live Talk price row is for cost planning; the actual debit is the number of plan minutes.
 - **Advertisement:** 15-second product advertisements use the configured `advertisement_15` price when the account has an Advertisement Wallet grant. Accounts without that grant fall back to three Video credits. The 30-second option remains disabled.
 
@@ -38,7 +38,7 @@
 - New top-ups are recorded as pending payments and are credited only after manual Admin confirmation.
 - Cash top-ups are stored in the existing Mlimani AI SQLite Wallet tables under the `cash` service and `purchased` bucket. No old Chat, Video, Live Talk or Advertisement balances are deleted or converted.
 - AI Chat and the developer API debit actual provider token usage in TZS using the Admin markup (minimum ×4) and USD/TZS rate.
-- Video uses the Admin-configured `video_5s_tzs` rate; 15-second ads use `advertisement_15_tzs` or three 5-second video units when no separate ad rate is set.
+- Mlimani Studio fal.ai video uses the Admin-configured `fal_video_second_tzs` rate per second; Talking Avatar combines per-second video generation and per-second lip-sync into one customer quote, with voice charged separately where generated. Other legacy advertisement routes retain their existing pricing until migrated.
 - Live Talk uses the Admin-configured `live_talk_minute_tzs` rate and bills rounded-up elapsed minutes.
 - Video, advertisement and Live Talk PAYG are blocked while their Admin rate is zero. Set and test rates before commercial use.
 - New cash top-ups do not expire. Old subscription credits retain their existing expiry rules.
