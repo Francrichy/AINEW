@@ -21,6 +21,19 @@ export function normalizeSupplierPrice(task,unit,unitPrice,exchangeRate) {
   const providerCost=Math.round(price*factor*fx*1000000)/1000000;
   return {providerCost,customerPrice:Math.round(providerCost*3.5*1000000)/1000000,factor,unit:normalized};
 }
+export function calculateTalkingAvatarCharge(durationSeconds, lipSyncPricePerSecond, videoPricePer5Seconds, multiplier = 1) {
+  const seconds = Math.max(5, Math.min(600, Math.ceil(Number(durationSeconds) || 5)));
+  const lipSyncRate = Number(lipSyncPricePerSecond);
+  const videoRate = Number(videoPricePer5Seconds);
+  const factor = Number(multiplier);
+  if (![lipSyncRate, videoRate, factor].every(Number.isFinite) || lipSyncRate <= 0 || videoRate <= 0 || factor <= 0) {
+    throw fail('Bei ya Lip-sync na Video Generation lazima ziwe zaidi ya sifuri.');
+  }
+  const videoUnits = Math.ceil(seconds / 5);
+  const lipSyncChargeTzs = seconds * lipSyncRate * factor;
+  const videoGenerationChargeTzs = videoUnits * videoRate;
+  return { durationSeconds: seconds, lipSyncChargeTzs, videoUnits, videoGenerationChargeTzs, totalChargeTzs: lipSyncChargeTzs + videoGenerationChargeTzs };
+}
 export const modelPath = model => {
   const m=String(model||'').trim();
   if(!/^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*){1,5}$/i.test(m)) throw fail('Admin hajaweka model ID sahihi ya fal.ai.',503);
@@ -127,11 +140,12 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
     const cfg=config(req.params.task);
     const secs=Math.max(req.params.task==='avatar_video'?5:2,Math.min(600,Math.round(+req.query.durationSeconds||5))),rate=price(t[2]),characters=Math.max(1,Math.min(12000,Math.round(+req.query.characters||1000)));
     const units=t[4]==='per_1000_chars'?Math.ceil(characters/1000):t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1,multiplier=req.params.task==='avatar_video'&&secs>15?1.2:1;
-    const lipSyncCharge=req.params.task==='avatar_video'?units*rate*multiplier:0;
-    const videoUnits=req.params.task==='avatar_video'?Math.ceil(secs/5):0;
+    const avatarCosts=req.params.task==='avatar_video'?calculateTalkingAvatarCharge(secs,rate,price('fal_video_5s_tzs'),multiplier):null;
+    const lipSyncCharge=avatarCosts?.lipSyncChargeTzs||0;
+    const videoUnits=avatarCosts?.videoUnits||0;
     const videoRate=req.params.task==='avatar_video'?price('fal_video_5s_tzs'):0;
-    const videoGenerationCharge=videoUnits*videoRate;
-    const charge=req.params.task==='avatar_video'?lipSyncCharge+videoGenerationCharge:units*rate*multiplier;
+    const videoGenerationCharge=avatarCosts?.videoGenerationChargeTzs||0;
+    const charge=avatarCosts?avatarCosts.totalChargeTzs:units*rate*multiplier;
     const balance=cashWalletBalance(db,req.user.id);
     res.json({provider:'fal.ai',task:req.params.task,modelConfigured:!!cfg.model,templateConfigured:!!cfg.template,durationSeconds:secs,characters,units,unit:t[4],customerPricePerUnitTzs:rate,pricingMultiplier:multiplier,lipSyncChargeTzs:lipSyncCharge,videoGenerationUnits:videoUnits,videoGenerationPricePer5SecondsTzs:videoRate,videoGenerationChargeTzs:videoGenerationCharge,estimatedChargeTzs:charge,walletBalanceTzs:balance,enabled:!!(key()&&cfg.model&&cfg.template&&rate>0&&(req.params.task!=='avatar_video'||videoRate>0)&&balance>=charge)});
   });
@@ -149,7 +163,7 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
       if(taskId==='avatar_video'){
         const videoRate=price('fal_video_5s_tzs');
         if(videoRate<=0)throw fail('Bei ya Video Generation haijawekwa na Admin. Talking Avatar haiwezi kuanza mpaka bei zote mbili ziwekwe.',503);
-        charge=(units*rate*multiplier)+(Math.ceil(secs/5)*videoRate);
+        charge=calculateTalkingAvatarCharge(secs,rate,videoRate,multiplier).totalChargeTzs;
       }else charge=units*rate*multiplier;
       const dailyJobs=db.prepare('SELECT COUNT(*) AS n FROM studio_fal_jobs WHERE user_id=? AND created_at>?').get(req.user.id,now()-86400000).n;
       if(dailyJobs>=Math.max(1,Number(env.FAL_DAILY_JOBS||20)))throw fail('Umefikia kikomo cha kazi za fal.ai kwa saa 24. Jaribu baadaye.',429);
