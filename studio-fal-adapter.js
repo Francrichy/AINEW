@@ -7,8 +7,8 @@ const TASKS = {
   voice: ['FAL_VOICE_MODEL','FAL_VOICE_INPUT_TEMPLATE','fal_voice_minute_tzs','Voice','per_minute',['prompt']],
   speech: ['FAL_SPEECH_MODEL','FAL_SPEECH_INPUT_TEMPLATE','fal_speech_minute_tzs','Speech recognition','per_minute',['audioUrl']],
   animation: ['FAL_ANIMATION_MODEL','FAL_ANIMATION_INPUT_TEMPLATE','fal_animation_tzs','Animation','per_job',['prompt']],
-  motion: ['FAL_MOTION_MODEL','FAL_MOTION_INPUT_TEMPLATE','fal_motion_second_tzs','Motion','per_second',['prompt']],
-  avatar_video: ['FAL_AVATAR_VIDEO_MODEL','FAL_AVATAR_VIDEO_INPUT_TEMPLATE','fal_avatar_video_second_tzs','Avatar video','per_second',['prompt']]
+  motion: ['FAL_MOTION_MODEL','FAL_MOTION_INPUT_TEMPLATE','fal_motion_second_tzs','Full-motion avatar','per_second',['prompt','imageUrl']],
+  avatar_video: ['FAL_AVATAR_VIDEO_MODEL','FAL_AVATAR_VIDEO_INPUT_TEMPLATE','fal_avatar_video_second_tzs','Talking avatar · lip-sync','per_second',['imageUrl','audioUrl']]
 };
 const fail = (message,status=400) => Object.assign(new Error(message),{status});
 const json = async r => { const d=await r.json().catch(()=>({})); if(!r.ok) throw fail(String(d.detail||d.message||d.error||'fal.ai HTTP '+r.status).slice(0,500),r.status); return d; };
@@ -30,7 +30,7 @@ const https = (v,label) => { if(!v)return ''; try{const u=new URL(String(v));if(
 export function makeInput(templateText,vars) {
   let t;try{t=JSON.parse(templateText)}catch{throw fail('Input template ya fal.ai si JSON sahihi.',503)}
   if(!t||typeof t!=='object'||Array.isArray(t))throw fail('Input template lazima iwe JSON object.',503);
-  const walk=v=>Array.isArray(v)?v.map(walk):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,walk(x)])):typeof v==='string'?(v.match(/^\{\{(prompt|durationSeconds|aspectRatio|audioUrl|imageUrl|voiceId|language)\}\}$/)?(vars[v.match(/^\{\{(prompt|durationSeconds|aspectRatio|audioUrl|imageUrl|voiceId|language)\}\}$/)[1]]??''):v.replace(/\{\{(prompt|durationSeconds|aspectRatio|audioUrl|imageUrl|voiceId|language)\}\}/g,(_m,k)=>String(vars[k]??''))):v;
+  const walk=v=>Array.isArray(v)?v.map(walk):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,walk(x)])):typeof v==='string'?(v.match(/^\{\{(prompt|durationSeconds|aspectRatio|audioUrl|imageUrl|voiceId|language|resolution)\}\}$/)?(vars[v.match(/^\{\{(prompt|durationSeconds|aspectRatio|audioUrl|imageUrl|voiceId|language|resolution)\}\}$/)[1]]??''):v.replace(/\{\{(prompt|durationSeconds|aspectRatio|audioUrl|imageUrl|voiceId|language|resolution)\}\}/g,(_m,k)=>String(vars[k]??''))):v;
   return walk(t);
 }
 export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance,consumeWalletCredits,creditCashWallet}) {
@@ -55,13 +55,13 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
   const view=j=>({jobId:j.id,task:j.task,status:j.status,outputUrl:j.output_url||null,result:j.result_json?JSON.parse(j.result_json):null,chargedTzs:j.charge_tzs,billingStatus:j.billing_status,error:j.error||null});
   const modelPresets = {
     image:['fal-ai/flux/schnell','fal-ai/flux/dev','fal-ai/flux-pro'],
-    video:['kling/v4/text-to-video','fal-ai/veo3','fal-ai/minimax/video-01'],
+    video:['minimax/h3-max/text-to-video'],
     music:['fal-ai/lyria2','fal-ai/minimax-music'],
     voice:['fal-ai/elevenlabs/tts','fal-ai/minimax/speech-2.6-hd'],
     speech:['fal-ai/whisper','fal-ai/elevenlabs/speech-to-text'],
     animation:['fal-ai/wan-i2v','fal-ai/minimax/video-01-live'],
-    motion:['fal-ai/kling-video/v2.1/standard/motion-control'],
-    avatar_video:['fal-ai/heygen/avatar-video']
+    motion:['minimax/h3-max/reference-to-video'],
+    avatar_video:['minimax/h3-max/lip-sync/image-to-video']
   };
   app.get('/api/admin/fal/config',admin,(_q,res)=>{
     res.set('Cache-Control','no-store');
@@ -74,7 +74,7 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
     try {
       modelPath(model);
       if(!template || template.length>20000)throw fail('Weka input template ya JSON isiyozidi 20KB.');
-      makeInput(template,{prompt:'test',durationSeconds:5,aspectRatio:'16:9',audioUrl:'https://example.com/audio.mp3',imageUrl:'https://example.com/image.jpg',voiceId:'test',language:'sw'});
+      makeInput(template,{prompt:'test',durationSeconds:5,aspectRatio:'16:9',audioUrl:'https://example.com/audio.mp3',imageUrl:'https://example.com/image.jpg',voiceId:'test',language:'sw',resolution:'768P'});
     } catch(e) { return res.status(400).json({error:e.message}); }
     db.prepare(`INSERT INTO studio_fal_config(task,model,input_template,updated_at) VALUES(?,?,?,?)
       ON CONFLICT(task) DO UPDATE SET model=excluded.model,input_template=excluded.input_template,updated_at=excluded.updated_at`).run(task,model,template,now());
@@ -118,9 +118,9 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
     let model,input,secs,charge,id;
     try{
       const cfg=config(taskId);model=String(cfg.model||'');const path=root(model);if(!key())throw fail('FAL_API_KEY haijawekwa kwenye Render.',503);if(!cfg.template)throw fail('Admin aweke input template kwenye Provider Management.',503);
-      const prompt=String(req.body?.prompt||req.body?.text||'').trim().slice(0,6000);secs=Math.max(1,Math.min(600,Math.round(+req.body?.durationSeconds||5)));
-      const vars={prompt,durationSeconds:secs,aspectRatio:['16:9','9:16','1:1','4:5','3:2','2:3'].includes(req.body?.aspectRatio)?req.body.aspectRatio:'16:9',audioUrl:https(req.body?.audioUrl,'Audio URL'),imageUrl:https(req.body?.imageUrl,'Image URL'),voiceId:String(req.body?.voiceId||'').slice(0,200),language:['sw','en'].includes(req.body?.language)?req.body.language:''};
-      for(const v of t[5])if(!vars[v])throw fail(v==='audioUrl'?'Weka audio URL ya HTTPS.':'Andika prompt kwanza.');
+      const prompt=String(req.body?.prompt||req.body?.text||'').trim().slice(0,6000);secs=Math.max(taskId==='avatar_video'?5:2,Math.min(600,Math.round(+req.body?.durationSeconds||5)));
+      const vars={prompt,durationSeconds:secs,aspectRatio:['16:9','9:16','1:1','4:5','3:2','2:3'].includes(req.body?.aspectRatio)?req.body.aspectRatio:'16:9',audioUrl:https(req.body?.audioUrl,'Audio URL'),imageUrl:https(req.body?.imageUrl,'Image URL'),voiceId:String(req.body?.voiceId||'').slice(0,200),language:['sw','en'].includes(req.body?.language)?req.body.language:'',resolution:['768P','1080P','480P'].includes(req.body?.resolution)?req.body.resolution:'768P'};
+      for(const v of t[5])if(!vars[v])throw fail(v==='audioUrl'?'Pakia sauti au weka kiungo cha sauti cha HTTPS.':v==='imageUrl'?'Pakia picha ya avatar au weka kiungo cha picha cha HTTPS.':'Andika maelezo ya video kwanza.');
       input=makeInput(cfg.template,vars);if(JSON.stringify(input).length>20000)throw fail('Input ni kubwa mno.',413);
       const rate=price(t[2]),units=t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1;charge=units*rate;
       const dailyJobs=db.prepare('SELECT COUNT(*) AS n FROM studio_fal_jobs WHERE user_id=? AND created_at>?').get(req.user.id,now()-86400000).n;
