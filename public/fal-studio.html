@@ -75,6 +75,8 @@ function fields(){
  $('imageFile').required=t==='motion'||t==='avatar_video';
  $('audioFile').required=t==='avatar_video'&&!tts;
  $('duration').disabled=t==='avatar_video'&&(tts||audioSeconds>0);
+ [...$('duration').options].forEach(o=>o.disabled=t!=='avatar_video'&&Number(o.value)>15);
+ if(t!=='avatar_video'&&Number($('duration').value)>15)$('duration').value='15';
  $('result').replaceChildren();estimate=null;$('generate').disabled=true;
  setStatus('Kagua bei kabla ya kuanza.');
 }
