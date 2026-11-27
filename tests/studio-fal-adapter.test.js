@@ -20,12 +20,12 @@ test('fal input templates reject invalid JSON and non-object roots', () => {
   assert.throws(() => makeInput('[]', {}));
 });
 
-test('fal supplier prices convert to TZS and apply the exact x3.5 markup', () => {
+test('fal supplier prices convert to TZS and apply the minimum x4 markup', () => {
   assert.deepEqual(normalizeSupplierPrice('image', 'image', 0.02, 2600), {
-    providerCost: 52, customerPrice: 182, factor: 1, unit: 'image'
+    providerCost: 52, customerPrice: 208, factor: 1, unit: 'image'
   });
   assert.deepEqual(normalizeSupplierPrice('video', 'second', 0.05, 2600), {
-    providerCost: 650, customerPrice: 2275, factor: 5, unit: 'second'
+    providerCost: 130, customerPrice: 520, factor: 1, unit: 'second'
   });
   assert.deepEqual(normalizeSupplierPrice('voice', '1000 characters', 0.1, 2600), {
     providerCost: 260, customerPrice: 910, factor: 1, unit: '1000 characters'
@@ -39,18 +39,18 @@ test('fal supplier pricing refuses units that cannot safely map to app billing u
 });
 
 test('Talking Avatar charges lip-sync and video generation as separate components', () => {
-  const quote = calculateTalkingAvatarCharge(15, 728, 2275);
+  const quote = calculateTalkingAvatarCharge(15, 728, 455);
   assert.equal(quote.durationSeconds, 15);
   assert.equal(quote.lipSyncChargeTzs, 10920);
-  assert.equal(quote.videoUnits, 3);
+  assert.equal(quote.videoUnits, 15);
   assert.equal(quote.videoGenerationChargeTzs, 6825);
   assert.equal(quote.totalChargeTzs, 17745);
 });
 
 test('Talking Avatar video generation is rounded up to complete 5-second units', () => {
-  const quote = calculateTalkingAvatarCharge(16, 100, 500, 1.2);
+  const quote = calculateTalkingAvatarCharge(16, 100, 100, 1.2);
   assert.equal(quote.lipSyncChargeTzs, 1920);
-  assert.equal(quote.videoUnits, 4);
-  assert.equal(quote.videoGenerationChargeTzs, 2000);
-  assert.equal(quote.totalChargeTzs, 3920);
+  assert.equal(quote.videoUnits, 16);
+  assert.equal(quote.videoGenerationChargeTzs, 1600);
+  assert.equal(quote.totalChargeTzs, 3520);
 });
