@@ -155,7 +155,7 @@ function audioDuration(url){
 }
 $('generate').addEventListener('click',async()=>{
  if(!estimate||!estimate.enabled)return;
- $('generate').disabled=true;$('status').textContent='Inaanzisha kazi...';$('result').replaceChildren();
+ generatedVoiceUrl='';$('generate').disabled=true;$('status').textContent='Inaanzisha kazi...';$('result').replaceChildren();
  try{
   const t=task.value,assets=await resolveAssets();
   if((t==='motion'||t==='avatar_video')&&!assets.imageUrl)throw new Error('Pakia picha ya avatar au weka kiungo cha picha.');
