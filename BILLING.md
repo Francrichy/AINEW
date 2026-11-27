@@ -37,7 +37,7 @@
 - Customers no longer purchase monthly Chat or Video subscriptions.
 - New top-ups are recorded as pending payments and are credited only after manual Admin confirmation.
 - Cash top-ups are stored in the existing Mlimani AI SQLite Wallet tables under the `cash` service and `purchased` bucket. No old Chat, Video, Live Talk or Advertisement balances are deleted or converted.
-- AI Chat and the developer API debit actual provider token usage in TZS using the Admin markup and USD/TZS rate.
+- AI Chat and the developer API debit actual provider token usage in TZS using the Admin markup (minimum ×4) and USD/TZS rate.
 - Video uses the Admin-configured `video_5s_tzs` rate; 15-second ads use `advertisement_15_tzs` or three 5-second video units when no separate ad rate is set.
 - Live Talk uses the Admin-configured `live_talk_minute_tzs` rate and bills rounded-up elapsed minutes.
 - Video, advertisement and Live Talk PAYG are blocked while their Admin rate is zero. Set and test rates before commercial use.
