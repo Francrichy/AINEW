@@ -729,7 +729,7 @@ const studioS3 = R2_BUCKET && R2_ENDPOINT && R2_ACCESS_KEY_ID && R2_SECRET_ACCES
   : null;
 const studioPrefix = userId => 'mlimani-studio/users/' + userId + '/';
 const studioSafeName = value => String(value || 'media').normalize('NFKD').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0,100) || 'media';
-registerStudioLibraryRoutes(app, { need, admin, studioS3, R2_BUCKET, studioSafeName, randomUUID });
+registerStudioLibraryRoutes(app, { need, pluginTestAllowed, studioS3, R2_BUCKET, studioSafeName, randomUUID });
 async function readStudioProject(userId, projectId) {
   if (!studioS3) throw Object.assign(new Error('Cloud storage haijaunganishwa. Admin anahitaji kusanidi Cloudflare R2.'), { status: 503 });
   if (!/^[a-f0-9-]{36}$/i.test(String(projectId || ''))) throw Object.assign(new Error('Project ID si sahihi.'), { status: 400 });
