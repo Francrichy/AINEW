@@ -13,7 +13,7 @@ const TASKS = {
 const fail = (message,status=400) => Object.assign(new Error(message),{status});
 const json = async r => { const d=await r.json().catch(()=>({})); if(!r.ok) throw fail(String(d.detail||d.message||d.error||'fal.ai HTTP '+r.status).slice(0,500),r.status); return d; };
 export function normalizeSupplierPrice(task,unit,unitPrice,exchangeRate) {
-  const factors={image:{image:1,images:1},video:{second:5,seconds:5},music:{minute:1,minutes:1,second:60,seconds:60},voice:{minute:1,minutes:1,second:60,seconds:60,'1000 characters':1,'1000 character':1,character:1000,characters:1000},speech:{minute:1,minutes:1,second:60,seconds:60},animation:{request:1,requests:1,generation:1,generations:1},motion:{second:1,seconds:1},avatar_video:{second:1,seconds:1}};
+  const factors={image:{image:1,images:1},video:{second:5,seconds:5},music:{minute:1,minutes:1,second:60,seconds:60},voice:{'1000 characters':1,'1000 character':1,character:1000,characters:1000},speech:{minute:1,minutes:1,second:60,seconds:60},animation:{request:1,requests:1,generation:1,generations:1},motion:{second:1,seconds:1},avatar_video:{second:1,seconds:1}};
   const normalized=String(unit||'').toLowerCase().trim(),factor=factors[task]?.[normalized];
   const price=Number(unitPrice),fx=Number(exchangeRate);
   if(!factor)throw fail('Unit ya fal.ai ni '+normalized+'; haiwezi kulinganishwa salama na kipimo cha Mlimani. Badili model au weka bei kwa mkono.',422);
