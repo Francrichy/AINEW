@@ -83,7 +83,7 @@ try { db.exec('ALTER TABLE payments ADD COLUMN amount_tzs REAL'); } catch {}
 try { db.exec("ALTER TABLE live_talk_sessions ADD COLUMN billing_mode TEXT NOT NULL DEFAULT 'legacy'"); } catch {}
 try { db.exec('ALTER TABLE live_talk_sessions ADD COLUMN unit_price_tzs REAL NOT NULL DEFAULT 0'); } catch {}
 initializeBilling(db);
-// Move the previous default x4 markup to the requested x3.5 default once; preserve custom values thereafter.
+// Enforce the approved minimum x4 markup; preserve higher Admin-configured values.
 db.prepare("UPDATE admin_pricing SET customer_price=4, notes='Gharama ya mtoa huduma ×4; inaweza kuongezwa na Admin.' WHERE config_key='markup_multiplier' AND customer_price<4").run();
 syncBillingPlans(db, PLANS);
 const savedBillingSettings = Object.fromEntries(db.prepare("SELECT config_key,customer_price FROM admin_pricing WHERE config_key IN ('markup_multiplier','usd_tzs')").all().map(x => [x.config_key, Number(x.customer_price)]));
