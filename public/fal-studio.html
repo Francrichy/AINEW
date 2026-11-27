@@ -2,123 +2,201 @@
 <html lang="sw">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex"><title>Mlimani · fal.ai Media Studio</title>
+<meta name="robots" content="noindex"><meta name="theme-color" content="#000"><title>Mlimani · AI Video Studio</title>
 <style>
 :root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:#000;color:#f5f5f5}
 *{box-sizing:border-box}body{margin:0;background:#000;color:#f5f5f5;min-height:100vh}
 header{padding:16px 5%;border-bottom:1px solid #222;display:flex;align-items:center;justify-content:space-between;gap:12px}
 a{color:#ddd;text-decoration:none}a:hover{color:#fff}.brand{font-weight:850;letter-spacing:.12em}.brand span{color:#888}
-main{max-width:850px;margin:auto;padding:26px 18px 60px}h1{font-size:clamp(25px,5vw,38px);margin:0 0 8px}p{color:#aaa;line-height:1.55}
+main{max-width:900px;margin:auto;padding:26px 18px 60px}h1{font-size:clamp(25px,5vw,38px);margin:0 0 8px}p{color:#aaa;line-height:1.55}
 .panel{background:#090909;border:1px solid #242424;border-radius:18px;padding:20px;margin:18px 0}
 label{display:block;font-weight:700;margin:14px 0 7px;color:#ddd}
 input,select,textarea{width:100%;background:#111;color:#fff;border:1px solid #383838;border-radius:10px;padding:12px;font:inherit}
-textarea{min-height:115px;resize:vertical}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+textarea{min-height:110px;resize:vertical}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 button{background:#eee;color:#080808;border:0;border-radius:10px;padding:12px 17px;font-weight:800;cursor:pointer}
 button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#191919;color:#eee;border:1px solid #383838}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
 .status{border:1px solid #303030;background:#111;border-radius:12px;padding:13px;margin-top:14px;color:#ddd;white-space:pre-wrap;overflow-wrap:anywhere}
-.muted{color:#888;font-size:.9rem}.hidden{display:none!important}
+.muted,.help{color:#888;font-size:.9rem}.help{font-size:.82rem}.hidden{display:none!important}
 #result img,#result video,#result audio{max-width:100%;width:100%;margin-top:12px;border-radius:12px;background:#111}
 #result pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#ccc;background:#111;padding:12px;border-radius:10px}
+.pill{display:inline-block;padding:6px 10px;border:1px solid #444;border-radius:99px;color:#ddd;font-size:.78rem}
 @media(max-width:600px){header{padding:14px 16px}main{padding:20px 12px 40px}.panel{padding:14px}.grid{grid-template-columns:1fr}.actions button{width:100%}}
 </style>
 </head>
 <body>
-<header><a class="brand" href="/"><span>MLIMANI</span> LABS</a><nav><a href="/studio.html">Live Studio</a> · <a href="/provider-admin.html">Provider Admin</a></nav></header>
+<header><a class="brand" href="/"><span>MLIMANI</span> LABS</a><nav><a href="/studio.html#avatarLibrary">Avatar Library</a> · <a href="/studio.html">Live Studio</a></nav></header>
 <main>
-<h1>Media Studio · fal.ai</h1>
-<p>Sehemu moja ya kutengeneza picha, video, muziki, sauti, transcription, animation, motion na talking-avatar. Huduma itaonekana tayari tu baada ya Admin kuweka model, template na bei.</p>
+<span class="pill">FAL.AI · FIRST LAUNCH</span>
+<h1>Talking Avatars & Video Creator</h1>
+<p>Chagua huduma moja, pakia picha au sauti pale inapohitajika, kagua bei, kisha tengeneza video. Standard ni 768p; Premium ni 1080p. API key inabaki salama kwenye server ya Mlimani.</p>
 <section class="panel">
-<label for="task">Chagua huduma</label>
+<label for="task">Huduma unayotaka</label>
 <select id="task">
-<option value="image">Image Studio · Picha</option><option value="video">Video Studio · Video</option>
-<option value="music">Music Studio · Muziki</option><option value="voice">Voice Studio · Sauti / TTS</option>
-<option value="speech">Speech Recognition · Sauti kwenda maandishi</option><option value="animation">Animation Studio</option>
-<option value="motion">Motion Studio</option><option value="avatar_video">Avatar Video · Talking Photo</option>
+<option value="video">Video Creator Lite · Tengeneza video kutoka maelezo/picha</option>
+<option value="avatar_video">Talking Avatar · Picha inayozungumza kwa sauti yako</option>
+<option value="motion">Full Motion Avatar · Avatar yenye vitendo na movement</option>
 </select>
-<div id="promptWrap"><label for="prompt">Maelezo / Prompt / Script</label><textarea id="prompt" placeholder="Eleza unachotaka kutengeneza..."></textarea></div>
+<div id="voiceModeWrap" class="hidden"><label for="voiceMode">Sauti ya Talking Avatar</label><select id="voiceMode"><option value="upload">Nina sauti yangu (upload)</option><option value="script">Andika script · AI itazungumza</option></select></div>
+<div id="ttsVoiceWrap" class="hidden"><label for="ttsVoice">Chagua sauti ya AI</label><select id="ttsVoice"><option>Aria</option><option>Sarah</option><option>Roger</option><option>Laura</option><option>Charlie</option><option>George</option><option>Matilda</option><option>Jessica</option></select></div>
+<div id="promptWrap"><label for="prompt">Eleza video au kitendo cha avatar</label><textarea id="prompt" maxlength="6000" placeholder="Mfano: Ngina anatembea ndani ya duka la kisasa, anachukua pakiti ya kahawa na kuionyesha kamera. Mwanga wa kitaalamu, movement ya asili..."></textarea></div>
+<div id="imageWrap"><label for="imageFile">Picha ya kuanzia / picha ya avatar</label><input id="imageFile" type="file" accept="image/jpeg,image/png,image/webp"><label for="imageUrl">Au kiungo cha picha (HTTPS)</label><input id="imageUrl" type="url" placeholder="https://..."><p class="help">Talking Avatar: tumia picha ya uso iliyo wazi. Full Motion: picha ya mwili mzima husaidia movement. Tumia picha unayomiliki au una ruhusa ya kuitumia.</p></div>
+<div id="audioWrap"><label for="audioFile">Sauti / soundtrack (hiari kwa Video Creator na Full Motion; lazima kwa Talking Avatar ikiwa unatumia upload)</label><input id="audioFile" type="file" accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/mp4,audio/webm"><label for="audioUrl">Au kiungo cha sauti (HTTPS)</label><input id="audioUrl" type="url" placeholder="https://..."><p class="help">Talking Avatar hutumia sauti hii kulandanisha midomo. Hakikisha una haki ya kutumia sauti na ruhusa ya mtu husika.</p></div>
 <div class="grid">
-<div id="durationWrap"><label for="duration">Muda (sekunde)</label><input id="duration" type="number" min="1" max="600" value="5"></div>
-<div><label for="ratio">Uwiano wa picha/video</label><select id="ratio"><option>16:9</option><option>9:16</option><option>1:1</option><option>4:5</option><option>3:2</option><option>2:3</option></select></div>
+<div><label for="duration">Muda wa video (sekunde)</label><select id="duration"><option value="5">5 seconds</option><option value="10">10 seconds</option><option value="15" selected>15 seconds</option><option value="30">30 seconds</option><option value="60">60 seconds</option></select></div>
+<div><label for="resolution">Ubora</label><select id="resolution"><option value="768P" selected>Standard · 768p</option><option value="1080P">Premium · 1080p</option></select></div>
 </div>
-<div id="imageWrap" class="hidden"><label for="imageUrl">Kiungo cha picha (HTTPS)</label><input id="imageUrl" type="url" placeholder="https://..."></div>
-<div id="audioWrap" class="hidden"><label for="audioUrl">Kiungo cha sauti (HTTPS)</label><input id="audioUrl" type="url" placeholder="https://..."></div>
-<div id="voiceWrap" class="hidden"><label for="voiceId">Voice ID (kama model inahitaji)</label><input id="voiceId" placeholder="Voice ID"></div>
-<div class="grid"><div><label for="language">Lugha</label><select id="language"><option value="sw">Kiswahili</option><option value="en">English</option></select></div></div>
-<div class="actions"><button id="estimate" type="button" class="secondary">Kagua bei</button><button id="generate" type="button" disabled>Tengeneza</button></div>
+<div class="grid">
+<div><label for="ratio">Muundo wa video</label><select id="ratio"><option value="9:16">Vertical · TikTok / Reels / Shorts</option><option value="16:9">Landscape · YouTube</option><option value="1:1">Square · Social media</option><option value="3:4">Portrait · 3:4</option></select></div>
+<div><label for="language">Lugha ya maelezo</label><select id="language"><option value="sw">Kiswahili</option><option value="en">English</option></select></div>
+</div>
+<div class="actions"><button id="estimate" type="button" class="secondary">Kagua bei kwanza</button><button id="generate" type="button" disabled>Tengeneza video</button></div>
 <div id="status" class="status" role="status">Inasubiri makadirio ya bei.</div>
 <div id="result"></div>
 </section>
-<p class="muted">Matumizi ya fal.ai yanaweza kuwa na gharama kwa kila modeli. Mlimani itakata Wallet baada ya kuonyesha makadirio na kuthibitisha bei. Usipakie picha ya mtu bila ruhusa yake.</p>
+<p class="muted">Malipo hukatwa baada ya kuonyesha makadirio na kuanzisha generation. Kazi zikishindwa hurudishiwa credits kiotomatiki. Upload ya picha/sauti inahitaji Cloud storage ya Mlimani iwe imeunganishwa.</p>
 </main>
 <script>
 const $=id=>document.getElementById(id);
-let estimate=null,activeJob=null;
+const token=()=>localStorage.t||localStorage.getItem('mlimani_token')||localStorage.getItem('token')||'';
+const headers=(extra={})=>({...extra,Authorization:'Bearer '+token()});
+let estimate=null,uploadedImageUrl='',uploadedAudioUrl='',audioSeconds=0,generatedVoiceUrl='';
 const task=$('task');
+function setStatus(message){$('status').textContent=message}
+function scriptMode(){return task.value==='avatar_video'&&$('voiceMode').value==='script'}
 function fields(){
- const t=task.value;
- $('promptWrap').classList.toggle('hidden',t==='speech');
- $('audioWrap').classList.toggle('hidden',t!=='speech');
- $('imageWrap').classList.toggle('hidden',!['animation','motion','avatar_video'].includes(t));
- $('voiceWrap').classList.toggle('hidden',!['voice','avatar_video'].includes(t));
- $('durationWrap').classList.toggle('hidden',t==='image'||t==='animation');
+ const t=task.value,tts=scriptMode();
+ $('voiceModeWrap').classList.toggle('hidden',t!=='avatar_video');
+ $('ttsVoiceWrap').classList.toggle('hidden',!tts);
+ $('promptWrap').classList.toggle('hidden',t==='avatar_video'&&!tts);
+ document.querySelector('label[for="prompt"]').textContent=tts?'Script ya maneno ambayo avatar itazungumza':'Eleza video au kitendo cha avatar';
+ $('imageWrap').classList.toggle('hidden',false);
+ $('audioWrap').classList.toggle('hidden',t==='avatar_video'&&tts);
+ $('imageFile').required=t==='motion'||t==='avatar_video';
+ $('audioFile').required=t==='avatar_video'&&!tts;
+ $('duration').disabled=t==='avatar_video'&&(tts||audioSeconds>0);
+ [...$('duration').options].forEach(o=>o.disabled=t!=='avatar_video'&&Number(o.value)>15);
+ if(t!=='avatar_video'&&Number($('duration').value)>15)$('duration').value='15';
  $('result').replaceChildren();estimate=null;$('generate').disabled=true;
- $('status').textContent='Kagua bei kabla ya kuanza.';
+ setStatus('Kagua bei kabla ya kuanza.');
 }
 task.addEventListener('change',fields);
+$('voiceMode').addEventListener('change',fields);
+function invalidateEstimate(){if(estimate){estimate=null;$('generate').disabled=true;setStatus('Umebadilisha taarifa. Kagua bei upya kabla ya kutengeneza video.')}}
+['prompt','imageFile','imageUrl','audioFile','audioUrl','duration','resolution','ratio','language','ttsVoice'].forEach(id=>$(id).addEventListener(id.endsWith('File')?'change':'input',invalidateEstimate));
+function getDuration(){
+ if(scriptMode()){const words=$('prompt').value.trim().split(/\s+/).filter(Boolean).length;return Math.max(5,Math.ceil(words/2.5))}
+ if(task.value==='avatar_video'&&audioSeconds>0)return Math.ceil(audioSeconds);
+ return Number($('duration').value);
+}
+async function apiJson(url,options={}){
+ const r=await fetch(url,{...options,headers:headers(options.headers||{})});
+ const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Ombi halikukamilika.');return d;
+}
+async function uploadAsset(file,type){
+ if(!token())throw new Error('Ingia kwanza kwenye akaunti yako ya Mlimani.');
+ const maxBytes=type==='image'?30*1024*1024:15*1024*1024;if(file.size>maxBytes)throw new Error(type==='image'?'Picha isizidi MB 30.':'Sauti isizidi MB 15.');
+ const pd=await apiJson('/api/studio/uploads/presign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file.name,contentType:file.type,sizeBytes:file.size,projectType:type,title:'fal.ai '+type+' input'})});
+ const put=await fetch(pd.uploadUrl,{method:'PUT',headers:pd.headers,body:file});if(!put.ok)throw new Error('Upload haikukamilika. Hakikisha Cloud storage imeunganishwa.');
+ await apiJson('/api/studio/projects/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({projectId:pd.projectId,storageKey:pd.storageKey,title:'fal.ai '+type+' input',type,durationSeconds:type==='voice'?audioSeconds:0})});
+ const sd=await apiJson('/api/studio/projects/'+encodeURIComponent(pd.projectId)+'/fal-url');
+ return sd.url;
+}
+$('audioFile').addEventListener('change',()=>{
+ audioSeconds=0;const f=$('audioFile').files[0];if(!f){fields();return}
+ const probe=new Audio();probe.preload='metadata';probe.onloadedmetadata=()=>{audioSeconds=Number.isFinite(probe.duration)?probe.duration:0;if(audioSeconds>600){setStatus('Sauti imezidi dakika 10. Tafadhali tumia sauti fupi zaidi.');$('generate').disabled=true}else if(task.value==='avatar_video'&&audioSeconds<5){setStatus('Talking Avatar inahitaji sauti ya angalau sekunde 5.');$('generate').disabled=true}else if(task.value==='avatar_video'){$('duration').value=String(Math.max(5,Math.ceil(audioSeconds)));$('duration').disabled=true}};probe.onerror=()=>setStatus('Imeshindikana kusoma muda wa sauti.');probe.src=URL.createObjectURL(f);
+});
+async function resolveAssets(){
+ uploadedImageUrl=$('imageUrl').value.trim();uploadedAudioUrl=$('audioUrl').value.trim();
+ const image=$('imageFile').files[0],audio=$('audioFile').files[0];
+ if(image){setStatus('Inapakia picha salama kwenye Cloud...');uploadedImageUrl=await uploadAsset(image,'image')}
+ if(audio){setStatus('Inapakia sauti salama kwenye Cloud...');uploadedAudioUrl=await uploadAsset(audio,'voice')}
+ return {imageUrl:uploadedImageUrl,audioUrl:uploadedAudioUrl};
+}
+async function quote(taskName,durationSeconds,characters){
+ const q=new URLSearchParams({durationSeconds:String(durationSeconds||5)});
+ if(characters)q.set('characters',String(characters));
+ return apiJson('/api/studio/fal/'+encodeURIComponent(taskName)+'/estimate?'+q.toString());
+}
 $('estimate').addEventListener('click',async()=>{
- $('status').textContent='Inakagua model, template, bei na salio...';$('generate').disabled=true;estimate=null;
+ $('generate').disabled=true;estimate=null;
+ if(!token()){setStatus('Tafadhali ingia kwanza. Fungua /login kisha urudi hapa.');return}
  try{
-  const r=await fetch('/api/studio/fal/'+encodeURIComponent(task.value)+'/estimate?durationSeconds='+encodeURIComponent($('duration').value));
-  const d=await r.json();if(!r.ok)throw new Error(d.error||'Makadirio hayakupatikana.');
-  estimate=d;
-  $('status').textContent='Provider: fal.ai\nModel: '+(d.modelConfigured?'imewekwa':'haijawekwa')+'\nInput template: '+(d.templateConfigured?'imewekwa':'haijawekwa')+'\nBei kwa unit: TZS '+Number(d.customerPricePerUnitTzs).toLocaleString()+'\nUnits: '+d.units+'\nJumla: TZS '+Number(d.estimatedChargeTzs).toLocaleString()+'\nWallet: TZS '+Number(d.walletBalanceTzs).toLocaleString()+'\n'+(d.enabled?'Unaweza kuendelea.':'Huduma bado haijawa tayari au salio/bei haitoshi.');
-  $('generate').disabled=!d.enabled;
- }catch(e){$('status').textContent=e.message}
+  const durationSeconds=getDuration();
+  if(task.value==='avatar_video'&&!scriptMode()&&audioSeconds>0&&audioSeconds<5)throw new Error('Sauti lazima iwe angalau sekunde 5.');
+  if(task.value==='avatar_video'&&scriptMode()){
+   const text=$('prompt').value.trim(),words=text.split(/\s+/).filter(Boolean).length;
+   if(text.length<40||words<12)throw new Error('Andika script yenye angalau maneno 12 ili sauti iwe na urefu wa kutosha kwa lip-sync.');
+   const [voice,avatar]=await Promise.all([quote('voice',5,text.length),quote('avatar_video',Math.max(5,durationSeconds))]);
+   estimate={enabled:voice.enabled&&avatar.enabled&&(voice.estimatedChargeTzs+avatar.estimatedChargeTzs)<=avatar.walletBalanceTzs,tts:voice,avatar,estimatedSeconds:durationSeconds,estimatedChargeTzs:voice.estimatedChargeTzs+avatar.estimatedChargeTzs};
+   setStatus('Talking Avatar · Script-to-speech\nSauti ya AI: TZS '+Number(voice.estimatedChargeTzs).toLocaleString()+'\nLip-sync ya avatar (makadirio '+durationSeconds+' sec): TZS '+Number(avatar.estimatedChargeTzs).toLocaleString()+'\nJumla ya makadirio: TZS '+Number(estimate.estimatedChargeTzs).toLocaleString()+'\nWallet: TZS '+Number(avatar.walletBalanceTzs).toLocaleString()+'\n'+(estimate.enabled?'Unaweza kuendelea.':'Huduma moja haijawezeshwa au salio/bei haitoshi.'));
+  }else{
+   const d=await quote(task.value,durationSeconds);
+   estimate={...d,estimatedChargeTzs:d.estimatedChargeTzs};
+   setStatus('Provider: fal.ai\nHuduma: '+task.options[task.selectedIndex].text+'\nUbora: '+$('resolution').selectedOptions[0].text+'\nMuda: '+durationSeconds+' sec\nBei: TZS '+Number(d.estimatedChargeTzs).toLocaleString()+'\nWallet: TZS '+Number(d.walletBalanceTzs).toLocaleString()+'\n'+(d.enabled?'Unaweza kuendelea.':'Huduma bado haijawezeshwa au salio/bei haitoshi.'));
+  }
+  $('generate').disabled=!estimate.enabled;
+ }catch(e){setStatus(e.message)}
 });
-$('generate').addEventListener('click',async()=>{
- if(!estimate||!estimate.enabled)return;
- $('generate').disabled=true;$('status').textContent='Inatuma ombi kwa fal.ai...';$('result').replaceChildren();
- const body={prompt:$('prompt').value,text:$('prompt').value,durationSeconds:Number($('duration').value),aspectRatio:$('ratio').value,imageUrl:$('imageUrl').value,audioUrl:$('audioUrl').value,voiceId:$('voiceId').value,language:$('language').value,expectedChargeTzs:estimate.estimatedChargeTzs};
- try{
-  const r=await fetch('/api/studio/fal/'+encodeURIComponent(task.value)+'/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const d=await r.json();if(!r.ok)throw new Error(d.error||'Ombi limeshindwa.');
-  activeJob=d.jobId;$('status').textContent='Ombi limepokelewa.\nJob ID: '+activeJob+'\nHali: '+d.status+'\nInasubiri fal.ai...';
-  await poll(activeJob);
- }catch(e){$('status').textContent=e.message;$('generate').disabled=false}
-});
-async function poll(id){
+async function submitJob(taskName,body){
+ return apiJson('/api/studio/fal/'+encodeURIComponent(taskName)+'/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+}
+async function poll(id,taskName,show=true){
  for(let i=0;i<180;i++){
   await new Promise(resolve=>setTimeout(resolve,5000));
-  const r=await fetch('/api/studio/fal/jobs/'+encodeURIComponent(id));const d=await r.json();
-  if(!r.ok)throw new Error(d.error||'Imeshindikana kufuatilia kazi.');
-  $('status').textContent='Job ID: '+id+'\nHali: '+d.status+'\nMalipo: '+d.billingStatus+'\n'+(d.error||'');
-  if(d.status==='COMPLETED'){
-   showResult(d);$('generate').disabled=false;return;
-  }
-  if(d.status==='FAILED'){showResult(d);$('generate').disabled=false;return}
+  const d=await apiJson('/api/studio/fal/jobs/'+encodeURIComponent(id));
+  setStatus(taskName+' · Job ID: '+id+'\nHali: '+d.status+'\nMalipo: '+d.billingStatus+'\n'+(d.error||''));
+  if(d.status==='COMPLETED'||d.status==='FAILED'){if(show)showResult(d,taskName);return d}
  }
- $('status').textContent+=' \nKazi bado inaendelea. Unaweza kufuatilia tena baadaye kwa Job ID: '+id;
- $('generate').disabled=false;
+ setStatus('Kazi bado inaendelea. Rudi baadaye kuangalia Job ID: '+id);return null;
 }
-function showResult(d){
+function audioDuration(url){
+ return new Promise((resolve,reject)=>{const a=new Audio();a.preload='metadata';a.onloadedmetadata=()=>resolve(Math.ceil(a.duration));a.onerror=()=>reject(new Error('Imeshindikana kusoma muda wa sauti iliyotengenezwa.'));a.src=url});
+}
+$('generate').addEventListener('click',async()=>{
+ if(!estimate||!estimate.enabled)return;
+ generatedVoiceUrl='';$('generate').disabled=true;$('status').textContent='Inaanzisha kazi...';$('result').replaceChildren();
+ try{
+  const t=task.value,assets=await resolveAssets();
+  if((t==='motion'||t==='avatar_video')&&!assets.imageUrl)throw new Error('Pakia picha ya avatar au weka kiungo cha picha.');
+  if(t==='avatar_video'&&scriptMode()){
+   const voiceJob=await submitJob('voice',{prompt:$('prompt').value.trim(),voiceId:$('ttsVoice').value,language:$('language').value,durationSeconds:5,expectedChargeTzs:estimate.tts.estimatedChargeTzs});
+   setStatus('Inatengeneza sauti ya AI kwanza... Ada ya sauti: TZS '+Number(voiceJob.chargedTzs).toLocaleString());
+   const voiceDone=await poll(voiceJob.jobId,'AI Voice',false);
+   if(!voiceDone||voiceDone.status!=='COMPLETED'||!voiceDone.outputUrl)throw new Error(voiceDone?.error||'Sauti ya AI haikutengenezwa. Hakuna lip-sync iliyotozwa.');
+   generatedVoiceUrl=voiceDone.outputUrl;
+   const actualSeconds=await audioDuration(voiceDone.outputUrl);
+   if(actualSeconds<5)throw new Error('Sauti iliyotengenezwa ni fupi sana kwa lip-sync. Ongeza script; sauti yako imehifadhiwa: '+voiceDone.outputUrl);
+   if(actualSeconds>600)throw new Error('Sauti imezidi dakika 10. Tumia script fupi zaidi.');
+   const avatarQuote=await quote('avatar_video',actualSeconds);
+   if(!avatarQuote.enabled)throw new Error('Sauti imetengenezwa lakini lip-sync haijawezeshwa au Wallet haitoshi. Sauti: '+voiceDone.outputUrl);
+   const combined=estimate.tts.estimatedChargeTzs+avatarQuote.estimatedChargeTzs;
+   if(Math.abs(combined-estimate.estimatedChargeTzs)>1&&!window.confirm('Makadirio halisi baada ya kutengeneza sauti ni TZS '+Number(combined).toLocaleString()+'. Endelea na lip-sync? Sauti tayari imetengenezwa na unaweza kuitumia tena.')){setStatus('Umeacha lip-sync. Sauti yako ya AI imehifadhiwa.');showResult(voiceDone,'voice');$('generate').disabled=false;return}
+   setStatus('Sauti imekamilika. Inatengeneza video ya Ngina/Ethan...');
+   const avatarJob=await submitJob('avatar_video',{imageUrl:assets.imageUrl,audioUrl:voiceDone.outputUrl,durationSeconds:actualSeconds,aspectRatio:$('ratio').value,language:$('language').value,resolution:$('resolution').value,expectedChargeTzs:avatarQuote.estimatedChargeTzs});
+   const done=await poll(avatarJob.jobId,'Talking Avatar',true);
+   if(done?.status==='COMPLETED')setStatus('Video ya Talking Avatar imekamilika. Sauti na lip-sync vimeunganishwa.');
+  }else{
+   if(t==='avatar_video'&&!assets.audioUrl)throw new Error('Talking Avatar inahitaji sauti. Pakia MP3/WAV au weka kiungo cha HTTPS.');
+   if(t==='avatar_video'&&audioSeconds>0&&audioSeconds<5)throw new Error('Sauti lazima iwe angalau sekunde 5.');
+   const body={prompt:$('prompt').value.trim(),durationSeconds:getDuration(),aspectRatio:$('ratio').value,imageUrl:assets.imageUrl,audioUrl:assets.audioUrl,language:$('language').value,resolution:$('resolution').value,expectedChargeTzs:estimate.estimatedChargeTzs};
+   const job=await submitJob(t,body);
+   setStatus('Ombi limepokelewa.\nJob ID: '+job.jobId+'\nHali: '+job.status+'\nAda iliyohifadhiwa: TZS '+Number(job.chargedTzs).toLocaleString()+'\nInasubiri fal.ai...');
+   await poll(job.jobId,t,true);
+  }
+ }catch(e){setStatus(e.message);if(generatedVoiceUrl){const link=document.createElement('a');link.href=generatedVoiceUrl;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Fungua au pakua sauti ya AI iliyotengenezwa';link.style.display='inline-block';link.style.marginTop='12px';$('result').append(link)}}
+ finally{$('generate').disabled=false}
+});
+function showResult(d,taskName){
  $('result').replaceChildren();
  if(d.outputUrl){
-  const url=d.outputUrl;
-  let el;
-  if(task.value==='video'||task.value==='animation'||task.value==='motion'||task.value==='avatar_video'){el=document.createElement('video');el.controls=true}
-  else if(task.value==='music'||task.value==='voice'){el=document.createElement('audio');el.controls=true}
-  else {el=document.createElement('img');el.alt='Matokeo ya fal.ai'}
-  el.src=url;$('result').append(el);
-  const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Fungua au pakua matokeo';a.style.display='block';a.style.marginTop='12px';$('result').append(a);
+  const media=taskName==='voice'?document.createElement('audio'):document.createElement('video');
+  media.controls=true;media.playsInline=true;media.src=d.outputUrl;$('result').append(media);
+  const a=document.createElement('a');a.href=d.outputUrl;a.target='_blank';a.rel='noopener noreferrer';a.textContent=taskName==='voice'?'Fungua au pakua sauti':'Fungua au pakua video';a.style.display='inline-block';a.style.marginTop='12px';$('result').append(a);
  }
- if(d.result){const pre=document.createElement('pre');pre.textContent=JSON.stringify(d.result,null,2);$('result').append(pre)}
+ if(d.error){const p=document.createElement('p');p.textContent=d.error;$('result').append(p)}
 }
 fields();
-const startupParams=new URLSearchParams(location.search);
-if(startupParams.has('task')){const wanted=startupParams.get('task');if(['image','video','music','voice','speech','animation','motion','avatar_video'].includes(wanted)){$('task').value=wanted;fields();}}
-if(startupParams.has('prompt')){$('prompt').value=startupParams.get('prompt').slice(0,4000);}
-
+const startup=new URLSearchParams(location.search);if(['video','motion','avatar_video'].includes(startup.get('task'))){task.value=startup.get('task');fields()}
 </script>
 </body></html>

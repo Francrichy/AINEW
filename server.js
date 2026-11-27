@@ -802,6 +802,22 @@ app.get('/api/studio/projects/:id/download', need, async (req, res) => {
     res.json({ url, expiresIn: 600, project });
   } catch (error) { res.status(error.status || 502).json({ error: error.message || 'Imeshindikana kuandaa download.' }); }
 });
+app.get('/api/studio/projects/:id/fal-url', need, async (req, res) => {
+  try {
+    const { project } = await readStudioProject(req.user.id, req.params.id);
+    const allowed = /^(image\/(jpeg|png|webp)|audio\/(mpeg|mp3|wav|ogg|mp4|webm))$/i;
+    if (!['image','voice'].includes(project.type) || !allowed.test(String(project.contentType || ''))) {
+      return res.status(415).json({ error: 'fal.ai inahitaji picha JPG/PNG/WEBP au sauti MP3/WAV/OGG/M4A.' });
+    }
+    // fal.ai fetches this temporary URL from its servers; the URL is issued only to
+    // the authenticated owner and expires automatically after six hours.
+    const expiresIn = 21600;
+    const url = await getSignedUrl(studioS3, new GetObjectCommand({ Bucket: R2_BUCKET, Key: project.storageKey }), { expiresIn });
+    res.set('Cache-Control', 'no-store').json({ url, expiresIn, contentType: project.contentType });
+  } catch (error) {
+    res.status(error.status || 502).json({ error: error.message || 'Imeshindikana kuandaa kiungo salama cha fal.ai.' });
+  }
+});
 app.delete('/api/studio/projects/:id', need, async (req, res) => {
   try {
     const { key, project } = await readStudioProject(req.user.id, req.params.id);

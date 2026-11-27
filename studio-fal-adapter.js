@@ -4,16 +4,16 @@ const TASKS = {
   image: ['FAL_IMAGE_MODEL','FAL_IMAGE_INPUT_TEMPLATE','fal_image_tzs','Image','per_image',['prompt']],
   video: ['FAL_VIDEO_MODEL','FAL_VIDEO_INPUT_TEMPLATE','fal_video_5s_tzs','Video','per_5_seconds',['prompt']],
   music: ['FAL_MUSIC_MODEL','FAL_MUSIC_INPUT_TEMPLATE','fal_music_minute_tzs','Music','per_minute',['prompt']],
-  voice: ['FAL_VOICE_MODEL','FAL_VOICE_INPUT_TEMPLATE','fal_voice_minute_tzs','Voice','per_minute',['prompt']],
+  voice: ['FAL_VOICE_MODEL','FAL_VOICE_INPUT_TEMPLATE','fal_voice_1000_chars_tzs','AI voice · text to speech','per_1000_chars',['prompt']],
   speech: ['FAL_SPEECH_MODEL','FAL_SPEECH_INPUT_TEMPLATE','fal_speech_minute_tzs','Speech recognition','per_minute',['audioUrl']],
   animation: ['FAL_ANIMATION_MODEL','FAL_ANIMATION_INPUT_TEMPLATE','fal_animation_tzs','Animation','per_job',['prompt']],
-  motion: ['FAL_MOTION_MODEL','FAL_MOTION_INPUT_TEMPLATE','fal_motion_second_tzs','Motion','per_second',['prompt']],
-  avatar_video: ['FAL_AVATAR_VIDEO_MODEL','FAL_AVATAR_VIDEO_INPUT_TEMPLATE','fal_avatar_video_second_tzs','Avatar video','per_second',['prompt']]
+  motion: ['FAL_MOTION_MODEL','FAL_MOTION_INPUT_TEMPLATE','fal_motion_second_tzs','Full-motion avatar','per_second',['prompt','imageUrl']],
+  avatar_video: ['FAL_AVATAR_VIDEO_MODEL','FAL_AVATAR_VIDEO_INPUT_TEMPLATE','fal_avatar_video_second_tzs','Talking avatar · lip-sync','per_second',['imageUrl','audioUrl']]
 };
 const fail = (message,status=400) => Object.assign(new Error(message),{status});
 const json = async r => { const d=await r.json().catch(()=>({})); if(!r.ok) throw fail(String(d.detail||d.message||d.error||'fal.ai HTTP '+r.status).slice(0,500),r.status); return d; };
 export function normalizeSupplierPrice(task,unit,unitPrice,exchangeRate) {
-  const factors={image:{image:1,images:1},video:{second:5,seconds:5},music:{minute:1,minutes:1,second:60,seconds:60},voice:{minute:1,minutes:1,second:60,seconds:60},speech:{minute:1,minutes:1,second:60,seconds:60},animation:{request:1,requests:1,generation:1,generations:1},motion:{second:1,seconds:1},avatar_video:{second:1,seconds:1}};
+  const factors={image:{image:1,images:1},video:{second:5,seconds:5},music:{minute:1,minutes:1,second:60,seconds:60},voice:{'1000 characters':1,'1000 character':1,character:1000,characters:1000},speech:{minute:1,minutes:1,second:60,seconds:60},animation:{request:1,requests:1,generation:1,generations:1},motion:{second:1,seconds:1},avatar_video:{second:1,seconds:1}};
   const normalized=String(unit||'').toLowerCase().trim(),factor=factors[task]?.[normalized];
   const price=Number(unitPrice),fx=Number(exchangeRate);
   if(!factor)throw fail('Unit ya fal.ai ni '+normalized+'; haiwezi kulinganishwa salama na kipimo cha Mlimani. Badili model au weka bei kwa mkono.',422);
@@ -30,7 +30,23 @@ const https = (v,label) => { if(!v)return ''; try{const u=new URL(String(v));if(
 export function makeInput(templateText,vars) {
   let t;try{t=JSON.parse(templateText)}catch{throw fail('Input template ya fal.ai si JSON sahihi.',503)}
   if(!t||typeof t!=='object'||Array.isArray(t))throw fail('Input template lazima iwe JSON object.',503);
-  const walk=v=>Array.isArray(v)?v.map(walk):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,walk(x)])):typeof v==='string'?(v.match(/^\{\{(prompt|durationSeconds|aspectRatio|audioUrl|imageUrl|voiceId|language)\}\}$/)?(vars[v.match(/^\{\{(prompt|durationSeconds|aspectRatio|audioUrl|imageUrl|voiceId|language)\}\}$/)[1]]??''):v.replace(/\{\{(prompt|durationSeconds|aspectRatio|audioUrl|imageUrl|voiceId|language)\}\}/g,(_m,k)=>String(vars[k]??''))):v;
+  const token=/^\{\{(prompt|durationSeconds|aspectRatio|audioUrl|imageUrl|voiceId|language|resolution)\}\}$/;
+  const walk=v=>{
+    if(Array.isArray(v))return v.map(walk).filter(x=>x!==undefined);
+    if(v&&typeof v==='object'){
+      const out={};
+      for(const [k,x] of Object.entries(v)){
+        if(typeof x==='string'&&token.test(x)&&!vars[x.match(token)[1]])continue;
+        const value=walk(x);if(value!==undefined)out[k]=value;
+      }
+      return out;
+    }
+    if(typeof v==='string'){
+      const exact=v.match(token);if(exact)return vars[exact[1]]??'';
+      return v.replace(/\{\{(prompt|durationSeconds|aspectRatio|audioUrl|imageUrl|voiceId|language|resolution)\}\}/g,(_m,k)=>String(vars[k]??''));
+    }
+    return v;
+  };
   return walk(t);
 }
 export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance,consumeWalletCredits,creditCashWallet}) {
@@ -55,13 +71,13 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
   const view=j=>({jobId:j.id,task:j.task,status:j.status,outputUrl:j.output_url||null,result:j.result_json?JSON.parse(j.result_json):null,chargedTzs:j.charge_tzs,billingStatus:j.billing_status,error:j.error||null});
   const modelPresets = {
     image:['fal-ai/flux/schnell','fal-ai/flux/dev','fal-ai/flux-pro'],
-    video:['kling/v4/text-to-video','fal-ai/veo3','fal-ai/minimax/video-01'],
+    video:['minimax/h3-max/image-to-video'],
     music:['fal-ai/lyria2','fal-ai/minimax-music'],
-    voice:['fal-ai/elevenlabs/tts','fal-ai/minimax/speech-2.6-hd'],
+    voice:['fal-ai/elevenlabs/tts/eleven-v3'],
     speech:['fal-ai/whisper','fal-ai/elevenlabs/speech-to-text'],
     animation:['fal-ai/wan-i2v','fal-ai/minimax/video-01-live'],
-    motion:['fal-ai/kling-video/v2.1/standard/motion-control'],
-    avatar_video:['fal-ai/heygen/avatar-video']
+    motion:['minimax/h3-max/reference-to-video'],
+    avatar_video:['minimax/h3-max/lip-sync/image-to-video']
   };
   app.get('/api/admin/fal/config',admin,(_q,res)=>{
     res.set('Cache-Control','no-store');
@@ -74,7 +90,7 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
     try {
       modelPath(model);
       if(!template || template.length>20000)throw fail('Weka input template ya JSON isiyozidi 20KB.');
-      makeInput(template,{prompt:'test',durationSeconds:5,aspectRatio:'16:9',audioUrl:'https://example.com/audio.mp3',imageUrl:'https://example.com/image.jpg',voiceId:'test',language:'sw'});
+      makeInput(template,{prompt:'test',durationSeconds:5,aspectRatio:'16:9',audioUrl:'https://example.com/audio.mp3',imageUrl:'https://example.com/image.jpg',voiceId:'test',language:'sw',resolution:'768P'});
     } catch(e) { return res.status(400).json({error:e.message}); }
     db.prepare(`INSERT INTO studio_fal_config(task,model,input_template,updated_at) VALUES(?,?,?,?)
       ON CONFLICT(task) DO UPDATE SET model=excluded.model,input_template=excluded.input_template,updated_at=excluded.updated_at`).run(task,model,template,now());
@@ -109,20 +125,21 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
   app.get('/api/studio/fal/:task/estimate',need,(req,res)=>{
     const t=TASKS[req.params.task];if(!t)return res.status(404).json({error:'Task haijulikani.'});
     const cfg=config(req.params.task);
-    const secs=Math.max(1,Math.min(600,Math.round(+req.query.durationSeconds||5))),rate=price(t[2]);
-    const units=t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1,charge=units*rate;
-    res.json({provider:'fal.ai',task:req.params.task,modelConfigured:!!cfg.model,templateConfigured:!!cfg.template,durationSeconds:secs,units,unit:t[4],customerPricePerUnitTzs:rate,estimatedChargeTzs:charge,walletBalanceTzs:cashWalletBalance(db,req.user.id),enabled:!!(key()&&cfg.model&&cfg.template&&rate>0&&cashWalletBalance(db,req.user.id)>=charge)});
+    const secs=Math.max(req.params.task==='avatar_video'?5:2,Math.min(600,Math.round(+req.query.durationSeconds||5))),rate=price(t[2]),characters=Math.max(1,Math.min(12000,Math.round(+req.query.characters||1000)));
+    const units=t[4]==='per_1000_chars'?Math.ceil(characters/1000):t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1,multiplier=req.params.task==='avatar_video'&&secs>15?1.2:1,charge=units*rate*multiplier;
+    res.json({provider:'fal.ai',task:req.params.task,modelConfigured:!!cfg.model,templateConfigured:!!cfg.template,durationSeconds:secs,characters,units,unit:t[4],customerPricePerUnitTzs:rate,pricingMultiplier:multiplier,estimatedChargeTzs:charge,walletBalanceTzs:cashWalletBalance(db,req.user.id),enabled:!!(key()&&cfg.model&&cfg.template&&rate>0&&cashWalletBalance(db,req.user.id)>=charge)});
   });
   app.post('/api/studio/fal/:task/jobs',need,async(req,res)=>{
     const taskId=req.params.task,t=TASKS[taskId];if(!t)return res.status(404).json({error:'Task haijulikani.'});
     let model,input,secs,charge,id;
     try{
       const cfg=config(taskId);model=String(cfg.model||'');const path=root(model);if(!key())throw fail('FAL_API_KEY haijawekwa kwenye Render.',503);if(!cfg.template)throw fail('Admin aweke input template kwenye Provider Management.',503);
-      const prompt=String(req.body?.prompt||req.body?.text||'').trim().slice(0,6000);secs=Math.max(1,Math.min(600,Math.round(+req.body?.durationSeconds||5)));
-      const vars={prompt,durationSeconds:secs,aspectRatio:['16:9','9:16','1:1','4:5','3:2','2:3'].includes(req.body?.aspectRatio)?req.body.aspectRatio:'16:9',audioUrl:https(req.body?.audioUrl,'Audio URL'),imageUrl:https(req.body?.imageUrl,'Image URL'),voiceId:String(req.body?.voiceId||'').slice(0,200),language:['sw','en'].includes(req.body?.language)?req.body.language:''};
-      for(const v of t[5])if(!vars[v])throw fail(v==='audioUrl'?'Weka audio URL ya HTTPS.':'Andika prompt kwanza.');
+      const promptText=String(req.body?.prompt||req.body?.text||'').trim().slice(0,6000);if(t[5].includes('prompt')&&!promptText)throw fail('Andika maelezo au script kwanza.');const prompt=taskId==='motion'?'Image 1 is the main avatar. Preserve the same identity, face, hairstyle and outfit from Image 1 throughout the video. '+promptText:promptText;secs=Math.max(taskId==='avatar_video'?5:2,Math.min(600,Math.round(+req.body?.durationSeconds||5)));
+      if((taskId==='video'||taskId==='motion')&&secs>15)throw fail('Video Creator Lite na Full Motion kwa sasa zinatengeneza clips za hadi sekunde 15. Unganisha clips kwa video ndefu.',400);
+      const vars={prompt,durationSeconds:secs,aspectRatio:['16:9','9:16','1:1','3:4','4:5','3:2','2:3'].includes(req.body?.aspectRatio)?req.body.aspectRatio:'16:9',audioUrl:https(req.body?.audioUrl,'Audio URL'),imageUrl:https(req.body?.imageUrl,'Image URL'),voiceId:String(req.body?.voiceId||'').slice(0,200),language:['sw','en'].includes(req.body?.language)?req.body.language:'',resolution:['768P','1080P','480P'].includes(req.body?.resolution)?req.body.resolution:'768P'};
+      for(const v of t[5])if(!vars[v])throw fail(v==='audioUrl'?'Pakia sauti au weka kiungo cha sauti cha HTTPS.':v==='imageUrl'?'Pakia picha ya avatar au weka kiungo cha picha cha HTTPS.':'Andika maelezo ya video kwanza.');
       input=makeInput(cfg.template,vars);if(JSON.stringify(input).length>20000)throw fail('Input ni kubwa mno.',413);
-      const rate=price(t[2]),units=t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1;charge=units*rate;
+      const rate=price(t[2]),units=t[4]==='per_1000_chars'?Math.ceil(prompt.length/1000):t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1,multiplier=taskId==='avatar_video'&&secs>15?1.2:1;charge=units*rate*multiplier;
       const dailyJobs=db.prepare('SELECT COUNT(*) AS n FROM studio_fal_jobs WHERE user_id=? AND created_at>?').get(req.user.id,now()-86400000).n;
       if(dailyJobs>=Math.max(1,Number(env.FAL_DAILY_JOBS||20)))throw fail('Umefikia kikomo cha kazi za fal.ai kwa saa 24. Jaribu baadaye.',429);
       if(charge<=0||Number(req.body?.expectedChargeTzs)!==charge)throw fail('Bei haijaidhinishwa au imebadilika. Kagua makadirio mapya.',409);

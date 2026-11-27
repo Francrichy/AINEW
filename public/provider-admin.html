@@ -89,13 +89,13 @@ $('checkLiveAvatar').addEventListener('click',checkLiveAvatar);
  
 const falDefaults={
  image:{model:'fal-ai/flux/schnell',template:{prompt:'{{prompt}}',image_size:'landscape_4_3',num_images:1,output_format:'jpeg',enable_safety_checker:true}},
- video:{model:'kling/v4/text-to-video',template:{prompt:'{{prompt}}',duration:'{{durationSeconds}}',aspect_ratio:'{{aspectRatio}}',resolution:'720p'}},
+ video:{model:'minimax/h3-max/image-to-video',template:{prompt:'{{prompt}}',image_url:'{{imageUrl}}',target_audio_url:'{{audioUrl}}',duration:'{{durationSeconds}}',resolution:'{{resolution}}',prompt_expansion_mode:'balanced',aspect_ratio:'{{aspectRatio}}'}},
  music:{model:'fal-ai/lyria2',template:{prompt:'{{prompt}}'}},
- voice:{model:'fal-ai/elevenlabs/tts',template:{text:'{{prompt}}',voice:'Rachel',language_code:'en'}},
+ voice:{model:'fal-ai/elevenlabs/tts/eleven-v3',template:{text:'{{prompt}}',voice:'{{voiceId}}',language_code:'{{language}}',stability:0.5,similarity_boost:0.75,speed:1,apply_text_normalization:'auto'}},
  speech:{model:'fal-ai/whisper',template:{audio_url:'{{audioUrl}}'}},
  animation:{model:'fal-ai/wan-i2v',template:{prompt:'{{prompt}}',image_url:'{{imageUrl}}'}},
- motion:{model:'fal-ai/kling-video/v2.1/standard/motion-control',template:{prompt:'{{prompt}}',image_url:'{{imageUrl}}'}},
- avatar_video:{model:'fal-ai/heygen/avatar-video',template:{text:'{{prompt}}',image_url:'{{imageUrl}}'}}
+ motion:{model:'minimax/h3-max/reference-to-video',template:{prompt:'{{prompt}}',reference_image_urls:['{{imageUrl}}'],target_audio_url:'{{audioUrl}}',duration:'{{durationSeconds}}',resolution:'{{resolution}}',prompt_expansion_mode:'balanced',aspect_ratio:'{{aspectRatio}}'}},
+ avatar_video:{model:'minimax/h3-max/lip-sync/image-to-video',template:{image_url:'{{imageUrl}}',audio_url:'{{audioUrl}}',resolution:'{{resolution}}',enable_transcription:true,enable_safety_checker:true}}
 };
 async function loadFalConfig(){
  const root=$('falConfigList');root.textContent='Inapakia model na templates...';
