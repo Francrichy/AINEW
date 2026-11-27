@@ -112,7 +112,7 @@ async function loadAvatarLibrary(){
  select.innerHTML='<option value="">Chagua kutoka kwenye maktaba yako...</option>';
  try{
   const d=await apiJson('/api/studio/projects');
-  const rows=(d.projects||[]).filter(p=>p.type==='image'&&/^image\\/(jpeg|png|webp)$/i.test(String(p.contentType||'')));
+  const rows=(d.projects||[]).filter(p=>p.type==='image'&&/^image\/(jpeg|png|webp)$/i.test(String(p.contentType||'')));
   rows.forEach(p=>{const option=document.createElement('option');option.value=p.id;option.textContent=(p.title||p.filename||'Avatar')+' · '+new Date(p.createdAt||Date.now()).toLocaleDateString();select.append(option)});
   if(!rows.length){const option=document.createElement('option');option.value='';option.textContent='Bado hujahifadhi picha ya avatar';select.append(option)}
  }catch(e){const option=document.createElement('option');option.value='';option.textContent='Maktaba haipatikani — kagua Cloud storage';select.append(option)}
