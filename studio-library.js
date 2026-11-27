@@ -4,7 +4,8 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 const PREFIX = 'mlimani-studio/library/';
 const AUDIO_TYPES = new Set(['audio/wav','audio/mpeg','audio/mp3','audio/ogg','audio/mp4','audio/webm']);
 
-export function registerStudioLibraryRoutes(app, { need, admin, studioS3, R2_BUCKET, studioSafeName, randomUUID }) {
+export function registerStudioLibraryRoutes(app, { need, pluginTestAllowed, studioS3, R2_BUCKET, studioSafeName, randomUUID }) {
+  const libraryAdmin = (req, res, next) => pluginTestAllowed(req.user) ? next() : res.status(403).json({ error: 'Upload ya library imewekewa msimamizi wa Mlimani Labs.' });
   app.get('/api/studio/library', need, async (_req, res) => {
     if (!studioS3) return res.status(503).json({ error: 'Maktaba ya sauti inahitaji Cloudflare R2 kusanidiwa na Admin.' });
     try {
@@ -29,7 +30,7 @@ export function registerStudioLibraryRoutes(app, { need, admin, studioS3, R2_BUC
     }
   });
 
-  app.post('/api/admin/studio/library/presign', admin, async (req, res) => {
+  app.post('/api/admin/studio/library/presign', libraryAdmin, async (req, res) => {
     if (!studioS3) return res.status(503).json({ error: 'Cloudflare R2 haijaunganishwa. Hakuna faili lililopakiwa.' });
     const filename = studioSafeName(req.body?.filename);
     const contentType = String(req.body?.contentType || '').toLowerCase().split(';')[0];
@@ -59,7 +60,7 @@ export function registerStudioLibraryRoutes(app, { need, admin, studioS3, R2_BUC
     }
   });
 
-  app.post('/api/admin/studio/library/complete', admin, async (req, res) => {
+  app.post('/api/admin/studio/library/complete', libraryAdmin, async (req, res) => {
     if (!studioS3) return res.status(503).json({ error: 'Cloudflare R2 haijaunganishwa.' });
     const assetId = String(req.body?.assetId || '');
     const storageKey = String(req.body?.storageKey || '');
@@ -95,7 +96,7 @@ export function registerStudioLibraryRoutes(app, { need, admin, studioS3, R2_BUC
     }
   });
 
-  app.delete('/api/admin/studio/library/:id', admin, async (req, res) => {
+  app.delete('/api/admin/studio/library/:id', libraryAdmin, async (req, res) => {
     if (!studioS3) return res.status(503).json({ error: 'Cloudflare R2 haijaunganishwa.' });
     const assetId = String(req.params.id || '');
     if (!/^[a-f0-9-]{36}$/i.test(assetId)) return res.status(400).json({ error: 'Asset ID si sahihi.' });
