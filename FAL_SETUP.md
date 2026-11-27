@@ -14,7 +14,7 @@ Set `FAL_API_KEY` as a secret in Render. Do not put the key in GitHub or in brow
 | Talking Avatar | `minimax/h3-max/lip-sync/image-to-video` | image URL and audio URL | 768P; lip-sync follows audio length |
 | Full Motion Avatar | `minimax/h3-max/reference-to-video` | prompt and reference image; optional soundtrack | 768P, motion and generated scene audio |
 
-Mlimani offers 1080P as Premium. The model endpoint's current price is synced from fal.ai by Admin; do not hardcode prices. H3 Max Lip Sync currently has a 1.2× multiplier for output longer than 15 seconds, which the Mlimani estimate and charge calculation apply. The Talking Avatar currently requires uploaded/hosted audio; script-to-speech generation will be a later step, using another fal.ai endpoint under the same account.
+Mlimani offers 1080P as Premium. The model endpoint's current price is synced from fal.ai by Admin; do not hardcode prices. H3 Max Lip Sync currently has a 1.2× multiplier for output longer than 15 seconds, which the Mlimani estimate and charge calculation apply. The Talking Avatar supports either uploaded audio or script-to-speech through `fal-ai/elevenlabs/tts/eleven-v3`, followed by H3 Max Lip Sync. Both stages use the same fal.ai account and key. Voice and lip-sync charges are shown separately and combined in the initial estimate; if the generated speech length changes the lip-sync estimate, the customer is asked before the second stage is charged.
 
 Image/audio uploads use the customer's private Mlimani Cloud project space. The server creates a short-lived signed URL for fal.ai; the URL is issued only to the authenticated owner and expires after six hours.
 
@@ -25,7 +25,7 @@ For each task, configure both a model ID and an input-template JSON string:
 | Image | `FAL_IMAGE_MODEL` | `FAL_IMAGE_INPUT_TEMPLATE` | `fal_image_tzs` |
 | Video | `FAL_VIDEO_MODEL` | `FAL_VIDEO_INPUT_TEMPLATE` | `fal_video_5s_tzs` |
 | Music | `FAL_MUSIC_MODEL` | `FAL_MUSIC_INPUT_TEMPLATE` | `fal_music_minute_tzs` |
-| Voice / TTS | `FAL_VOICE_MODEL` | `FAL_VOICE_INPUT_TEMPLATE` | `fal_voice_minute_tzs` |
+| Voice / TTS | `FAL_VOICE_MODEL` | `FAL_VOICE_INPUT_TEMPLATE` | `fal_voice_1000_chars_tzs` |
 | Speech to text | `FAL_SPEECH_MODEL` | `FAL_SPEECH_INPUT_TEMPLATE` | `fal_speech_minute_tzs` |
 | Animation | `FAL_ANIMATION_MODEL` | `FAL_ANIMATION_INPUT_TEMPLATE` | `fal_animation_tzs` |
 | Motion | `FAL_MOTION_MODEL` | `FAL_MOTION_INPUT_TEMPLATE` | `fal_motion_second_tzs` |
@@ -42,6 +42,7 @@ Use the exact model ID from the chosen model's fal.ai API page. Each model has i
 - `{{imageUrl}}` – HTTPS image URL
 - `{{voiceId}}` – voice ID
 - `{{language}}` – `sw` or `en`
+- `{{resolution}}` – `768P`, `1080P`, or `480P`
 
 Example template for fal.ai's documented Speech-to-Text endpoint:
 
