@@ -60,7 +60,7 @@ button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#191919;col
 const $=id=>document.getElementById(id);
 const token=()=>localStorage.t||localStorage.getItem('mlimani_token')||localStorage.getItem('token')||'';
 const headers=(extra={})=>({...extra,Authorization:'Bearer '+token()});
-let estimate=null,uploadedImageUrl='',uploadedAudioUrl='',audioSeconds=0;
+let estimate=null,uploadedImageUrl='',uploadedAudioUrl='',audioSeconds=0,generatedVoiceUrl='';
 const task=$('task');
 function setStatus(message){$('status').textContent=message}
 function scriptMode(){return task.value==='avatar_video'&&$('voiceMode').value==='script'}
@@ -95,6 +95,7 @@ async function apiJson(url,options={}){
 }
 async function uploadAsset(file,type){
  if(!token())throw new Error('Ingia kwanza kwenye akaunti yako ya Mlimani.');
+ const maxBytes=type==='image'?30*1024*1024:15*1024*1024;if(file.size>maxBytes)throw new Error(type==='image'?'Picha isizidi MB 30.':'Sauti isizidi MB 15.');
  const pd=await apiJson('/api/studio/uploads/presign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file.name,contentType:file.type,sizeBytes:file.size,projectType:type,title:'fal.ai '+type+' input'})});
  const put=await fetch(pd.uploadUrl,{method:'PUT',headers:pd.headers,body:file});if(!put.ok)throw new Error('Upload haikukamilika. Hakikisha Cloud storage imeunganishwa.');
  await apiJson('/api/studio/projects/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({projectId:pd.projectId,storageKey:pd.storageKey,title:'fal.ai '+type+' input',type,durationSeconds:type==='voice'?audioSeconds:0})});
@@ -125,7 +126,7 @@ $('estimate').addEventListener('click',async()=>{
   if(task.value==='avatar_video'&&!scriptMode()&&audioSeconds>0&&audioSeconds<5)throw new Error('Sauti lazima iwe angalau sekunde 5.');
   if(task.value==='avatar_video'&&scriptMode()){
    const text=$('prompt').value.trim(),words=text.split(/\s+/).filter(Boolean).length;
-   if(text.length<20||words<8)throw new Error('Andika script yenye angalau maneno 8 ili sauti iwe na urefu wa kutosha.');
+   if(text.length<40||words<12)throw new Error('Andika script yenye angalau maneno 12 ili sauti iwe na urefu wa kutosha kwa lip-sync.');
    const [voice,avatar]=await Promise.all([quote('voice',5,text.length),quote('avatar_video',Math.max(5,durationSeconds))]);
    estimate={enabled:voice.enabled&&avatar.enabled&&(voice.estimatedChargeTzs+avatar.estimatedChargeTzs)<=avatar.walletBalanceTzs,tts:voice,avatar,estimatedSeconds:durationSeconds,estimatedChargeTzs:voice.estimatedChargeTzs+avatar.estimatedChargeTzs};
    setStatus('Talking Avatar · Script-to-speech\nSauti ya AI: TZS '+Number(voice.estimatedChargeTzs).toLocaleString()+'\nLip-sync ya avatar (makadirio '+durationSeconds+' sec): TZS '+Number(avatar.estimatedChargeTzs).toLocaleString()+'\nJumla ya makadirio: TZS '+Number(estimate.estimatedChargeTzs).toLocaleString()+'\nWallet: TZS '+Number(avatar.walletBalanceTzs).toLocaleString()+'\n'+(estimate.enabled?'Unaweza kuendelea.':'Huduma moja haijawezeshwa au salio/bei haitoshi.'));
@@ -163,13 +164,14 @@ $('generate').addEventListener('click',async()=>{
    setStatus('Inatengeneza sauti ya AI kwanza... Ada ya sauti: TZS '+Number(voiceJob.chargedTzs).toLocaleString());
    const voiceDone=await poll(voiceJob.jobId,'AI Voice',false);
    if(!voiceDone||voiceDone.status!=='COMPLETED'||!voiceDone.outputUrl)throw new Error(voiceDone?.error||'Sauti ya AI haikutengenezwa. Hakuna lip-sync iliyotozwa.');
+   generatedVoiceUrl=voiceDone.outputUrl;
    const actualSeconds=await audioDuration(voiceDone.outputUrl);
    if(actualSeconds<5)throw new Error('Sauti iliyotengenezwa ni fupi sana kwa lip-sync. Ongeza script; sauti yako imehifadhiwa: '+voiceDone.outputUrl);
    if(actualSeconds>600)throw new Error('Sauti imezidi dakika 10. Tumia script fupi zaidi.');
    const avatarQuote=await quote('avatar_video',actualSeconds);
    if(!avatarQuote.enabled)throw new Error('Sauti imetengenezwa lakini lip-sync haijawezeshwa au Wallet haitoshi. Sauti: '+voiceDone.outputUrl);
    const combined=estimate.tts.estimatedChargeTzs+avatarQuote.estimatedChargeTzs;
-   if(Math.abs(combined-estimate.estimatedChargeTzs)>1&&!window.confirm('Makadirio halisi baada ya kutengeneza sauti ni TZS '+Number(combined).toLocaleString()+'. Endelea na lip-sync? Sauti tayari imetengenezwa na unaweza kuitumia tena.')){setStatus('Umeacha lip-sync. Sauti yako ya AI: '+voiceDone.outputUrl);$('generate').disabled=false;return}
+   if(Math.abs(combined-estimate.estimatedChargeTzs)>1&&!window.confirm('Makadirio halisi baada ya kutengeneza sauti ni TZS '+Number(combined).toLocaleString()+'. Endelea na lip-sync? Sauti tayari imetengenezwa na unaweza kuitumia tena.')){setStatus('Umeacha lip-sync. Sauti yako ya AI imehifadhiwa.');showResult(voiceDone,'voice');$('generate').disabled=false;return}
    setStatus('Sauti imekamilika. Inatengeneza video ya Ngina/Ethan...');
    const avatarJob=await submitJob('avatar_video',{imageUrl:assets.imageUrl,audioUrl:voiceDone.outputUrl,durationSeconds:actualSeconds,aspectRatio:$('ratio').value,language:$('language').value,resolution:$('resolution').value,expectedChargeTzs:avatarQuote.estimatedChargeTzs});
    const done=await poll(avatarJob.jobId,'Talking Avatar',true);
@@ -182,7 +184,7 @@ $('generate').addEventListener('click',async()=>{
    setStatus('Ombi limepokelewa.\nJob ID: '+job.jobId+'\nHali: '+job.status+'\nAda iliyohifadhiwa: TZS '+Number(job.chargedTzs).toLocaleString()+'\nInasubiri fal.ai...');
    await poll(job.jobId,t,true);
   }
- }catch(e){setStatus(e.message)}
+ }catch(e){setStatus(e.message);if(generatedVoiceUrl){const link=document.createElement('a');link.href=generatedVoiceUrl;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Fungua au pakua sauti ya AI iliyotengenezwa';link.style.display='inline-block';link.style.marginTop='12px';$('result').append(link)}}
  finally{$('generate').disabled=false}
 });
 function showResult(d,taskName){
