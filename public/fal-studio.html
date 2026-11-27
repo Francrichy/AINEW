@@ -69,6 +69,7 @@ function fields(){
  $('voiceModeWrap').classList.toggle('hidden',t!=='avatar_video');
  $('ttsVoiceWrap').classList.toggle('hidden',!tts);
  $('promptWrap').classList.toggle('hidden',t==='avatar_video'&&!tts);
+ document.querySelector('label[for="prompt"]').textContent=tts?'Script ya maneno ambayo avatar itazungumza':'Eleza video au kitendo cha avatar';
  $('imageWrap').classList.toggle('hidden',false);
  $('audioWrap').classList.toggle('hidden',t==='avatar_video'&&tts);
  $('imageFile').required=t==='motion'||t==='avatar_video';
@@ -79,6 +80,8 @@ function fields(){
 }
 task.addEventListener('change',fields);
 $('voiceMode').addEventListener('change',fields);
+function invalidateEstimate(){if(estimate){estimate=null;$('generate').disabled=true;setStatus('Umebadilisha taarifa. Kagua bei upya kabla ya kutengeneza video.')}}
+['prompt','imageFile','imageUrl','audioFile','audioUrl','duration','resolution','ratio','language','ttsVoice'].forEach(id=>$(id).addEventListener(id.endsWith('File')?'change':'input',invalidateEstimate));
 function getDuration(){
  if(task.value==='avatar_video'&&audioSeconds>0)return Math.ceil(audioSeconds);
  if(scriptMode()){const words=$('prompt').value.trim().split(/\s+/).filter(Boolean).length;return Math.max(5,Math.ceil(words/2.5))}
@@ -117,6 +120,7 @@ $('estimate').addEventListener('click',async()=>{
  if(!token()){setStatus('Tafadhali ingia kwanza. Fungua /login kisha urudi hapa.');return}
  try{
   const durationSeconds=getDuration();
+  if(task.value==='avatar_video'&&!scriptMode()&&audioSeconds>0&&audioSeconds<5)throw new Error('Sauti lazima iwe angalau sekunde 5.');
   if(task.value==='avatar_video'&&scriptMode()){
    const text=$('prompt').value.trim(),words=text.split(/\s+/).filter(Boolean).length;
    if(text.length<20||words<8)throw new Error('Andika script yenye angalau maneno 8 ili sauti iwe na urefu wa kutosha.');
