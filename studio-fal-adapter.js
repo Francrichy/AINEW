@@ -22,7 +22,7 @@ export function normalizeSupplierPrice(task,unit,unitPrice,exchangeRate) {
   return {providerCost,customerPrice:Math.round(providerCost*4*1000000)/1000000,factor,unit:normalized};
 }
 export function calculateTalkingAvatarCharge(durationSeconds, lipSyncPricePerSecond, videoPricePerSecond, multiplier = 1) {
-  const seconds = Math.max(5, Math.min(600, Math.ceil(Number(durationSeconds) || 5)));
+  const seconds = Math.max(1, Math.min(600, Math.ceil(Number(durationSeconds) || 1));
   const lipSyncRate = Number(lipSyncPricePerSecond);
   const videoRate = Number(videoPricePerSecond);
   const factor = Number(multiplier);
@@ -138,8 +138,8 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
   app.get('/api/studio/fal/:task/estimate',need,(req,res)=>{
     const t=TASKS[req.params.task];if(!t)return res.status(404).json({error:'Task haijulikani.'});
     const cfg=config(req.params.task);
-    const secs=Math.max(req.params.task==='avatar_video'?5:2,Math.min(600,Math.round(+req.query.durationSeconds||5))),rate=price(t[2]),characters=Math.max(1,Math.min(12000,Math.round(+req.query.characters||1000)));
-    const units=t[4]==='per_1000_chars'?Math.ceil(characters/1000):t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1,multiplier=req.params.task==='avatar_video'&&secs>15?1.2:1;
+    const secs=Math.max(1,Math.min(600,Math.round(+req.query.durationSeconds||1))),rate=price(t[2]),characters=Math.max(1,Math.min(12000,Math.round(+req.query.characters||1000)));
+    const units=t[4]==='per_1000_chars'?Math.ceil(characters/1000):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1,multiplier=req.params.task==='avatar_video'&&secs>15?1.2:1;
     const avatarCosts=req.params.task==='avatar_video'?calculateTalkingAvatarCharge(secs,rate,price('fal_video_second_tzs'),multiplier):null;
     const lipSyncCharge=avatarCosts?.lipSyncChargeTzs||0;
     const videoUnits=avatarCosts?.videoUnits||0;
@@ -154,15 +154,15 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
     let model,input,secs,charge,id;
     try{
       const cfg=config(taskId);model=String(cfg.model||'');const path=root(model);if(!key())throw fail('FAL_API_KEY haijawekwa kwenye Render.',503);if(!cfg.template)throw fail('Admin aweke input template kwenye Provider Management.',503);
-      const promptText=String(req.body?.prompt||req.body?.text||'').trim().slice(0,6000);if(t[5].includes('prompt')&&!promptText)throw fail('Andika maelezo au script kwanza.');const prompt=taskId==='motion'?'Image 1 is the main avatar. Preserve the same identity, face, hairstyle and outfit from Image 1 throughout the video. '+promptText:promptText;secs=Math.max(taskId==='avatar_video'?5:2,Math.min(600,Math.round(+req.body?.durationSeconds||5)));
+      const promptText=String(req.body?.prompt||req.body?.text||'').trim().slice(0,6000);if(t[5].includes('prompt')&&!promptText)throw fail('Andika maelezo au script kwanza.');const prompt=taskId==='motion'?'Image 1 is the main avatar. Preserve the same identity, face, hairstyle and outfit from Image 1 throughout the video. '+promptText:promptText;secs=Math.max(1,Math.min(600,Math.round(+req.body?.durationSeconds||1)));
       if((taskId==='video'||taskId==='motion')&&secs>15)throw fail('Video Creator Lite na Full Motion kwa sasa zinatengeneza clips za hadi sekunde 15. Unganisha clips kwa video ndefu.',400);
       const vars={prompt,durationSeconds:secs,aspectRatio:['16:9','9:16','1:1','3:4','4:5','3:2','2:3'].includes(req.body?.aspectRatio)?req.body.aspectRatio:'16:9',audioUrl:https(req.body?.audioUrl,'Audio URL'),imageUrl:https(req.body?.imageUrl,'Image URL'),voiceId:String(req.body?.voiceId||'').slice(0,200),language:['sw','en'].includes(req.body?.language)?req.body.language:'',resolution:['768P','1080P','480P'].includes(req.body?.resolution)?req.body.resolution:'768P'};
       for(const v of t[5])if(!vars[v])throw fail(v==='audioUrl'?'Pakia sauti au weka kiungo cha sauti cha HTTPS.':v==='imageUrl'?'Pakia picha ya avatar au weka kiungo cha picha cha HTTPS.':'Andika maelezo ya video kwanza.');
       input=makeInput(cfg.template,vars);if(JSON.stringify(input).length>20000)throw fail('Input ni kubwa mno.',413);
       const rate=price(t[2]),units=t[4]==='per_1000_chars'?Math.ceil(prompt.length/1000):t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1,multiplier=taskId==='avatar_video'&&secs>15?1.2:1;
       if(taskId==='avatar_video'){
-        const videoRate=price('fal_video_5s_tzs');
-        if(videoRate<=0)throw fail('Bei ya Video Generation haijawekwa na Admin. Talking Avatar haiwezi kuanza mpaka bei zote mbili ziwekwe.',503);
+        const videoRate=price('fal_video_second_tzs');
+        if(videoRate<=0)throw fail('Bei ya Video Generation kwa sekunde haijawekwa na Admin. Talking Avatar haiwezi kuanza mpaka bei zote mbili ziwekwe.',503);
         charge=calculateTalkingAvatarCharge(secs,rate,videoRate,multiplier).totalChargeTzs;
       }else charge=units*rate*multiplier;
       const dailyJobs=db.prepare('SELECT COUNT(*) AS n FROM studio_fal_jobs WHERE user_id=? AND created_at>?').get(req.user.id,now()-86400000).n;
