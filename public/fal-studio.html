@@ -129,11 +129,12 @@ $('estimate').addEventListener('click',async()=>{
    if(text.length<40||words<12)throw new Error('Andika script yenye angalau maneno 12 ili sauti iwe na urefu wa kutosha kwa lip-sync.');
    const [voice,avatar]=await Promise.all([quote('voice',5,text.length),quote('avatar_video',Math.max(5,durationSeconds))]);
    estimate={enabled:voice.enabled&&avatar.enabled&&(voice.estimatedChargeTzs+avatar.estimatedChargeTzs)<=avatar.walletBalanceTzs,tts:voice,avatar,estimatedSeconds:durationSeconds,estimatedChargeTzs:voice.estimatedChargeTzs+avatar.estimatedChargeTzs};
-   setStatus('Talking Avatar · Script-to-speech\nSauti ya AI: TZS '+Number(voice.estimatedChargeTzs).toLocaleString()+'\nLip-sync ya avatar (makadirio '+durationSeconds+' sec): TZS '+Number(avatar.estimatedChargeTzs).toLocaleString()+'\nJumla ya makadirio: TZS '+Number(estimate.estimatedChargeTzs).toLocaleString()+'\nWallet: TZS '+Number(avatar.walletBalanceTzs).toLocaleString()+'\n'+(estimate.enabled?'Unaweza kuendelea.':'Huduma moja haijawezeshwa au salio/bei haitoshi.'));
+   setStatus('Talking Avatar · Script-to-speech\nAI Voice: TZS '+Number(voice.estimatedChargeTzs).toLocaleString()+'\nLip-sync: TZS '+Number(avatar.lipSyncChargeTzs).toLocaleString()+'\nVideo Generation: TZS '+Number(avatar.videoGenerationChargeTzs).toLocaleString()+'\nJumla ya makadirio: TZS '+Number(estimate.estimatedChargeTzs).toLocaleString()+'\nWallet: TZS '+Number(avatar.walletBalanceTzs).toLocaleString()+'\n'+(estimate.enabled?'Unaweza kuendelea.':'Huduma moja haijawezeshwa au salio/bei haitoshi.'));
   }else{
    const d=await quote(task.value,durationSeconds);
    estimate={...d,estimatedChargeTzs:d.estimatedChargeTzs};
-   setStatus('Provider: fal.ai\nHuduma: '+task.options[task.selectedIndex].text+'\nUbora: '+$('resolution').selectedOptions[0].text+'\nMuda: '+durationSeconds+' sec\nBei: TZS '+Number(d.estimatedChargeTzs).toLocaleString()+'\nWallet: TZS '+Number(d.walletBalanceTzs).toLocaleString()+'\n'+(d.enabled?'Unaweza kuendelea.':'Huduma bado haijawezeshwa au salio/bei haitoshi.'));
+   const priceLines=task.value==='avatar_video'?'Lip-sync: TZS '+Number(d.lipSyncChargeTzs).toLocaleString()+'\nVideo Generation: TZS '+Number(d.videoGenerationChargeTzs).toLocaleString()+'\nJumla: TZS '+Number(d.estimatedChargeTzs).toLocaleString():'Bei: TZS '+Number(d.estimatedChargeTzs).toLocaleString();
+   setStatus('Provider: fal.ai\nHuduma: '+task.options[task.selectedIndex].text+'\nUbora: '+$('resolution').selectedOptions[0].text+'\nMuda: '+durationSeconds+' sec\n'+priceLines+'\nWallet: TZS '+Number(d.walletBalanceTzs).toLocaleString()+'\n'+(d.enabled?'Unaweza kuendelea.':'Huduma bado haijawezeshwa au salio/bei haitoshi.'));
   }
   $('generate').disabled=!estimate.enabled;
  }catch(e){setStatus(e.message)}
