@@ -85,8 +85,8 @@ $('voiceMode').addEventListener('change',fields);
 function invalidateEstimate(){if(estimate){estimate=null;$('generate').disabled=true;setStatus('Umebadilisha taarifa. Kagua bei upya kabla ya kutengeneza video.')}}
 ['prompt','imageFile','imageUrl','audioFile','audioUrl','duration','resolution','ratio','language','ttsVoice'].forEach(id=>$(id).addEventListener(id.endsWith('File')?'change':'input',invalidateEstimate));
 function getDuration(){
- if(task.value==='avatar_video'&&audioSeconds>0)return Math.ceil(audioSeconds);
  if(scriptMode()){const words=$('prompt').value.trim().split(/\s+/).filter(Boolean).length;return Math.max(5,Math.ceil(words/2.5))}
+ if(task.value==='avatar_video'&&audioSeconds>0)return Math.ceil(audioSeconds);
  return Number($('duration').value);
 }
 async function apiJson(url,options={}){
