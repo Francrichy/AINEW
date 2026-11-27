@@ -25,8 +25,8 @@ GET  /api/admin/payments  (header x-admin-key)
 POST /api/admin/approve   {"id": 1}  → mpango unawashwa siku 30
 
 ## Bei
-Mkopo wa mwezi (TZS) = bei ya mpango. Kila ujumbe unakata gharama halisi x MARKUP(3) x USD_TZS.
-Mtumiaji akitumia mkopo wote, gharama yako ya OpenRouter ni 1/3 ya malipo yake.
+Mfumo wa wateja wapya ni Pay as You Go: mteja huongeza salio la TZS Wallet na hulipia matumizi halisi tu. Chat hukatwa kwa gharama halisi ya API × markup (kiwango cha chini x4) × USD_TZS. Video, Voice-over, Music, Live Talk na huduma nyingine za Studio zina bei tofauti kwa kila kipimo; bei ya sifuri huzimwa mpaka Admin aweke gharama na bei iliyothibitishwa. Mipango ya mwezi imeachwa kwa akaunti za zamani tu.
+Kwa matumizi yanayolipiwa kwa markup ya x4, gharama ya provider ni takriban 1/4 ya bei ya mteja kabla ya gharama nyingine za uendeshaji.
 
 ## Domain (www.mlimani.net)
 Render → huduma → Settings → Custom Domains → Add `www.mlimani.net` (au `ai.mlimani.net`).

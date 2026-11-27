@@ -10,7 +10,7 @@ const DEFAULT_PRICING = [
   ['advertisement_15', 'Advertisement 15s', 'advertisement', 'per_ad', 0, 150, 'credits', 'Bei ya majaribio; si bei rasmi'],
   ['advertisement_30', 'Advertisement 30s', 'advertisement', 'per_ad', 0, 250, 'credits', 'Bei ya majaribio; si bei rasmi'],
   ['image', 'Image', 'image', 'per_image', 0, 0, 'TZS', 'Gharama na bei bado hazijathibitishwa'],
-  ['markup_multiplier', 'Supplier markup multiplier', 'billing', 'multiplier', 0, 3.5, 'x', 'Bei ya matumizi = gharama ya supplier ×3.5'],
+  ['markup_multiplier', 'Supplier markup multiplier', 'billing', 'multiplier', 0, 4, 'x', 'Bei ya matumizi = gharama ya mtoa huduma ×4; Admin anaweza kuongeza'],
   ['usd_tzs', 'USD/TZS exchange rate', 'billing', 'exchange_rate', 0, 2600, 'TZS/USD', 'Weka kiwango cha sasa cha kubadilisha USD kwenda TZS'],
   ['video_5s_tzs', 'Video ya sekunde 5', 'video', 'per_5_seconds', 0, 0, 'TZS', 'Bei ya mteja kwa kila sekunde 5; weka baada ya kuthibitisha gharama.'],
   ['video_realistic_5s_tzs', 'AI Video – Avatar halisi (sekunde 5)', 'studio_video', 'per_5_seconds', 0, 0, 'TZS', 'Bei ya juu kwa avatar ya mtu halisi; weka baada ya kuthibitisha gharama za provider.'],
@@ -112,7 +112,7 @@ export function initializeBilling(db) {
 
   db.prepare(`INSERT OR IGNORE INTO admin_pricing
     (config_key,label,service,unit,provider_cost,customer_price,currency,notes,updated_at)
-    VALUES ('markup_multiplier','Markup multiplier','all','multiplier',3.5,3.5,'x','Lengo la sasa: gharama ya supplier mara 3.5; thamani inaweza kubadilishwa na Admin.',?)`).run(now);
+    VALUES ('markup_multiplier','Markup multiplier','all','multiplier',4,4,'x','Lengo la sasa: gharama ya mtoa huduma mara 4; Admin anaweza kuongeza.',?)`).run(now);
   db.prepare(`INSERT OR IGNORE INTO admin_pricing
     (config_key,label,service,unit,provider_cost,customer_price,currency,notes,updated_at)
     VALUES ('usd_tzs','USD/TZS exchange rate','all','exchange_rate',2600,2600,'TZS','Weka kiwango cha ubadilishaji kinachotumika.',?)`).run(now);
@@ -232,7 +232,7 @@ export function registerBillingRoutes(app, { db, need, admin, plans: runtimePlan
     if (!existing) return res.status(404).json({ error: 'Mpangilio wa bei haupo. Ongeza aina mpya kupitia usimamizi wa mfumo.' });
     const providerCost = Number(b.provider_cost), customerPrice = Number(b.customer_price);
     if (!Number.isFinite(providerCost) || providerCost < 0 || !Number.isFinite(customerPrice) || customerPrice < 0) return res.status(400).json({ error: 'Gharama na bei lazima ziwe namba zisizo hasi.' });
-    if (key === 'markup_multiplier' && customerPrice < 3.5) return res.status(400).json({ error: 'Markup haiwezi kuwa chini ya x3.5.' });
+    if (key === 'markup_multiplier' && customerPrice < 4) return res.status(400).json({ error: 'Markup haiwezi kuwa chini ya x4.' });
     if (key === 'usd_tzs' && customerPrice <= 0) return res.status(400).json({ error: 'Weka kiwango halali cha USD/TZS.' });
     const notes = String(b.notes ?? existing.notes).slice(0,500);
     db.prepare('UPDATE admin_pricing SET provider_cost=?,customer_price=?,notes=?,updated_at=? WHERE config_key=?').run(providerCost, customerPrice, notes, Date.now(), key);
