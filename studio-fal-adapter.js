@@ -22,7 +22,7 @@ export function normalizeSupplierPrice(task,unit,unitPrice,exchangeRate) {
   return {providerCost,customerPrice:Math.round(providerCost*4*1000000)/1000000,factor,unit:normalized};
 }
 export function calculateTalkingAvatarCharge(durationSeconds, lipSyncPricePerSecond, videoPricePerSecond, multiplier = 1) {
-  const seconds = Math.max(1, Math.min(600, Math.ceil(Number(durationSeconds) || 1));
+  const seconds = Math.max(1, Math.min(600, Math.ceil(Number(durationSeconds) || 1)));
   const lipSyncRate = Number(lipSyncPricePerSecond);
   const videoRate = Number(videoPricePerSecond);
   const factor = Number(multiplier);
