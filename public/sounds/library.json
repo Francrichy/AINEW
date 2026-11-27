@@ -1,0 +1,16 @@
+{
+  "assets": [
+    {
+      "id": "MLM-SND-001",
+      "code": "MLM-SND-001",
+      "title": "Mlimani African Pulse",
+      "category": "African Modern Percussion",
+      "description": "Original five-second instrumental African-modern percussion sting for Mlimani brand identity and short video intros. Synthesised in-browser; no third-party samples or vocals.",
+      "durationSeconds": 5,
+      "creator": "Mlimani Labs",
+      "rights": "Original Mlimani digital audio. Use inside Mlimani Studio customer projects; standalone resale or redistribution is not included.",
+      "filename": "MLIMANI-AFRICAN-PULSE-001.wav",
+      "delivery": "generated-in-browser"
+    }
+  ]
+}
