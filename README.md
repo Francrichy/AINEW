@@ -25,7 +25,7 @@ GET  /api/admin/payments  (header x-admin-key)
 POST /api/admin/approve   {"id": 1}  → mpango unawashwa siku 30
 
 ## Bei
-Mkopo wa mwezi (TZS) = bei ya mpango. Kila ujumbe unakata gharama halisi x MARKUP(3) x USD_TZS.
+Mkopo wa mwezi (TZS) = bei ya mpango. Kila ujumbe unakata gharama halisi x MARKUP(4) x USD_TZS.
 Mtumiaji akitumia mkopo wote, gharama yako ya OpenRouter ni 1/3 ya malipo yake.
 
 ## Domain (www.mlimani.net)
