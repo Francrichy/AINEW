@@ -185,7 +185,7 @@ $('generate').addEventListener('click',async()=>{
  if(!estimate||!estimate.enabled)return;
  generatedVoiceUrl='';$('generate').disabled=true;$('status').textContent='Inaanzisha kazi...';$('result').replaceChildren();
  try{
-  const t=task.value,assets=await resolveAssets();
+  const t=task.value,assets=(t==='voice'||t==='music')?{imageUrl:'',audioUrl:''}:await resolveAssets();
   if((t==='motion'||t==='avatar_video')&&!assets.imageUrl)throw new Error('Pakia picha ya avatar au weka kiungo cha picha.');
   if(t==='voice'){
    const voiceJob=await submitJob('voice',{prompt:$('prompt').value.trim(),voiceId:$('ttsVoice').value,language:$('language').value,durationSeconds:5,expectedChargeTzs:estimate.estimatedChargeTzs});
