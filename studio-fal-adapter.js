@@ -21,6 +21,19 @@ export function normalizeSupplierPrice(task,unit,unitPrice,exchangeRate) {
   const providerCost=Math.round(price*factor*fx*1000000)/1000000;
   return {providerCost,customerPrice:Math.round(providerCost*3.5*1000000)/1000000,factor,unit:normalized};
 }
+export function calculateTalkingAvatarCharge(durationSeconds, lipSyncPricePerSecond, videoPricePer5Seconds, multiplier = 1) {
+  const seconds = Math.max(5, Math.min(600, Math.ceil(Number(durationSeconds) || 5)));
+  const lipSyncRate = Number(lipSyncPricePerSecond);
+  const videoRate = Number(videoPricePer5Seconds);
+  const factor = Number(multiplier);
+  if (![lipSyncRate, videoRate, factor].every(Number.isFinite) || lipSyncRate < 0 || videoRate < 0 || factor <= 0) {
+    throw fail('Bei ya Lip-sync na Video Generation lazima ziwe zaidi ya sifuri.');
+  }
+  const videoUnits = Math.ceil(seconds / 5);
+  const lipSyncChargeTzs = seconds * lipSyncRate * factor;
+  const videoGenerationChargeTzs = videoUnits * videoRate;
+  return { durationSeconds: seconds, lipSyncChargeTzs, videoUnits, videoGenerationChargeTzs, totalChargeTzs: lipSyncChargeTzs + videoGenerationChargeTzs };
+}
 export const modelPath = model => {
   const m=String(model||'').trim();
   if(!/^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*){1,5}$/i.test(m)) throw fail('Admin hajaweka model ID sahihi ya fal.ai.',503);
@@ -126,8 +139,15 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
     const t=TASKS[req.params.task];if(!t)return res.status(404).json({error:'Task haijulikani.'});
     const cfg=config(req.params.task);
     const secs=Math.max(req.params.task==='avatar_video'?5:2,Math.min(600,Math.round(+req.query.durationSeconds||5))),rate=price(t[2]),characters=Math.max(1,Math.min(12000,Math.round(+req.query.characters||1000)));
-    const units=t[4]==='per_1000_chars'?Math.ceil(characters/1000):t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1,multiplier=req.params.task==='avatar_video'&&secs>15?1.2:1,charge=units*rate*multiplier;
-    res.json({provider:'fal.ai',task:req.params.task,modelConfigured:!!cfg.model,templateConfigured:!!cfg.template,durationSeconds:secs,characters,units,unit:t[4],customerPricePerUnitTzs:rate,pricingMultiplier:multiplier,estimatedChargeTzs:charge,walletBalanceTzs:cashWalletBalance(db,req.user.id),enabled:!!(key()&&cfg.model&&cfg.template&&rate>0&&cashWalletBalance(db,req.user.id)>=charge)});
+    const units=t[4]==='per_1000_chars'?Math.ceil(characters/1000):t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1,multiplier=req.params.task==='avatar_video'&&secs>15?1.2:1;
+    const avatarCosts=req.params.task==='avatar_video'?calculateTalkingAvatarCharge(secs,rate,price('fal_video_5s_tzs'),multiplier):null;
+    const lipSyncCharge=avatarCosts?.lipSyncChargeTzs||0;
+    const videoUnits=avatarCosts?.videoUnits||0;
+    const videoRate=req.params.task==='avatar_video'?price('fal_video_5s_tzs'):0;
+    const videoGenerationCharge=avatarCosts?.videoGenerationChargeTzs||0;
+    const charge=avatarCosts?avatarCosts.totalChargeTzs:units*rate*multiplier;
+    const balance=cashWalletBalance(db,req.user.id);
+    res.json({provider:'fal.ai',task:req.params.task,modelConfigured:!!cfg.model,templateConfigured:!!cfg.template,durationSeconds:secs,characters,units,unit:t[4],customerPricePerUnitTzs:rate,pricingMultiplier:multiplier,lipSyncChargeTzs:lipSyncCharge,videoGenerationUnits:videoUnits,videoGenerationPricePer5SecondsTzs:videoRate,videoGenerationChargeTzs:videoGenerationCharge,estimatedChargeTzs:charge,walletBalanceTzs:balance,enabled:!!(key()&&cfg.model&&cfg.template&&rate>0&&(req.params.task!=='avatar_video'||videoRate>0)&&balance>=charge)});
   });
   app.post('/api/studio/fal/:task/jobs',need,async(req,res)=>{
     const taskId=req.params.task,t=TASKS[taskId];if(!t)return res.status(404).json({error:'Task haijulikani.'});
@@ -139,7 +159,12 @@ export function registerStudioFalRoutes(app,{db,need,admin,env,cashWalletBalance
       const vars={prompt,durationSeconds:secs,aspectRatio:['16:9','9:16','1:1','3:4','4:5','3:2','2:3'].includes(req.body?.aspectRatio)?req.body.aspectRatio:'16:9',audioUrl:https(req.body?.audioUrl,'Audio URL'),imageUrl:https(req.body?.imageUrl,'Image URL'),voiceId:String(req.body?.voiceId||'').slice(0,200),language:['sw','en'].includes(req.body?.language)?req.body.language:'',resolution:['768P','1080P','480P'].includes(req.body?.resolution)?req.body.resolution:'768P'};
       for(const v of t[5])if(!vars[v])throw fail(v==='audioUrl'?'Pakia sauti au weka kiungo cha sauti cha HTTPS.':v==='imageUrl'?'Pakia picha ya avatar au weka kiungo cha picha cha HTTPS.':'Andika maelezo ya video kwanza.');
       input=makeInput(cfg.template,vars);if(JSON.stringify(input).length>20000)throw fail('Input ni kubwa mno.',413);
-      const rate=price(t[2]),units=t[4]==='per_1000_chars'?Math.ceil(prompt.length/1000):t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1,multiplier=taskId==='avatar_video'&&secs>15?1.2:1;charge=units*rate*multiplier;
+      const rate=price(t[2]),units=t[4]==='per_1000_chars'?Math.ceil(prompt.length/1000):t[4]==='per_5_seconds'?Math.ceil(secs/5):t[4]==='per_minute'?Math.ceil(secs/60):t[4]==='per_second'?secs:1,multiplier=taskId==='avatar_video'&&secs>15?1.2:1;
+      if(taskId==='avatar_video'){
+        const videoRate=price('fal_video_5s_tzs');
+        if(videoRate<=0)throw fail('Bei ya Video Generation haijawekwa na Admin. Talking Avatar haiwezi kuanza mpaka bei zote mbili ziwekwe.',503);
+        charge=calculateTalkingAvatarCharge(secs,rate,videoRate,multiplier).totalChargeTzs;
+      }else charge=units*rate*multiplier;
       const dailyJobs=db.prepare('SELECT COUNT(*) AS n FROM studio_fal_jobs WHERE user_id=? AND created_at>?').get(req.user.id,now()-86400000).n;
       if(dailyJobs>=Math.max(1,Number(env.FAL_DAILY_JOBS||20)))throw fail('Umefikia kikomo cha kazi za fal.ai kwa saa 24. Jaribu baadaye.',429);
       if(charge<=0||Number(req.body?.expectedChargeTzs)!==charge)throw fail('Bei haijaidhinishwa au imebadilika. Kagua makadirio mapya.',409);
