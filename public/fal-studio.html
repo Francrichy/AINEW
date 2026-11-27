@@ -25,9 +25,9 @@ button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#191919;col
 </style>
 </head>
 <body>
-<header><a class="brand" href="/"><span>MLIMANI</span> LABS</a><nav><a href="/studio.html#avatarLibrary">Avatar Library</a> · <a href="/studio.html">Live Studio</a></nav></header>
+<header><a class="brand" href="/"><span>MLIMANI</span> LABS</a><nav><a href="/">Studio Home</a></nav></header>
 <main>
-<span class="pill">FAL.AI · FIRST LAUNCH</span>
+<span class="pill">MLIMANI STUDIO · VIDEO &amp; AVATAR</span>
 <h1>Talking Avatars & Video Creator</h1>
 <p>Chagua huduma moja, pakia picha au sauti pale inapohitajika, kagua bei, kisha tengeneza video. Standard ni 768p; Premium ni 1080p. API key inabaki salama kwenye server ya Mlimani.</p>
 <section class="panel">
@@ -96,9 +96,9 @@ async function apiJson(url,options={}){
 async function uploadAsset(file,type){
  if(!token())throw new Error('Ingia kwanza kwenye akaunti yako ya Mlimani.');
  const maxBytes=type==='image'?30*1024*1024:15*1024*1024;if(file.size>maxBytes)throw new Error(type==='image'?'Picha isizidi MB 30.':'Sauti isizidi MB 15.');
- const pd=await apiJson('/api/studio/uploads/presign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file.name,contentType:file.type,sizeBytes:file.size,projectType:type,title:'fal.ai '+type+' input'})});
+ const pd=await apiJson('/api/studio/uploads/presign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file.name,contentType:file.type,sizeBytes:file.size,projectType:type,title:'Mlimani '+type+' input'})});
  const put=await fetch(pd.uploadUrl,{method:'PUT',headers:pd.headers,body:file});if(!put.ok)throw new Error('Upload haikukamilika. Hakikisha Cloud storage imeunganishwa.');
- await apiJson('/api/studio/projects/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({projectId:pd.projectId,storageKey:pd.storageKey,title:'fal.ai '+type+' input',type,durationSeconds:type==='voice'?audioSeconds:0})});
+ await apiJson('/api/studio/projects/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({projectId:pd.projectId,storageKey:pd.storageKey,title:'Mlimani '+type+' input',type,durationSeconds:type==='voice'?audioSeconds:0})});
  const sd=await apiJson('/api/studio/projects/'+encodeURIComponent(pd.projectId)+'/fal-url');
  return sd.url;
 }
@@ -134,7 +134,7 @@ $('estimate').addEventListener('click',async()=>{
    const d=await quote(task.value,durationSeconds);
    estimate={...d,estimatedChargeTzs:d.estimatedChargeTzs};
    const priceLines=task.value==='avatar_video'?'Lip-sync: TZS '+Number(d.lipSyncChargeTzs).toLocaleString()+'\nVideo Generation: TZS '+Number(d.videoGenerationChargeTzs).toLocaleString()+'\nJumla: TZS '+Number(d.estimatedChargeTzs).toLocaleString():'Bei: TZS '+Number(d.estimatedChargeTzs).toLocaleString();
-   setStatus('Provider: fal.ai\nHuduma: '+task.options[task.selectedIndex].text+'\nUbora: '+$('resolution').selectedOptions[0].text+'\nMuda: '+durationSeconds+' sec\n'+priceLines+'\nWallet: TZS '+Number(d.walletBalanceTzs).toLocaleString()+'\n'+(d.enabled?'Unaweza kuendelea.':'Huduma bado haijawezeshwa au salio/bei haitoshi.'));
+   setStatus('Service: Mlimani Studio\nHuduma: '+task.options[task.selectedIndex].text+'\nUbora: '+$('resolution').selectedOptions[0].text+'\nMuda: '+durationSeconds+' sec\n'+priceLines+'\nWallet: TZS '+Number(d.walletBalanceTzs).toLocaleString()+'\n'+(d.enabled?'Unaweza kuendelea.':'Huduma bado haijawezeshwa au salio/bei haitoshi.'));
   }
   $('generate').disabled=!estimate.enabled;
  }catch(e){setStatus(e.message)}
@@ -182,7 +182,7 @@ $('generate').addEventListener('click',async()=>{
    if(t==='avatar_video'&&audioSeconds>0&&audioSeconds<5)throw new Error('Sauti lazima iwe angalau sekunde 5.');
    const body={prompt:$('prompt').value.trim(),durationSeconds:getDuration(),aspectRatio:$('ratio').value,imageUrl:assets.imageUrl,audioUrl:assets.audioUrl,language:$('language').value,resolution:$('resolution').value,expectedChargeTzs:estimate.estimatedChargeTzs};
    const job=await submitJob(t,body);
-   setStatus('Ombi limepokelewa.\nJob ID: '+job.jobId+'\nHali: '+job.status+'\nAda iliyohifadhiwa: TZS '+Number(job.chargedTzs).toLocaleString()+'\nInasubiri fal.ai...');
+   setStatus('Ombi limepokelewa.\nJob ID: '+job.jobId+'\nHali: '+job.status+'\nAda iliyohifadhiwa: TZS '+Number(job.chargedTzs).toLocaleString()+'\nInasubiri video ikamilike...');
    await poll(job.jobId,t,true);
   }
  }catch(e){setStatus(e.message);if(generatedVoiceUrl){const link=document.createElement('a');link.href=generatedVoiceUrl;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Fungua au pakua sauti ya AI iliyotengenezwa';link.style.display='inline-block';link.style.marginTop='12px';$('result').append(link)}}
