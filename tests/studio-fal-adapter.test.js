@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { makeInput, modelPath, normalizeSupplierPrice } from '../studio-fal-adapter.js';
+import { calculateTalkingAvatarCharge, makeInput, modelPath, normalizeSupplierPrice } from '../studio-fal-adapter.js';
 
 test('fal model IDs are converted into safe queue paths', () => {
   assert.equal(modelPath('fal-ai/speech-to-text'), 'fal-ai/speech-to-text');
@@ -36,4 +36,21 @@ test('fal supplier pricing refuses units that cannot safely map to app billing u
   assert.throws(() => normalizeSupplierPrice('voice', 'seconds', 0.001, 2600), /haiwezi kulinganishwa/);
   assert.throws(() => normalizeSupplierPrice('image', 'megapixel', 0.005, 2600), /haiwezi kulinganishwa/);
   assert.throws(() => normalizeSupplierPrice('image', 'image', 0.02, 0), /si sahihi/);
+});
+
+test('Talking Avatar charges lip-sync and video generation as separate components', () => {
+  const quote = calculateTalkingAvatarCharge(15, 728, 2275);
+  assert.equal(quote.durationSeconds, 15);
+  assert.equal(quote.lipSyncChargeTzs, 10920);
+  assert.equal(quote.videoUnits, 3);
+  assert.equal(quote.videoGenerationChargeTzs, 6825);
+  assert.equal(quote.totalChargeTzs, 17745);
+});
+
+test('Talking Avatar video generation is rounded up to complete 5-second units', () => {
+  const quote = calculateTalkingAvatarCharge(16, 100, 500, 1.2);
+  assert.equal(quote.lipSyncChargeTzs, 1920);
+  assert.equal(quote.videoUnits, 4);
+  assert.equal(quote.videoGenerationChargeTzs, 2000);
+  assert.equal(quote.totalChargeTzs, 3920);
 });
