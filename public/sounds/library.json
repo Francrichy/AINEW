@@ -5,12 +5,58 @@
       "code": "MLM-SND-001",
       "title": "Mlimani African Pulse",
       "category": "African Modern Percussion",
-      "description": "Original five-second instrumental African-modern percussion sting for Mlimani brand identity and short video intros. Synthesised in-browser; no third-party samples or vocals.",
+      "description": "Original five-second African percussion sting for intros and logo reveals.",
       "durationSeconds": 5,
       "creator": "Mlimani Labs",
-      "rights": "Original Mlimani digital audio. Use inside Mlimani Studio customer projects; standalone resale or redistribution is not included.",
-      "filename": "MLIMANI-AFRICAN-PULSE-001.wav",
+      "rights": "Use inside Mlimani Studio customer projects; no standalone resale or redistribution.",
+      "filename": "generated-wav",
       "delivery": "generated-in-browser"
+    },
+    {
+      "id": "MLM-SND-002",
+      "code": "MLM-SND-002",
+      "title": "Mlimani Calm Kalimba",
+      "category": "Calm · Corporate · Acoustic",
+      "description": "Original calm kalimba-inspired instrumental for product explainers and training videos.",
+      "durationSeconds": 8,
+      "creator": "Mlimani Labs",
+      "rights": "Use inside Mlimani Studio customer projects; no standalone resale or redistribution.",
+      "filename": "generated-wav",
+      "delivery": "generated-in-browser"
+    },
+    {
+      "id": "MLM-SND-003",
+      "code": "MLM-SND-003",
+      "title": "Mlimani Uplift Afro Beat",
+      "category": "Afro Corporate · Upbeat",
+      "description": "Original upbeat Afro-inspired corporate rhythm for promos and social video.",
+      "durationSeconds": 8,
+      "creator": "Mlimani Labs",
+      "rights": "Use inside Mlimani Studio customer projects; no standalone resale or redistribution.",
+      "filename": "generated-wav",
+      "delivery": "generated-in-browser"
+    },
+    {
+      "id": "MLM-VCE-004",
+      "code": "MLM-VCE-004",
+      "title": "Ngina · Kiswahili Female Voice Preview",
+      "category": "Voice-over · Kiswahili",
+      "description": "Browser speech preview; uses the female Kiswahili voice installed on the user's device when available.",
+      "durationSeconds": 0,
+      "creator": "Mlimani Labs",
+      "rights": "Preview only; final downloadable voice-over requires a production TTS engine.",
+      "delivery": "browser-speech-preview"
+    },
+    {
+      "id": "MLM-VCE-005",
+      "code": "MLM-VCE-005",
+      "title": "Ethan · English Male Voice Preview",
+      "category": "Voice-over · English",
+      "description": "Browser speech preview; uses the male English voice installed on the user's device when available.",
+      "durationSeconds": 0,
+      "creator": "Mlimani Labs",
+      "rights": "Preview only; final downloadable voice-over requires a production TTS engine.",
+      "delivery": "browser-speech-preview"
     }
   ]
 }
