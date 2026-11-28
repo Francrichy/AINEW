@@ -71,7 +71,7 @@ export function registerFilmJobRoutes(app, { db, need, env, cashWalletBalance, c
 
   app.post('/api/studio/film/jobs', need, async (req, res) => {
     const config = workerConfig(env);
-    if (!config) return json(res, 503, { error: 'Film Studio bado haijaunganishwa na Cloudflare. Hakuna malipo yaliyofanyika.' });
+    if (!config) return json(res, 503, { error: 'Film Worker haijaunganishwa. Hakuna malipo yaliyofanyika.' });
     const title = String(req.body?.title || 'Mlimani Film').trim().slice(0, 120);
     const language = ['sw', 'en', 'sw-en'].includes(String(req.body?.language || 'sw')) ? String(req.body?.language || 'sw') : 'sw';
     const scenes = req.body?.scenes;
@@ -178,9 +178,33 @@ export function registerFilmJobRoutes(app, { db, need, env, cashWalletBalance, c
     try {
       const config = workerConfig(env);
       const result = await workerFetch(config, '/jobs/' + encodeURIComponent(job.worker_job_id) + '/download?ownerId=' + encodeURIComponent(String(req.user.id)));
+      if (result.localFile) return res.json({ url: '/api/studio/film/jobs/' + encodeURIComponent(job.id) + '/file', expiresIn: result.expiresIn || 600 });
       return res.json({ url: result.url, expiresIn: result.expiresIn || 600 });
     } catch (error) {
       return json(res, error.status || 502, { error: 'Imeshindikana kuandaa kiungo cha kupakua filamu.' });
     }
   });
 }
+
+  app.get('/api/studio/film/jobs/:id/file', need, async (req, res) => {
+    const job = db.prepare("SELECT * FROM studio_film_jobs WHERE id=? AND user_id=? AND status='completed'").get(req.params.id, req.user.id);
+    if (!job?.worker_job_id) return json(res, 404, { error: 'Filamu bado haijakamilika.' });
+    try {
+      const config = workerConfig(env);
+      if (!config) return json(res, 503, { error: 'Film Worker haijaunganishwa.' });
+      const response = await fetch(config.base + '/jobs/' + encodeURIComponent(job.worker_job_id) + '/file?ownerId=' + encodeURIComponent(String(req.user.id)), {
+        headers: { Authorization: 'Bearer ' + config.token }, signal: AbortSignal.timeout(120000)
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        return json(res, response.status, { error: body.error || 'Imeshindikana kupakua filamu.' });
+      }
+      const bytes = Buffer.from(await response.arrayBuffer());
+      res.set('Content-Type', 'video/mp4');
+      res.set('Content-Disposition', 'attachment; filename="mlimani-film.mp4"');
+      res.set('Content-Length', String(bytes.length));
+      return res.send(bytes);
+    } catch (error) {
+      return json(res, error.status || 502, { error: 'Imeshindikana kupakua filamu kwa sasa.' });
+    }
+  });
