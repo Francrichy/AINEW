@@ -1,7 +1,16 @@
 import { randomUUID } from 'node:crypto';
 
 const json = (res, status, body) => res.status(status).json(body);
-const priceForMinute = db => Number(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='studio_film_minute_tzs'").get()?.customer_price || 0);
+const priceForSecond = db => Number(db.prepare("SELECT customer_price FROM admin_pricing WHERE config_key='studio_film_second_tzs'").get()?.customer_price || 0);
+
+export function calculateFilmCharge(totalSeconds, pricePerSecond) {
+  const seconds = Number(totalSeconds);
+  const rate = Number(pricePerSecond);
+  if (!Number.isInteger(seconds) || seconds < 1 || !Number.isFinite(rate) || rate < 0) {
+    throw new Error('Muda wa filamu au bei kwa sekunde si sahihi.');
+  }
+  return Math.round(seconds * rate);
+}
 
 function workerConfig(env) {
   const base = String(env.MLIMANI_FILM_WORKER_URL || '').replace(/\/+$/, '');
@@ -43,18 +52,17 @@ export function registerFilmJobRoutes(app, { db, need, env, cashWalletBalance, c
     if (!Number.isInteger(totalSeconds) || totalSeconds < 60 || totalSeconds > 1800) {
       return json(res, 400, { error: 'Muda wa filamu uwe kati ya dakika 1 na 30.' });
     }
-    const minuteRateTzs = priceForMinute(db);
-    const billedMinutes = Math.ceil(totalSeconds / 60);
-    const estimatedChargeTzs = billedMinutes * minuteRateTzs;
+    const secondRateTzs = priceForSecond(db);
+    const estimatedChargeTzs = calculateFilmCharge(totalSeconds, secondRateTzs);
     const walletBalanceTzs = cashWalletBalance(db, req.user.id);
     const config = workerConfig(env);
     return res.json({
-      enabled: Boolean(config && minuteRateTzs > 0 && walletBalanceTzs >= estimatedChargeTzs),
+      enabled: Boolean(config && secondRateTzs > 0 && walletBalanceTzs >= estimatedChargeTzs),
       workerConfigured: Boolean(config),
-      priceConfigured: minuteRateTzs > 0,
-      totalSeconds, billedMinutes, customerPricePerMinuteTzs: minuteRateTzs,
+      priceConfigured: secondRateTzs > 0,
+      totalSeconds, customerPricePerSecondTzs: secondRateTzs,
       estimatedChargeTzs, walletBalanceTzs, maxScenes: 120,
-      note: !config ? 'Cloudflare Film Worker bado haijaunganishwa.' : minuteRateTzs <= 0 ? 'Bei ya filamu bado haijaidhinishwa na Admin.' : ''
+      note: !config ? 'Long Video Creator bado inasubiri kuunganishwa na Film Worker. Hakuna malipo yaliyofanyika.' : secondRateTzs <= 0 ? 'Bei ya filamu kwa sekunde bado haijaidhinishwa na Admin. Hakuna malipo yaliyofanyika.' : ''
     });
   });
 
@@ -80,12 +88,11 @@ export function registerFilmJobRoutes(app, { db, need, env, cashWalletBalance, c
       totalSeconds += duration;
     }
     if (totalSeconds < 60 || totalSeconds > 1800) return json(res, 400, { error: 'Jumla ya muda wa scenes iwe kati ya dakika 1 na 30.' });
-    const minuteRateTzs = priceForMinute(db);
-    if (!Number.isFinite(minuteRateTzs) || minuteRateTzs <= 0) {
-      return json(res, 503, { error: 'Bei ya filamu bado haijaidhinishwa na Admin. Hakuna salio lililokatwa.' });
+    const secondRateTzs = priceForSecond(db);
+    if (!Number.isFinite(secondRateTzs) || secondRateTzs <= 0) {
+      return json(res, 503, { error: 'Bei ya filamu kwa sekunde bado haijaidhinishwa na Admin. Hakuna salio lililokatwa.' });
     }
-    const billedMinutes = Math.ceil(totalSeconds / 60);
-    const chargeTzs = billedMinutes * minuteRateTzs;
+    const chargeTzs = calculateFilmCharge(totalSeconds, secondRateTzs);
     if (cashWalletBalance(db, req.user.id) < chargeTzs) {
       return json(res, 402, { error: 'Salio la Wallet halitoshi. Unahitaji TZS ' + chargeTzs.toLocaleString('en-US') + ' kwa filamu hii.' });
     }
