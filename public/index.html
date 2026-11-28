@@ -25,7 +25,8 @@ h1 em{font-style:normal;background:linear-gradient(90deg,#c4a7ff,#ef9bfa,#8be8ff
 .showcase{display:grid;grid-template-columns:1.45fr 1fr 1fr;gap:12px;max-width:1120px;margin:32px auto 8px;text-align:left;align-items:stretch}
 .showcase-card{position:relative;isolation:isolate;overflow:hidden;min-height:245px;border:1px solid #51416b;border-radius:18px;padding:0;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;background:#171321;box-shadow:0 18px 45px #0008;transition:transform .25s,border-color .25s}
 .showcase-card.featured{min-height:340px}
-.showcase-card video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;background:#111}
+.showcase-card .scene-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;animation:sceneDrift 18s ease-in-out infinite alternate;transform-origin:center}
+@keyframes sceneDrift{from{transform:scale(1.02) translate3d(-.5%,0,0)}to{transform:scale(1.12) translate3d(1%,-1%,0)}}
 .showcase-card:after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(0deg,#08070df2 0%,#08070d20 55%,#08070d08 100%)}
 .showcase-card:hover{transform:translateY(-4px);border-color:#c4a7ff}
 .scene-copy{position:relative;z-index:2;padding:18px;display:flex;flex-direction:column;gap:7px;pointer-events:none}
@@ -44,7 +45,7 @@ h1 em{font-style:normal;background:linear-gradient(90deg,#c4a7ff,#ef9bfa,#8be8ff
 .create{border:0;border-radius:11px;padding:12px 18px;background:linear-gradient(100deg,#b99aff,#e9a0f4);color:#1a1025;font-weight:900;cursor:pointer;white-space:nowrap}
 .prompt-hint{display:flex;justify-content:space-between;gap:10px;padding:10px 12px 2px;color:#817b91;font-size:.72rem}
 .section-head{display:flex;justify-content:space-between;align-items:end;gap:14px;margin:54px 0 16px}.section-head h2{font-size:1.15rem;margin:0}.section-head p{margin:5px 0 0;color:#8f899e;font-size:.82rem}
-.tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .tool{padding:17px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(145deg,#15141d,#0e0e14);transition:.18s;min-width:0}
 .tool:hover{transform:translateY(-3px);border-color:#70558d;background:#1b1725}.tool .symbol{font-size:1.45rem}.tool strong{display:block;margin:11px 0 5px;font-size:.9rem}.tool p{color:#928ca0;font-size:.77rem;line-height:1.5;margin:0}
 .footer{margin-top:46px;border-top:1px solid var(--line);padding-top:18px;color:#777184;font-size:.76rem;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -57,9 +58,7 @@ h1 em{font-style:normal;background:linear-gradient(90deg,#c4a7ff,#ef9bfa,#8be8ff
 <a class="brand" href="/">MLIMANI <span>LABS</span><small>STUDIO</small></a>
 <div><p class="nav-label">CREATE</p><nav class="nav">
 <a class="active" href="/"><span class="ico">⌂</span> Studio Home</a>
-<a href="/fal-studio.html?task=video"><span class="ico">▣</span> AI Video</a>
-<a href="/fal-studio.html?task=avatar_video"><span class="ico">◉</span> Talking Avatar</a>
-<a href="/fal-studio.html?task=motion"><span class="ico">✧</span> Full Motion Avatar</a>
+<a href="/fal-studio.html"><span class="ico">✦</span> Create Video</a>
 </nav></div>
 <div><p class="nav-label">YOUR WORKSPACE</p><nav class="nav">
 <a href="/production-studio.html"><span class="ico">▤</span> My Projects</a>
@@ -72,18 +71,14 @@ h1 em{font-style:normal;background:linear-gradient(90deg,#c4a7ff,#ef9bfa,#8be8ff
 <div class="eyebrow">✦ YOUR AI CREATIVE WORKSPACE</div>
 <h1>Bring your ideas<br>to <em>life.</em></h1>
 <p class="sub">Create cinematic videos, bring photos to life, and make your own AI presenters. Everything you need to create — in one studio.</p>
-<div class="showcase" aria-label="Cinematic moving video previews">
-<a class="showcase-card featured" href="/fal-studio.html?task=video" aria-label="Create a cinematic video">
-<video autoplay muted loop playsinline preload="metadata"><source src="https://videos.pexels.com/video-files/15556088/15556088-uhd_3840_2160_24fps.mp4" type="video/mp4"></video>
-<span class="play-mark">▶</span><span class="scene-copy"><span class="scene-tag">CINEMATIC SHOWREEL</span><span class="scene-title">Stories that move. Worlds you can create.</span><span class="scene-meta">People · Landscapes · Motion · Storytelling</span></span></a>
-<div class="showcase-card">
-<video controls muted playsinline preload="none"><source src="https://videos.pexels.com/video-files/37297571/15799147_1080_1920_30fps.mp4" type="video/mp4"></video>
-<span class="scene-copy"><span class="scene-tag">WILDLIFE & ADVENTURE</span><span class="scene-title">Bring the scene to life</span><span class="scene-meta">Movement · Atmosphere · Emotion</span></span></div>
-<div class="showcase-card">
-<video controls muted playsinline preload="none"><source src="https://videos.pexels.com/video-files/15556043/15556043-uhd_3840_2160_25fps.mp4" type="video/mp4"></video>
-<span class="scene-copy"><span class="scene-tag">PEOPLE & CULTURE</span><span class="scene-title">Make every moment cinematic</span><span class="scene-meta">Human stories · Travel · Brand films</span></span></div>
+<div class="showcase ai-showcase" aria-label="AI cinematic scene concepts">
+<a class="showcase-card featured" href="/fal-studio.html?task=video" aria-label="Create an AI cinematic video">
+<svg class="scene-art" viewBox="0 0 900 520" role="img" aria-label="Fictional AI cinematic scene, hero character in a futuristic city"><defs><linearGradient id="skyA" x2="0" y2="1"><stop stop-color="#34205f"/><stop offset=".55" stop-color="#e36c91"/><stop offset="1" stop-color="#f5b56c"/></linearGradient></defs><rect width="900" height="520" fill="url(#skyA)"/><circle cx="690" cy="135" r="76" fill="#ffd6a1" opacity=".8"/><path d="M0 330 110 205 190 285 300 160 420 310 540 180 680 320 790 200 900 300V520H0Z" fill="#36284f"/><g fill="#171321"><path d="M40 340h90v180H40zM150 300h78v220h-78zM255 350h110v170H255zM390 315h80v205h-80zM500 355h110v165H500zM650 300h90v220h-90zM770 345h95v175h-95z"/></g><path d="M430 520c10-95 12-150 52-188 18-18 45-18 62 0 38 40 39 99 48 188z" fill="#171321"/><circle cx="512" cy="285" r="31" fill="#8c5c56"/><path d="M480 281c4-40 58-52 74-4l-11-16-49 7z" fill="#171321"/><path d="M477 330 435 430l-26 90h48l44-102 37 102h49l-31-112-26-78z" fill="#29203d"/></svg>
+<span class="play-mark">✦</span><span class="scene-copy"><span class="scene-tag">AI CINEMATIC CONCEPT</span><span class="scene-title">Create entire worlds from one idea.</span><span class="scene-meta">AI characters · Camera movement · Film-like scenes</span></span></a>
+<div class="showcase-card"><svg class="scene-art" viewBox="0 0 520 360" role="img" aria-label="AI fantasy forest scene"><defs><linearGradient id="forestB" x2="0" y2="1"><stop stop-color="#152f40"/><stop offset="1" stop-color="#d08b62"/></linearGradient></defs><rect width="520" height="360" fill="url(#forestB)"/><circle cx="365" cy="100" r="55" fill="#ffdb9e" opacity=".65"/><path d="M0 270 90 80 160 270 245 35 330 270 430 65 520 270v90H0Z" fill="#10242b"/><path d="M0 300q100-70 200 0t320 0v60H0Z" fill="#07151d"/><circle cx="278" cy="206" r="19" fill="#d9a17d"/><path d="M225 360q15-90 55-130 45 40 55 130" fill="#b47c64"/></svg><span class="scene-copy"><span class="scene-tag">AI WORLD BUILDING</span><span class="scene-title">Design impossible worlds.</span><span class="scene-meta">Fantasy · Nature · Atmosphere</span></span></div>
+<div class="showcase-card"><svg class="scene-art" viewBox="0 0 520 360" role="img" aria-label="AI fashion commercial concept"><defs><linearGradient id="studioC" x2="1" y2="1"><stop stop-color="#301b49"/><stop offset=".5" stop-color="#9c477c"/><stop offset="1" stop-color="#f0a36b"/></linearGradient></defs><rect width="520" height="360" fill="url(#studioC)"/><circle cx="400" cy="80" r="105" fill="#ffd1ae" opacity=".25"/><path d="M0 280 120 210 220 260 330 180 520 270v90H0Z" fill="#1b142a"/><path d="M205 360q0-100 50-145 45-35 90 0 48 50 50 145" fill="#171321"/><circle cx="300" cy="160" r="36" fill="#a96f5d"/><path d="M263 158q4-70 76-40l17 37-16-12-66 8z" fill="#1b142a"/></svg><span class="scene-copy"><span class="scene-tag">AI BRAND FILM</span><span class="scene-title">Turn products into stories.</span><span class="scene-meta">AI presenters · Product scenes · Ads</span></span></div>
 </div>
-<p class="showcase-footnote">Footage za mfano zenye leseni ya bure kutoka Pexels zinaonyesha aina ya matukio ya cinematic; si madai kwamba zimetengenezwa na AI ya Mlimani. <a class="video-credit" href="https://www.pexels.com/license/" target="_blank" rel="noopener">Pexels licence</a>.</p>
+<p class="showcase-footnote">Hizi ni AI-style scene concepts zinazoonyesha aina ya matokeo tunayolenga — si footage ya kamera wala video za provider. Video halisi itatengenezwa na AI generation ndani ya Mlimani.</p>
 <form class="prompt-card" id="promptForm">
 <div class="prompt-inner"><span class="spark">✦</span><input id="idea" type="search" autocomplete="off" placeholder="Describe the video you want to create..." aria-label="Describe your creative idea"><button class="create" type="submit">Create video ↗</button></div>
 <div class="prompt-hint"><span>✦ Start with an idea, a product or a story</span><span>AI-powered creative tools</span></div>
@@ -91,10 +86,8 @@ h1 em{font-style:normal;background:linear-gradient(90deg,#c4a7ff,#ef9bfa,#8be8ff
 </section>
 <section><div class="section-head"><div><h2>Explore creative tools</h2><p>Choose a studio to start creating.</p></div></div>
 <div class="tools">
-<a class="tool" href="/fal-studio.html?task=video"><span class="symbol">🎬</span><strong>AI Video Creator</strong><p>Tengeneza video fupi kutoka kwenye wazo au picha.</p></a>
-<a class="tool" href="/fal-studio.html?task=avatar_video"><span class="symbol">🎭</span><strong>Talking Avatar</strong><p>Fanya Ngina, Ethan au picha yako izungumze.</p></a>
-<a class="tool" href="/fal-studio.html?task=motion"><span class="symbol">✧</span><strong>Full Motion Avatar</strong><p>Fanya avatar ifanye vitendo na mjongeo.</p></a>
-<a class="tool" href="/production-studio.html"><span class="symbol">▤</span><strong>My Projects</strong><p>Angalia na endelea na kazi ulizohifadhi.</p></a>
+<a class="tool" href="/fal-studio.html"><span class="symbol">✦</span><strong>Create Video</strong><p>Chagua AI Video, Talking Avatar au Full Motion ndani ya studio moja.</p></a>
+<a class="tool" href="/production-studio.html#projects"><span class="symbol">▤</span><strong>My Projects</strong><p>Angalia, endelea kuhariri na pakua kazi zako.</p></a>
 </div></section>
 <footer class="footer"><span>© Mlimani Labs Studio</span><span>Imagine it. Create it. Bring it to life.</span></footer>
 </main></div>
