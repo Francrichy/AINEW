@@ -5,7 +5,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 
 test('main customer pages include mobile viewport and responsive layout', () => {
-  for (const page of ['index.html', 'studio.html', 'guide.html', 'provider-admin.html']) {
+  for (const page of ['index.html', 'guide.html', 'provider-admin.html', 'production-studio.html', 'fal-studio.html', 'sound-library.html']) {
     const html = readFileSync(path.join('public', page), 'utf8');
     assert.match(html, /<meta\s+name=["']viewport["']/i, page + ' must define a mobile viewport');
     assert.match(html, /@media\s*\(/i, page + ' must include responsive styles');
@@ -27,34 +27,27 @@ test('inline JavaScript in public HTML pages parses', () => {
   }
 });
 
-test('Studio multi-choice controls use collections and key actions are wired', () => {
-  const html = readFileSync(path.join('public', 'studio.html'), 'utf8');
-  assert.match(html, /\$\$\('\[data-vtype\]'\)\.forEach/);
-  assert.match(html, /\$\$\('\[data-mode\]'\)\.forEach/);
-  assert.match(html, /\$\$\('#voiceLog \.bubble'\)\.map/);
-  assert.match(html, /id="draftNewsScript"/);
-  assert.match(html, /Mlimani Labs Studio/);
-  assert.doesNotMatch(html, /(?<!\$)\$\('\[data-vtype\]'\)\.forEach/);
-  assert.doesNotMatch(html, /(?<!\$)\$\('\[data-mode\]'\)\.forEach/);
-  assert.doesNotMatch(html, /(?<!\$)\$\('#voiceLog \.bubble'\)\.map/);
+test('Long Video Creator supports 10/20-minute projects and independent scene editing', () => {
+  const html = readFileSync(path.join('public', 'production-studio.html'), 'utf8');
+  const jobs = readFileSync('film-jobs.js', 'utf8');
+  const billing = readFileSync('billing.js', 'utf8');
+  assert.match(html, /Long Video Creator/);
+  assert.match(html, /value="10">Dakika 10/);
+  assert.match(html, /value="20">Dakika 20/);
+  assert.match(html, /filmSceneSelect/);
+  assert.match(html, /regenerateFilmScene/);
+  assert.match(html, /batchSize=20/);
+  assert.match(jobs, /studio_film_second_tzs/);
+  assert.match(jobs, /calculateFilmCharge/);
+  assert.match(billing, /Long Video Creator kwa sekunde/);
 });
 
-test('Live Talk keeps Ethan and Ngina featured and supports provider avatar selections', () => {
-  const html = readFileSync(path.join('public', 'studio.html'), 'utf8');
-  const server = readFileSync('server.js', 'utf8');
-  assert.match(html, /id="featuredAvatarChoices"/);
-  assert.match(html, /data-avatar="Ethan"/);
-  assert.match(html, /data-avatar="Ngina"/);
-  assert.match(html, /id="liveAvatarCatalogGrid"/);
-  assert.match(html, /loadLiveAvatarLibrary\(\)/);
-  assert.match(html, /avatarId:selectedLiveAvatarId/);
-  assert.match(server, /requestedAvatarId/);
-  assert.match(server, /selectedAvatar = catalog\.avatars\.find/);
-  assert.match(html, /id="liveLanguage"/);
-  assert.match(html, /liveLanguage/);
-  assert.match(server, /Never substitute an English-only voice/);
-  assert.match(server, /Kiswahili sanifu cha Tanzania/);
-  assert.match(server, /Avatar uliyochagua haipatikani au haiko tayari/);
+test('legacy studio route redirects to the current Mlimani home page', () => {
+  const legacy = readFileSync(path.join('public', 'studio.html'), 'utf8');
+  const home = readFileSync(path.join('public', 'index.html'), 'utf8');
+  assert.ok(legacy.includes('content="0;url=/'));
+  assert.ok(legacy.includes("location.replace('/')"));
+  assert.match(home, /Mlimani Labs Studio/);
 });
 
 test('AI Video offers quality tiers with upfront estimates and Admin-controlled prices', () => {
