@@ -22,24 +22,27 @@ button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#211a2c;col
 #result pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#ccc;background:#111;padding:12px;border-radius:10px}
 .pill{display:inline-block;padding:6px 10px;border:1px solid #444;border-radius:99px;color:#ddd;font-size:.78rem}
 .wallet-panel{border-color:#594273;background:linear-gradient(145deg,#21162f,#100e17)}.wallet-balance{font-size:1.65rem;font-weight:900;color:#d8c3ff;margin:4px 0 12px}.wallet-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.wallet-note{font-size:.82rem;color:#aaa;white-space:pre-wrap;line-height:1.55}.wallet-message{margin-top:12px;color:#d9c9ff;white-space:pre-wrap;font-size:.88rem}
+.service-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:22px 0}.service-choice{display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:left;min-height:96px;background:#15121e;color:#f4edff;border:1px solid #3c304e;border-radius:14px;padding:14px}.service-choice strong{font-size:.94rem}.service-choice span{font-size:.76rem;color:#b8aec9;font-weight:500}.service-choice.active{border-color:#b99aff;background:linear-gradient(145deg,#2a1c3d,#171321);box-shadow:0 0 0 1px #b99aff40}.service-choice:hover{border-color:#b99aff}
+@media(max-width:600px){.service-picker{grid-template-columns:1fr}.service-choice{min-height:72px}}
 @media(max-width:600px){header{padding:14px 16px}main{padding:20px 12px 40px}.panel{padding:14px}.grid{grid-template-columns:1fr}.actions button{width:100%}}
 </style>
 </head>
 <body>
 <header><a class="brand" href="/"><span>MLIMANI</span> LABS</a><nav><a href="/sound-library.html">Sound Library</a> · <a href="/">Studio Home</a></nav></header>
 <main>
-<span class="pill">MLIMANI STUDIO · VIDEO &amp; AVATAR</span>
-<h1>Talking Avatars & Video Creator</h1>
-<p>Chagua huduma moja, pakia picha au sauti pale inapohitajika, kagua bei, kisha tengeneza video. Standard ni 768p; Premium ni 1080p. API key inabaki salama kwenye server ya Mlimani.</p>
-<section class="panel wallet-panel" aria-labelledby="walletTitle"><h2 id="walletTitle" style="margin:0 0 6px">TZS Wallet · Lipa kadri unavyotumia</h2><div id="walletBalance" class="wallet-balance">Salio: —</div><p class="wallet-note">Unaweza kuanza kwa kuongeza TZS 1,000 au zaidi. Video hukatwa kwa sekunde halisi kulingana na bei inayoonyeshwa kabla ya kuanza.</p><div id="paymentInstructions" class="wallet-note">Inapakia maelekezo ya malipo...</div><div class="wallet-grid"><div><label for="topupAmount">Kiasi cha kuongeza (TZS)</label><input id="topupAmount" type="number" min="1000" max="2000000" step="1" value="1000"></div><div><label for="topupPhone">Namba ya simu iliyotuma malipo</label><input id="topupPhone" type="tel" maxlength="20" placeholder="07XXXXXXXX"></div></div><label for="topupRef">Namba ya muamala / reference</label><input id="topupRef" type="text" maxlength="40" placeholder="Weka transaction ID kutoka SMS"><div class="actions"><button id="topupSubmit" type="button">Tuma uthibitisho wa malipo</button><button id="walletRefresh" type="button" class="secondary">Angalia salio</button></div><div id="walletMessage" class="wallet-message" role="status"></div><p class="help">Salio linaongezwa baada ya Admin kuthibitisha muamala. Hifadhi SMS ya malipo mpaka uthibitisho ukamilike.</p></section>
+<span class="pill">MLIMANI STUDIO · AI VIDEO PLATFORM</span>
+<h1>Create Video</h1>
+<p>Chagua aina ya video unayotaka. Andaa maelezo na scenes, kagua quotation, kisha thibitisha generation. Hakuna malipo kabla hujaona gharama.</p>
+<div class="service-picker" role="group" aria-label="Chagua aina ya video">
+<button type="button" class="service-choice active" data-service="video"><strong>🎬 AI Video</strong><span>Text/image to cinematic scenes</span></button>
+<button type="button" class="service-choice" data-service="avatar_video"><strong>🗣️ Talking Avatar</strong><span>Avatar inayozungumza na lip-sync</span></button>
+<button type="button" class="service-choice" data-service="motion"><strong>🕺 Full Motion Avatar</strong><span>Avatar ya mwili mzima na vitendo</span></button>
+</div>
+
 <section class="panel">
-<label for="task">Huduma unayotaka</label>
-<select id="task">
-<option value="video">Video Creator Lite · Tengeneza video kutoka maelezo/picha</option>
-<option value="voice">Mlimani Voice-over · AI isome script yako</option>
-<option value="music">Mlimani Soundtrack Creator · Tengeneza muziki wa video</option>
-<option value="avatar_video">Talking Avatar · Picha inayozungumza kwa sauti yako</option>
-<option value="motion">Full Motion Avatar · Avatar yenye vitendo na movement</option>
+<label for="task" class="hidden">Aina ya creation</label>
+<select id="task" class="hidden">
+<option value="video">AI Video</option><option value="avatar_video">Talking Avatar</option><option value="motion">Full Motion Avatar</option><option value="voice">Voice-over</option><option value="music">Soundtrack</option>
 </select>
 <div id="voiceModeWrap" class="hidden"><label for="voiceMode">Sauti ya Talking Avatar</label><select id="voiceMode"><option value="upload">Nina sauti yangu (upload)</option><option value="script">Andika script · AI itazungumza</option></select></div>
 <div id="ttsVoiceWrap" class="hidden"><label for="ttsVoice">Chagua sauti ya AI</label><select id="ttsVoice"><option>Aria</option><option>Sarah</option><option>Roger</option><option>Laura</option><option>Charlie</option><option>George</option><option>Matilda</option><option>Jessica</option></select></div>
@@ -55,11 +58,12 @@ button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#211a2c;col
 <div><label for="ratio">Muundo wa video</label><select id="ratio"><option value="9:16">Vertical · TikTok / Reels / Shorts</option><option value="16:9">Landscape · YouTube</option><option value="1:1">Square · Social media</option><option value="3:4">Portrait · 3:4</option></select></div>
 <div><label for="language">Lugha ya maelezo</label><select id="language"><option value="sw">Kiswahili</option><option value="en">English</option></select></div>
 </div>
-<div class="actions"><button id="estimate" type="button" class="secondary">Kagua bei kwanza</button><button id="generate" type="button" disabled>Tengeneza video</button></div>
-<div id="status" class="status" role="status">Inasubiri makadirio ya bei.</div>
+<div class="actions"><button id="estimate" type="button" class="secondary">Pata quotation</button><button id="generate" type="button" disabled>Thibitisha na tengeneza</button></div>
+<div id="status" class="status" role="status">Anza kwa kuchagua aina ya video na kujaza maelezo. Hakuna malipo bado.</div>
 <div id="result"></div>
 </section>
-<p class="muted">Malipo hukatwa baada ya kuonyesha makadirio na kuanzisha generation. Kazi zikishindwa hurudishiwa credits kiotomatiki. Upload ya picha/sauti inahitaji Cloud storage ya Mlimani iwe imeunganishwa.</p>
+<p class="muted">Baada ya quotation, unaweza kukubali kutumia salio lililopo au kuongeza pesa kwenye Wallet. Generation huanza tu baada ya uthibitisho wako.</p>
+<details class="panel wallet-panel" id="walletPanel"><summary style="cursor:pointer;font-weight:850;color:#e6d8ff">TZS Wallet · Angalia salio au ongeza pesa wakati wowote</summary><h2 id="walletTitle" style="margin:0 0 6px">TZS Wallet · Lipa kadri unavyotumia</h2><div id="walletBalance" class="wallet-balance">Salio: —</div><p class="wallet-note">Unaweza kuanza kwa kuongeza TZS 1,000 au zaidi. Video hukatwa kwa sekunde halisi kulingana na bei inayoonyeshwa kabla ya kuanza.</p><div id="paymentInstructions" class="wallet-note">Inapakia maelekezo ya malipo...</div><div class="wallet-grid"><div><label for="topupAmount">Kiasi cha kuongeza (TZS)</label><input id="topupAmount" type="number" min="1000" max="2000000" step="1" value="1000"></div><div><label for="topupPhone">Namba ya simu iliyotuma malipo</label><input id="topupPhone" type="tel" maxlength="20" placeholder="07XXXXXXXX"></div></div><label for="topupRef">Namba ya muamala / reference</label><input id="topupRef" type="text" maxlength="40" placeholder="Weka transaction ID kutoka SMS"><div class="actions"><button id="topupSubmit" type="button">Tuma uthibitisho wa malipo</button><button id="walletRefresh" type="button" class="secondary">Angalia salio</button></div><div id="walletMessage" class="wallet-message" role="status"></div><p class="help">Salio linaongezwa baada ya Admin kuthibitisha muamala. Hifadhi SMS ya malipo mpaka uthibitisho ukamilike.</p></details>
 </main>
 <script>
 const $=id=>document.getElementById(id);
@@ -67,6 +71,7 @@ const token=()=>localStorage.t||localStorage.getItem('mlimani_token')||localStor
 const headers=(extra={})=>({...extra,Authorization:'Bearer '+token()});
 async function refreshWallet(){const balance=$('walletBalance'),instructions=$('paymentInstructions');if(!token()){balance.textContent='Ingia ili kuona salio lako';instructions.textContent='Baada ya kuingia, utaona maelekezo ya malipo hapa.';return}try{const [usage,plans]=await Promise.all([apiJson('/api/usage'),apiJson('/api/plans')]);balance.textContent='TZS '+Number(usage.cashBalanceTzs??usage.remainingTzs??0).toLocaleString('en-US');instructions.textContent=plans.payInfo||'Fuata maelekezo ya malipo ya Mlimani.';$('topupAmount').min=String(plans.minTopupTzs||1000);$('topupAmount').max=String(plans.maxTopupTzs||2000000)}catch(e){balance.textContent='Salio halijapatikana';instructions.textContent=e.message}}
 $('walletRefresh').addEventListener('click',refreshWallet);
+document.querySelectorAll('[data-service]').forEach(button=>button.addEventListener('click',()=>{task.value=button.dataset.service;document.querySelectorAll('[data-service]').forEach(b=>b.classList.toggle('active',b===button));fields();updateOfficialAvatarPreview();$('prompt').focus();}));
 $('topupSubmit').addEventListener('click',async()=>{const button=$('topupSubmit'),amount=Number($('topupAmount').value),phone=$('topupPhone').value.trim(),ref=$('topupRef').value.trim();$('walletMessage').textContent='';if(!token()){$('walletMessage').textContent='Tafadhali ingia kwanza kwenye akaunti yako.';return}if(!Number.isInteger(amount)||amount<1000||amount>2000000){$('walletMessage').textContent='Kiasi cha chini ni TZS 1,000 na cha juu ni TZS 2,000,000.';return}if(!phone||!ref){$('walletMessage').textContent='Jaza namba ya simu iliyotuma malipo na namba ya muamala.';return}button.disabled=true;try{const d=await apiJson('/api/wallet/topup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amountTzs:amount,phone,ref})});$('walletMessage').textContent=d.message||'Ombi limepokelewa. Salio litaongezwa baada ya uthibitisho wa Admin.';$('topupRef').value='';}catch(e){$('walletMessage').textContent=e.message}finally{button.disabled=false}});
 
 let estimate=null,uploadedImageUrl='',uploadedAudioUrl='',audioSeconds=0,generatedVoiceUrl='';
@@ -239,8 +244,14 @@ function showResult(d,taskName){
  if(d.error){const p=document.createElement('p');p.textContent=d.error;$('result').append(p)}
 }
 fields();
-refreshWallet();
 if(token())loadAvatarLibrary();
-const startup=new URLSearchParams(location.search);if(['video','motion','avatar_video','voice','music'].includes(startup.get('task'))){task.value=startup.get('task');fields()}
+const startup=new URLSearchParams(location.search);
+const initialTask=['video','motion','avatar_video'].includes(startup.get('task'))?startup.get('task'):'video';
+task.value=initialTask;
+document.querySelectorAll('[data-service]').forEach(b=>b.classList.toggle('active',b.dataset.service===initialTask));
+fields();updateOfficialAvatarPreview();
+function openWallet(){const w=$('walletPanel');if(w){w.open=true;w.scrollIntoView({behavior:'smooth',block:'start'});refreshWallet();}}
+document.querySelector('.brand')?.insertAdjacentHTML('afterend',' <a href="#walletPanel" id="walletQuickLink" style="font-size:.82rem;color:#d8c3ff">Wallet / Add Funds</a>');
+$('walletQuickLink')?.addEventListener('click',e=>{e.preventDefault();openWallet()});
 </script>
 </body></html>
