@@ -22,11 +22,20 @@ main{min-width:0;padding:24px clamp(16px,4vw,54px) 60px}
 h1{font-size:clamp(2.25rem,5vw,4.6rem);letter-spacing:-.065em;line-height:1.02;margin:20px 0 12px;font-weight:850}
 h1 em{font-style:normal;background:linear-gradient(90deg,#c4a7ff,#ef9bfa,#8be8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
 .sub{max-width:640px;margin:0 auto;color:#aaa5b8;font-size:1rem;line-height:1.65}
-.personas{display:flex;align-items:flex-end;justify-content:center;gap:clamp(24px,7vw,100px);margin:30px auto 25px}
-.persona{width:clamp(125px,18vw,205px);text-align:center;position:relative}.portrait-wrap{width:100%;aspect-ratio:1/1;border-radius:50%;padding:4px;background:linear-gradient(145deg,#a78bfa,#ec8cf3,#67e8f9);box-shadow:0 0 45px #a78bfa24}
-.portrait-wrap img{width:100%;height:100%;object-fit:cover;object-position:center 28%;border-radius:50%;display:block;background:#181522}
-.persona:nth-child(2){transform:translateY(14px)}.persona:nth-child(2) .portrait-wrap{background:linear-gradient(145deg,#67e8f9,#8b5cf6)}
-.persona strong{display:block;font-family:Georgia,serif;font-size:1.35rem;font-weight:500;margin-top:12px}.persona small{color:#938ca4;font-size:.78rem}
+.showcase{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:12px;max-width:940px;margin:30px auto 8px;text-align:left}
+.showcase-card{position:relative;isolation:isolate;overflow:hidden;min-height:210px;border:1px solid #51416b;border-radius:18px;padding:17px;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;background:#171321;box-shadow:0 18px 45px #0008;transition:transform .25s,border-color .25s}
+.showcase-card:before,.showcase-card:after{content:"";position:absolute;inset:0;z-index:-1;transition:transform .6s}
+.showcase-card:before{background:radial-gradient(ellipse at 70% 20%,#f6bd6b88,transparent 35%),linear-gradient(145deg,#183b37,#17223a 55%,#40274f)}
+.showcase-card:after{background:linear-gradient(0deg,#08070df2,transparent 75%);animation:sceneDrift 9s ease-in-out infinite alternate}
+.showcase-card.coast:before{background:radial-gradient(ellipse at 30% 20%,#6ee7f988,transparent 32%),linear-gradient(145deg,#174a57,#253b59 50%,#56345a)}
+.showcase-card.city:before{background:radial-gradient(ellipse at 75% 25%,#f0abf588,transparent 34%),linear-gradient(145deg,#4b2851,#202e50 55%,#141622)}
+.showcase-card:hover{transform:translateY(-5px);border-color:#c4a7ff}
+.showcase-card:hover:after{transform:scale(1.12) translateX(2%)}
+.scene-tag{font-size:.64rem;letter-spacing:.15em;font-weight:900;color:#e6d8ff}
+.scene-title{font-size:1.22rem;line-height:1.12;font-weight:850;letter-spacing:-.03em}
+.scene-meta{font-size:.74rem;color:#c1b8d2}
+.local-note{color:#8f89a1;font-size:.78rem;margin:12px auto 0;max-width:720px}
+@keyframes sceneDrift{from{transform:scale(1) translateX(-1%)}to{transform:scale(1.09) translateX(2%)}}
 .prompt-card{max-width:850px;margin:22px auto 0;padding:9px;border:1px solid #55416e;border-radius:20px;background:linear-gradient(145deg,#171321,#101018);box-shadow:0 18px 70px #0008,0 0 35px #a78bfa12}
 .prompt-inner{display:flex;align-items:center;gap:12px;background:#0c0b12;border-radius:14px;padding:8px 10px 8px 16px}
 .prompt-inner .spark{font-size:1.3rem;color:#c4a7ff}.prompt-inner input{min-width:0;flex:1;background:transparent;border:0;outline:0;color:white;padding:12px 0;font-size:.96rem}
@@ -39,7 +48,7 @@ h1 em{font-style:normal;background:linear-gradient(90deg,#c4a7ff,#ef9bfa,#8be8ff
 .tool:hover{transform:translateY(-3px);border-color:#70558d;background:#1b1725}.tool .symbol{font-size:1.45rem}.tool strong{display:block;margin:11px 0 5px;font-size:.9rem}.tool p{color:#928ca0;font-size:.77rem;line-height:1.5;margin:0}
 .footer{margin-top:46px;border-top:1px solid var(--line);padding-top:18px;color:#777184;font-size:.76rem;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 @media(max-width:950px){.shell{grid-template-columns:205px minmax(0,1fr)}.tools{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:680px){.shell{display:block}aside{display:none}main{padding:15px 13px 35px}.topbar{margin-bottom:25px}.crumb{font-size:.75rem}.top-actions a{font-size:.74rem;padding:8px 10px}h1{font-size:2.55rem;margin:18px 0 10px}.sub{font-size:.9rem;padding:0 7px}.personas{gap:26px;margin:25px auto 20px}.persona{width:min(37vw,155px)}.persona:nth-child(2){transform:translateY(9px)}.persona strong{font-size:1.15rem}.prompt-card{padding:7px;border-radius:16px}.prompt-inner{gap:7px;padding:7px 7px 7px 11px}.prompt-inner input{font-size:.82rem}.create{padding:11px 12px;font-size:.8rem}.prompt-hint{font-size:.65rem}.section-head{margin:38px 0 13px}.tools{gap:9px}.tool{padding:13px;border-radius:13px}.tool strong{font-size:.82rem}.tool p{font-size:.72rem}.footer{margin-top:32px}}
+@media(max-width:680px){.shell{display:block}aside{display:none}main{padding:15px 13px 35px}.topbar{margin-bottom:25px}.crumb{font-size:.75rem}.top-actions a{font-size:.74rem;padding:8px 10px}h1{font-size:2.55rem;margin:18px 0 10px}.sub{font-size:.9rem;padding:0 7px}.showcase{grid-template-columns:1fr 1fr;gap:9px;margin:22px auto 8px}.showcase-card{min-height:155px;padding:13px;border-radius:14px}.showcase-card:first-child{grid-column:1/-1;min-height:190px}.scene-title{font-size:1.05rem}.scene-meta{font-size:.68rem}.scene-tag{font-size:.58rem}.local-note{font-size:.7rem;padding:0 8px}.prompt-card{padding:7px;border-radius:16px}.prompt-inner{gap:7px;padding:7px 7px 7px 11px}.prompt-inner input{font-size:.82rem}.create{padding:11px 12px;font-size:.8rem}.prompt-hint{font-size:.65rem}.section-head{margin:38px 0 13px}.tools{gap:9px}.tool{padding:13px;border-radius:13px}.tool strong{font-size:.82rem}.tool p{font-size:.72rem}.footer{margin-top:32px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style></head><body>
 <div class="shell">
@@ -62,10 +71,12 @@ h1 em{font-style:normal;background:linear-gradient(90deg,#c4a7ff,#ef9bfa,#8be8ff
 <div class="eyebrow">✦ YOUR AI CREATIVE WORKSPACE</div>
 <h1>Bring your ideas<br>to <em>life.</em></h1>
 <p class="sub">Create cinematic videos, bring photos to life, and make your own AI presenters. Everything you need to create — in one studio.</p>
-<div class="personas">
-<div class="persona"><div class="portrait-wrap"><img src="/pichaa/avatars/ngina-face.jpg" alt="Ngina, Mlimani AI presenter" loading="eager"></div><strong>Ngina</strong><small>Your AI creative partner</small></div>
-<div class="persona"><div class="portrait-wrap"><img src="/pichaa/avatars/ethan-face.jpg" alt="Ethan, Mlimani AI presenter" loading="eager"></div><strong>Ethan</strong><small>Your AI creative partner</small></div>
+<div class="showcase" aria-label="Mifano ya video za Mlimani Studio">
+<a class="showcase-card safari" href="/fal-studio.html?task=video"><span class="scene-tag">TANZANIA · CINEMATIC</span><span class="scene-title">Stories that move</span><span class="scene-meta">AI Video · Landscape</span></a>
+<a class="showcase-card coast" href="/fal-studio.html?task=video"><span class="scene-tag">BRAND FILMS</span><span class="scene-title">Make your brand seen</span><span class="scene-meta">Product & business videos</span></a>
+<a class="showcase-card city" href="/fal-studio.html?task=motion"><span class="scene-tag">SOCIAL CONTENT</span><span class="scene-title">Create for every moment</span><span class="scene-meta">Reels · Shorts · Stories</span></a>
 </div>
+<p class="local-note">Anza na mazingira ya Tanzania — Dar es Salaam, Zanzibar, Serengeti, Kilimanjaro, Bagamoyo na maeneo mengine.</p>
 <form class="prompt-card" id="promptForm">
 <div class="prompt-inner"><span class="spark">✦</span><input id="idea" type="search" autocomplete="off" placeholder="Describe the video you want to create..." aria-label="Describe your creative idea"><button class="create" type="submit">Create video ↗</button></div>
 <div class="prompt-hint"><span>✦ Start with an idea, a product or a story</span><span>AI-powered creative tools</span></div>
