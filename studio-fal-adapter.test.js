@@ -29,7 +29,7 @@ test('makeInput keeps typed values and omits optional blank media URLs', () => {
 test('fal.ai ElevenLabs TTS price is normalized per 1,000 characters', () => {
   const price = normalizeSupplierPrice('voice', '1000 characters', 0.1, 2600);
   assert.equal(price.providerCost, 260);
-  assert.equal(price.customerPrice, 910);
+  assert.equal(price.customerPrice, 1040);
 });
 
 test('fal.ai per-character TTS pricing converts to a 1,000-character unit', () => {
@@ -41,7 +41,7 @@ test('fal.ai per-character TTS pricing converts to a 1,000-character unit', () =
 test('H3 Max Lip Sync per-second supplier price converts correctly', () => {
   const price = normalizeSupplierPrice('avatar_video', 'seconds', 0.08, 2600);
   assert.equal(price.providerCost, 208);
-  assert.equal(price.customerPrice, 728);
+  assert.equal(price.customerPrice, 832);
 });
 
 test('modelPath accepts fal.ai endpoint IDs and rejects invalid IDs', () => {
