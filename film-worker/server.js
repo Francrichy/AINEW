@@ -4,7 +4,6 @@ import ffmpegPath from 'ffmpeg-static';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import os from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -24,7 +23,7 @@ db.pragma('journal_mode = WAL');
 db.exec(`
  CREATE TABLE IF NOT EXISTS jobs (
   id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, title TEXT NOT NULL, language TEXT NOT NULL,
-  scenes_json TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'queued', progress INTEGER NOT NULL DEFAULT 0,
+  scenes_json TEXT NOT NULL, external_job_id TEXT, status TEXT NOT NULL DEFAULT 'queued', progress INTEGER NOT NULL DEFAULT 0,
   completed_scenes INTEGER NOT NULL DEFAULT 0, total_scenes INTEGER NOT NULL,
   output_path TEXT, output_key TEXT, error TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
  );
@@ -39,6 +38,8 @@ const s3 = process.env.R2_ENDPOINT && process.env.R2_BUCKET && process.env.R2_AC
  : null;
 const bucket = process.env.R2_BUCKET || '';
 const active = new Set();
+let queueRunning = false;
+try { db.exec('ALTER TABLE jobs ADD COLUMN external_job_id TEXT'); } catch {}
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const auth = (req,res,next) => {
  if (!TOKEN || req.headers.authorization !== 'Bearer ' + TOKEN) return res.status(403).json({ error:'Hapana.' });
@@ -120,6 +121,24 @@ async function getClip(clip, jobDir) {
  db.prepare("UPDATE clips SET status='completed',file_path=? WHERE job_id=? AND clip_index=?").run(file,clip.job_id,clip.clip_index);
  return file;
 }
+async function notifyApp(appJobId,status,error) {
+ if(!appJobId||!process.env.APP_CALLBACK_URL) return;
+ try {
+  await fetch(process.env.APP_CALLBACK_URL,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+TOKEN},
+   body:JSON.stringify({appJobId,status,error}),signal:AbortSignal.timeout(15000)});
+ } catch(e) { console.error('App callback failed:',e.message); }
+}
+async function pumpQueue() {
+ if(queueRunning) return;
+ queueRunning=true;
+ try {
+  while(true) {
+   const next=db.prepare("SELECT id FROM jobs WHERE status='queued' ORDER BY created_at LIMIT 1").get();
+   if(!next) break;
+   await processJob(next.id);
+  }
+ } finally { queueRunning=false; }
+}
 async function processJob(jobId) {
  if(active.has(jobId)) return;
  active.add(jobId);
@@ -156,23 +175,25 @@ async function processJob(jobId) {
   }
   db.prepare("UPDATE jobs SET status='completed',progress=100,completed_scenes=total_scenes,output_path=?,output_key=?,updated_at=? WHERE id=?")
    .run(output,outputKey,Date.now(),jobId);
+  await notifyApp(job.external_job_id,'completed');
  } catch(error) {
   console.error('Film job failed',jobId,error);
   db.prepare("UPDATE jobs SET status='failed',error=?,updated_at=? WHERE id=?").run(String(error.message||'Uzalishaji umeshindwa.').slice(0,1000),Date.now(),jobId);
+  await notifyApp(job.external_job_id,'failed',String(error.message||'Uzalishaji umeshindwa.').slice(0,500));
  } finally { active.delete(jobId); }
 }
 app.get('/health',(_req,res)=>res.json({ok:true,provider:AGNES_KEY?'agnes-configured':'agnes-key-missing',model:MODEL,storage:s3?'r2':'temporary'}));
 app.post('/jobs',auth,(req,res)=>{
  if(!AGNES_KEY) return res.status(503).json({error:'AGNES_API_KEY haijawekwa kwenye Film Worker.'});
- const ownerId=String(req.body?.ownerId||'').slice(0,80), title=String(req.body?.title||'Mlimani Film').slice(0,120);
+ const ownerId=String(req.body?.ownerId||'').slice(0,80), externalJobId=String(req.body?.externalJobId||'').slice(0,80), title=String(req.body?.title||'Mlimani Film').slice(0,120);
  const scenes=req.body?.scenes;
- if(!ownerId||!Array.isArray(scenes)||!scenes.length||scenes.length>120) return res.status(400).json({error:'Taarifa za filamu si sahihi.'});
+ if(!ownerId||!externalJobId||!Array.isArray(scenes)||!scenes.length||scenes.length>120) return res.status(400).json({error:'Taarifa za filamu si sahihi.'});
  const total=scenes.reduce((n,s)=>n+Number(s.duration||0),0);
  if(total<60||total>1800||scenes.some(s=>!String(s.prompt||'').trim()||![5,15].includes(Number(s.duration)))) return res.status(400).json({error:'Scenes lazima ziwe na muda wa sekunde 5 au 15 na jumla dakika 1 hadi 30.'});
  const id=randomUUID(),now=Date.now();
- db.prepare('INSERT INTO jobs(id,owner_id,title,language,scenes_json,status,total_scenes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)')
-  .run(id,ownerId,title,String(req.body.language||'sw'),JSON.stringify(scenes),'queued',scenes.length,now,now);
- setImmediate(()=>processJob(id));
+ db.prepare('INSERT INTO jobs(id,owner_id,title,language,scenes_json,external_job_id,status,total_scenes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)')
+  .run(id,ownerId,title,String(req.body.language||'sw'),JSON.stringify(scenes),externalJobId,'queued',scenes.length,now,now);
+ setImmediate(pumpQueue);
  res.status(202).json({jobId:id,status:'queued',totalScenes:scenes.length});
 });
 app.get('/jobs/:id',auth,(req,res)=>{
@@ -200,7 +221,7 @@ const server=app.listen(PORT,'0.0.0.0',()=>{
  console.log('Mlimani Film Worker listening on '+PORT+'; Agnes model '+MODEL+'; storage '+(s3?'R2':'temporary'));
  if(!TOKEN) console.warn('MLIMANI_INTERNAL_TOKEN is missing; protected job routes will reject requests.');
  db.prepare("UPDATE jobs SET status='queued',updated_at=? WHERE status='processing'").run(Date.now());
- db.prepare("SELECT id FROM jobs WHERE status='queued' ORDER BY created_at").all().forEach(j=>setImmediate(()=>processJob(j.id)));
+ setImmediate(pumpQueue);
 });
 function shutdown(){server.close(()=>{db.close();process.exit(0)});}
 process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
