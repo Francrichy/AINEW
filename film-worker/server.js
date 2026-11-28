@@ -158,7 +158,7 @@ async function processJob(jobId) {
    const clip={...clipRows[i],...chunks[i],job_id:jobId};
    const file=await getClip(clip,jobDir);
    files.push(file);
-   const done=db.prepare(\"SELECT COUNT(*) AS n FROM clips WHERE job_id=? AND status='completed'\").get(jobId).n;
+   const done=db.prepare("SELECT COUNT(*) AS n FROM clips WHERE job_id=? AND status='completed'").get(jobId).n;
    const progress=Math.min(94,Math.round((done/clipRows.length)*90));
    const sceneStats=db.prepare('SELECT scene_index,COUNT(*) AS total,SUM(CASE WHEN status=\'completed\' THEN 1 ELSE 0 END) AS done FROM clips WHERE job_id=? GROUP BY scene_index').all(jobId);
    const completedScenes=sceneStats.filter(x=>x.total===x.done).length;
