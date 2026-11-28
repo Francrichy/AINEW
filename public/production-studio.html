@@ -125,12 +125,17 @@ async function startFilmRender(){
  $('startFilmRender').disabled=true;setStatus('filmRenderStatus','Tunaangalia bei na muunganisho kabla ya kuanza...');
  try{
   const estimate=await loadFilmEstimate(totalSeconds);
-  if(!estimate.enabled){setStatus('filmRenderStatus',estimate.note||('Bei kwa sekunde: TZS '+Number(estimate.customerPricePerSecondTzs).toLocaleString('sw-TZ')+'. Salio: TZS '+Number(estimate.walletBalanceTzs).toLocaleString('sw-TZ')+'. Hakuna malipo yaliyofanyika.'));return}
-  const yes=window.confirm('MLIMANI AI FILM STUDIO\nFilamu: '+($('filmTitle').value.trim()||'Mlimani Film')+'\nScenes: '+scenes.length+'\nMuda: '+Math.floor(totalSeconds/60)+' dakika '+(totalSeconds%60)+' sekunde\nBei: TZS '+Number(estimate.customerPricePerSecondTzs).toLocaleString('sw-TZ')+' kwa sekunde\nGharama: TZS '+Number(estimate.estimatedChargeTzs).toLocaleString('sw-TZ')+'\nSalio lako: TZS '+Number(estimate.walletBalanceTzs).toLocaleString('sw-TZ')+'\nAnza uzalishaji?');
+  const tokenLine='Tokeni zinazohitajika: '+Number(estimate.requiredTokens||totalSeconds).toLocaleString('sw-TZ')+' (token 1 = sekunde 1 ya video). ';
+  if(!estimate.enabled){
+   const reason=estimate.note||('Bei: TZS '+Number(estimate.customerPricePerSecondTzs).toLocaleString('sw-TZ')+' kwa sekunde. Gharama yote: TZS '+Number(estimate.estimatedChargeTzs).toLocaleString('sw-TZ')+'. Salio: TZS '+Number(estimate.walletBalanceTzs).toLocaleString('sw-TZ')+'.');
+   setStatus('filmRenderStatus',tokenLine+reason+(estimate.shortfallTzs>0?' Kiasi cha kuongeza kwenye Wallet: TZS '+Number(estimate.shortfallTzs).toLocaleString('sw-TZ')+'. Video haitaanza mpaka malipo ya Wallet yathibitishwe.':''));
+   return;
+  }
+  const yes=window.confirm('MLIMANI AI FILM STUDIO\nFilamu: '+($('filmTitle').value.trim()||'Mlimani Film')+'\nScenes: '+scenes.length+'\nMuda: '+Math.floor(totalSeconds/60)+' dakika '+(totalSeconds%60)+' sekunde\nTokeni zinazohitajika: '+Number(estimate.requiredTokens||totalSeconds).toLocaleString('sw-TZ')+' (token 1 = sekunde 1)\nBei: TZS '+Number(estimate.customerPricePerSecondTzs).toLocaleString('sw-TZ')+' kwa sekunde\nJumla ya malipo kabla ya uzalishaji: TZS '+Number(estimate.estimatedChargeTzs).toLocaleString('sw-TZ')+'\nSalio lililothibitishwa: TZS '+Number(estimate.walletBalanceTzs).toLocaleString('sw-TZ')+'\nMalipo yatakatwa sasa kabla ya kuwasilisha kazi kwa AI. Endelea?');
   if(!yes){setStatus('filmRenderStatus','Umeghairi. Hakuna salio lililokatwa.');return}
   const r=await fetch('/api/studio/film/jobs',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({title:$('filmTitle').value.trim()||'Mlimani Film',language:filmLanguage(),scenes})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Imeshindikana kuanzisha filamu');
   localStorage.setItem('mlimani-film-job',d.jobId);$('filmProgress').value=0;$('filmProgressText').textContent='0%';$('downloadFilmOutput').classList.add('hidden');
-  setStatus('filmRenderStatus','Filamu imewekwa kwenye foleni. Gharama iliyokatwa: TZS '+Number(d.chargedTzs).toLocaleString('sw-TZ')+'. Tunaendelea kufuatilia...');
+  setStatus('filmRenderStatus','Malipo yamethibitishwa na kukatwa kabla ya uzalishaji. Tokeni: '+Number(d.requiredTokens||totalSeconds).toLocaleString('sw-TZ')+'. Kiasi kilicholipwa: TZS '+Number(d.chargedTzs).toLocaleString('sw-TZ')+'. Filamu imewekwa kwenye foleni; tunaendelea kufuatilia...');
   pollFilmJob(d.jobId);
  }catch(e){setStatus('filmRenderStatus',e.message)}finally{$('startFilmRender').disabled=false}
 }
