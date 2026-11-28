@@ -75,7 +75,7 @@ function chunksFor(scenes) {
   for (let partIndex=0;partIndex<pieces.length;partIndex++) {
    const seconds=pieces[partIndex];
    if(seconds<4||seconds>12) throw new Error('Scene '+(sceneIndex+1)+' haiwezi kugawanywa katika vipande vinavyokubalika na Agnes.');
-   result.push({sceneIndex,partIndex,seconds,prompt:String(scene.prompt).trim(),aspectRatio:scene.aspectRatio||'16:9'});
+   result.push({sceneIndex,partIndex,seconds,prompt:String(scene.prompt).trim(),aspect_ratio:scene.aspectRatio||'16:9'});
   }
  }
  return result;
@@ -141,9 +141,9 @@ async function processJob(jobId) {
    files.push(file);
    const done=clipRows.filter(x=>x.status==='completed' && fs.existsSync(x.file_path||'')).length + 1;
    const progress=Math.min(94,Math.round((done/clipRows.length)*90));
-   const completedScenes=new Set(clipRows.filter(x=>x.status==='completed').map(x=>x.scene_index));
-   completedScenes.add(clip.scene_index);
-   db.prepare('UPDATE jobs SET progress=?,completed_scenes=?,updated_at=? WHERE id=?').run(progress,completedScenes.size,Date.now(),jobId);
+   const sceneStats=db.prepare('SELECT scene_index,COUNT(*) AS total,SUM(CASE WHEN status=\'completed\' THEN 1 ELSE 0 END) AS done FROM clips WHERE job_id=? GROUP BY scene_index').all(jobId);
+   const completedScenes=sceneStats.filter(x=>x.total===x.done).length;
+   db.prepare('UPDATE jobs SET progress=?,completed_scenes=?,updated_at=? WHERE id=?').run(progress,completedScenes,Date.now(),jobId);
   }
   const list=path.join(jobDir,'concat.txt');
   fs.writeFileSync(list,files.map(file=>"file '"+file.replace(/'/g,"'\\''")+"'").join('\n'));
