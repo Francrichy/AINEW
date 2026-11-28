@@ -56,13 +56,16 @@ export function registerFilmJobRoutes(app, { db, need, env, cashWalletBalance, c
     const estimatedChargeTzs = calculateFilmCharge(totalSeconds, secondRateTzs);
     const walletBalanceTzs = cashWalletBalance(db, req.user.id);
     const config = workerConfig(env);
+    const shortfallTzs = Math.max(0, estimatedChargeTzs - walletBalanceTzs);
     return res.json({
-      enabled: Boolean(config && secondRateTzs > 0 && walletBalanceTzs >= estimatedChargeTzs),
+      enabled: Boolean(config && secondRateTzs > 0 && shortfallTzs === 0),
+      canStart: Boolean(config && secondRateTzs > 0 && shortfallTzs === 0),
       workerConfigured: Boolean(config),
       priceConfigured: secondRateTzs > 0,
-      totalSeconds, customerPricePerSecondTzs: secondRateTzs,
-      estimatedChargeTzs, walletBalanceTzs, maxScenes: 120,
-      note: !config ? 'Long Video Creator bado inasubiri kuunganishwa na Film Worker. Hakuna malipo yaliyofanyika.' : secondRateTzs <= 0 ? 'Bei ya filamu kwa sekunde bado haijaidhinishwa na Admin. Hakuna malipo yaliyofanyika.' : ''
+      totalSeconds, requiredTokens: totalSeconds, tokenDefinition: 'Token 1 = sekunde 1 ya video iliyopangwa',
+      customerPricePerSecondTzs: secondRateTzs,
+      estimatedChargeTzs, walletBalanceTzs, shortfallTzs, paymentRequiredBeforeGeneration: true, maxScenes: 120,
+      note: !config ? 'Uzalishaji bado haujaunganishwa na Film Worker. Hakuna tokeni zilizotumika wala malipo yaliyofanyika.' : secondRateTzs <= 0 ? 'Bei ya filamu kwa sekunde bado haijaidhinishwa na Admin. Hakuna tokeni zilizotumika wala malipo yaliyofanyika.' : shortfallTzs > 0 ? 'Salio halitoshi. Ongeza salio la Wallet na subiri Admin athibitishe malipo kabla ya kuanza kutengeneza video.' : ''
     });
   });
 
@@ -117,7 +120,8 @@ export function registerFilmJobRoutes(app, { db, need, env, cashWalletBalance, c
         .run(created.jobId, created.status || 'queued', Date.now(), id);
       return res.status(202).json({
         jobId: id, status: created.status || 'queued', totalScenes: normalized.length,
-        totalDurationSeconds: totalSeconds, chargedTzs: chargeTzs,
+        totalDurationSeconds: totalSeconds, requiredTokens: totalSeconds, tokenDefinition: 'Token 1 = sekunde 1 ya video iliyopangwa',
+        chargedTzs: chargeTzs, paymentConfirmedBeforeGeneration: true,
         walletBalanceTzs: cashWalletBalance(db, req.user.id)
       });
     } catch (error) {
