@@ -22,7 +22,9 @@ button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#211a2c;col
 #result pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#ccc;background:#111;padding:12px;border-radius:10px}
 .pill{display:inline-block;padding:6px 10px;border:1px solid #444;border-radius:99px;color:#ddd;font-size:.78rem}
 .wallet-panel{border-color:#594273;background:linear-gradient(145deg,#21162f,#100e17)}.wallet-balance{font-size:1.65rem;font-weight:900;color:#d8c3ff;margin:4px 0 12px}.wallet-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.wallet-note{font-size:.82rem;color:#aaa;white-space:pre-wrap;line-height:1.55}.wallet-message{margin-top:12px;color:#d9c9ff;white-space:pre-wrap;font-size:.88rem}
-.service-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:22px 0}.service-choice{display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:left;min-height:96px;background:#15121e;color:#f4edff;border:1px solid #3c304e;border-radius:14px;padding:14px}.service-choice strong{font-size:.94rem}.service-choice span{font-size:.76rem;color:#b8aec9;font-weight:500}.service-choice.active{border-color:#b99aff;background:linear-gradient(145deg,#2a1c3d,#171321);box-shadow:0 0 0 1px #b99aff40}.service-choice:hover{border-color:#b99aff}
+.service-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:22px 0}
+.long-film-link{display:block;width:max-content;max-width:100%;margin:-8px 0 18px;padding:10px 14px;border:1px solid #70558d;border-radius:12px;color:#e5d5ff;background:#171321;font-weight:750;font-size:.86rem}
+.long-film-link:hover{border-color:#c4a7ff;background:#21182f}.service-choice{display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:left;min-height:96px;background:#15121e;color:#f4edff;border:1px solid #3c304e;border-radius:14px;padding:14px}.service-choice strong{font-size:.94rem}.service-choice span{font-size:.76rem;color:#b8aec9;font-weight:500}.service-choice.active{border-color:#b99aff;background:linear-gradient(145deg,#2a1c3d,#171321);box-shadow:0 0 0 1px #b99aff40}.service-choice:hover{border-color:#b99aff}
 @media(max-width:600px){.service-picker{grid-template-columns:1fr}.service-choice{min-height:72px}}
 @media(max-width:600px){header{padding:14px 16px}main{padding:20px 12px 40px}.panel{padding:14px}.grid{grid-template-columns:1fr}.actions button{width:100%}}
 </style>
@@ -38,7 +40,7 @@ button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#211a2c;col
 <button type="button" class="service-choice" data-service="avatar_video"><strong>🗣️ Talking Avatar</strong><span>Avatar inayozungumza na lip-sync</span></button>
 <button type="button" class="service-choice" data-service="motion"><strong>🕺 Full Motion Avatar</strong><span>Avatar ya mwili mzima na vitendo</span></button>
 </div>
-
+<a class="long-film-link" href="/production-studio.html?mode=film">🎞️ Tengeneza filamu ndefu · Dakika 1–30</a>
 <section class="panel">
 <label for="task" class="hidden">Aina ya creation</label>
 <select id="task" class="hidden">
@@ -80,11 +82,19 @@ function setStatus(message){$('status').textContent=message}
 function scriptMode(){return task.value==='avatar_video'&&$('voiceMode').value==='script'}
 function fields(){
  const t=task.value,tts=scriptMode(),standaloneVoice=t==='voice',musicTask=t==='music';
+ const copy={
+  video:{title:'AI Video',description:'Tengeneza cinematic scenes kutoka kwenye wazo au picha. Kwa filamu ndefu tumia Long Video Creator.',prompt:'Eleza hadithi, mazingira, wahusika, vitendo na mwendo wa kamera unaotaka AI itengeneze.'},
+  avatar_video:{title:'Talking Avatar',description:'Chagua Ngina, Ethan au avatar nyingine, andika script au pakia sauti. AI itaunganisha sauti na mjongeo wa midomo.',prompt:'Andika maneno ambayo avatar itazungumza.'},
+  motion:{title:'Full Motion Avatar',description:'Tumia picha ya mwili mzima na eleza vitendo. AI itatengeneza avatar inayotembea, kuonyesha bidhaa au kutumia mikono.',prompt:'Eleza vitendo vya avatar, mjongeo wa mwili na mazingira.'}
+ };
+ if(copy[t]){document.querySelector('h1').textContent=copy[t].title;document.querySelector('main > p').textContent=copy[t].description;}
  $('voiceModeWrap').classList.toggle('hidden',t!=='avatar_video');
  $('ttsVoiceWrap').classList.toggle('hidden',!(tts||standaloneVoice));
  $('promptWrap').classList.toggle('hidden',t==='avatar_video'&&!tts);
- document.querySelector('label[for="prompt"]').textContent=tts?'Script ya maneno ambayo avatar itazungumza':standaloneVoice?'Script ya sauti itakayosomwa na AI':musicTask?'Eleza aina ya soundtrack unayotaka':'Eleza video au kitendo cha avatar';
+ document.querySelector('label[for="prompt"]').textContent=tts?'Script ya maneno ambayo avatar itazungumza':standaloneVoice?'Script ya sauti itakayosomwa na AI':musicTask?'Eleza aina ya soundtrack unayotaka':copy[t]?.prompt||'Eleza video';
+ $('prompt').placeholder=copy[t]?.prompt||'Eleza maelezo ya creation yako...';
  $('imageWrap').classList.toggle('hidden',standaloneVoice||musicTask);
+ $('imageWrap').querySelector('section').classList.toggle('hidden',t==='video');
  $('audioWrap').classList.toggle('hidden',standaloneVoice||musicTask||(t==='avatar_video'&&tts));
  $('imageFile').required=t==='motion'||t==='avatar_video';
  $('audioFile').required=t==='avatar_video'&&!tts;
@@ -92,7 +102,7 @@ function fields(){
  [...$('duration').options].forEach(o=>o.disabled=t!=='avatar_video'&&Number(o.value)>15);
  if(t!=='avatar_video'&&Number($('duration').value)>15)$('duration').value='15';
  $('result').replaceChildren();estimate=null;$('generate').disabled=true;
- setStatus('Kagua bei kabla ya kuanza.');
+ setStatus('Jaza maelezo, kagua quotation, kisha thibitisha generation.');
 }
 task.addEventListener('change',fields);
 $('voiceMode').addEventListener('change',fields);
