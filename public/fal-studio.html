@@ -21,6 +21,7 @@ button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#191919;col
 #result img,#result video,#result audio{max-width:100%;width:100%;margin-top:12px;border-radius:12px;background:#111}
 #result pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#ccc;background:#111;padding:12px;border-radius:10px}
 .pill{display:inline-block;padding:6px 10px;border:1px solid #444;border-radius:99px;color:#ddd;font-size:.78rem}
+.wallet-panel{border-color:#4a3a61;background:linear-gradient(145deg,#15101d,#090909)}.wallet-balance{font-size:1.65rem;font-weight:900;color:#d8c3ff;margin:4px 0 12px}.wallet-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.wallet-note{font-size:.82rem;color:#aaa;white-space:pre-wrap;line-height:1.55}.wallet-message{margin-top:12px;color:#d9c9ff;white-space:pre-wrap;font-size:.88rem}
 @media(max-width:600px){header{padding:14px 16px}main{padding:20px 12px 40px}.panel{padding:14px}.grid{grid-template-columns:1fr}.actions button{width:100%}}
 </style>
 </head>
@@ -30,6 +31,7 @@ button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#191919;col
 <span class="pill">MLIMANI STUDIO · VIDEO &amp; AVATAR</span>
 <h1>Talking Avatars & Video Creator</h1>
 <p>Chagua huduma moja, pakia picha au sauti pale inapohitajika, kagua bei, kisha tengeneza video. Standard ni 768p; Premium ni 1080p. API key inabaki salama kwenye server ya Mlimani.</p>
+<section class="panel wallet-panel" aria-labelledby="walletTitle"><h2 id="walletTitle" style="margin:0 0 6px">TZS Wallet · Lipa kadri unavyotumia</h2><div id="walletBalance" class="wallet-balance">Salio: —</div><p class="wallet-note">Unaweza kuanza kwa kuongeza TZS 1,000 au zaidi. Video hukatwa kwa sekunde halisi kulingana na bei inayoonyeshwa kabla ya kuanza.</p><div id="paymentInstructions" class="wallet-note">Inapakia maelekezo ya malipo...</div><div class="wallet-grid"><div><label for="topupAmount">Kiasi cha kuongeza (TZS)</label><input id="topupAmount" type="number" min="1000" max="2000000" step="1" value="1000"></div><div><label for="topupPhone">Namba ya simu iliyotuma malipo</label><input id="topupPhone" type="tel" maxlength="20" placeholder="07XXXXXXXX"></div></div><label for="topupRef">Namba ya muamala / reference</label><input id="topupRef" type="text" maxlength="40" placeholder="Weka transaction ID kutoka SMS"><div class="actions"><button id="topupSubmit" type="button">Tuma uthibitisho wa malipo</button><button id="walletRefresh" type="button" class="secondary">Angalia salio</button></div><div id="walletMessage" class="wallet-message" role="status"></div><p class="help">Salio linaongezwa baada ya Admin kuthibitisha muamala. Hifadhi SMS ya malipo mpaka uthibitisho ukamilike.</p></section>
 <section class="panel">
 <label for="task">Huduma unayotaka</label>
 <select id="task">
@@ -63,6 +65,10 @@ button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#191919;col
 const $=id=>document.getElementById(id);
 const token=()=>localStorage.t||localStorage.getItem('mlimani_token')||localStorage.getItem('token')||'';
 const headers=(extra={})=>({...extra,Authorization:'Bearer '+token()});
+async function refreshWallet(){const balance=$('walletBalance'),instructions=$('paymentInstructions');if(!token()){balance.textContent='Ingia ili kuona salio lako';instructions.textContent='Baada ya kuingia, utaona maelekezo ya malipo hapa.';return}try{const [usage,plans]=await Promise.all([apiJson('/api/usage'),apiJson('/api/plans')]);balance.textContent='TZS '+Number(usage.cashBalanceTzs??usage.remainingTzs??0).toLocaleString('en-US');instructions.textContent=plans.payInfo||'Fuata maelekezo ya malipo ya Mlimani.';$('topupAmount').min=String(plans.minTopupTzs||1000);$('topupAmount').max=String(plans.maxTopupTzs||2000000)}catch(e){balance.textContent='Salio halijapatikana';instructions.textContent=e.message}}
+$('walletRefresh').addEventListener('click',refreshWallet);
+$('topupSubmit').addEventListener('click',async()=>{const button=$('topupSubmit'),amount=Number($('topupAmount').value),phone=$('topupPhone').value.trim(),ref=$('topupRef').value.trim();$('walletMessage').textContent='';if(!token()){$('walletMessage').textContent='Tafadhali ingia kwanza kwenye akaunti yako.';return}if(!Number.isInteger(amount)||amount<1000||amount>2000000){$('walletMessage').textContent='Kiasi cha chini ni TZS 1,000 na cha juu ni TZS 2,000,000.';return}if(!phone||!ref){$('walletMessage').textContent='Jaza namba ya simu iliyotuma malipo na namba ya muamala.';return}button.disabled=true;try{const d=await apiJson('/api/wallet/topup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amountTzs:amount,phone,ref})});$('walletMessage').textContent=d.message||'Ombi limepokelewa. Salio litaongezwa baada ya uthibitisho wa Admin.';$('topupRef').value='';}catch(e){$('walletMessage').textContent=e.message}finally{button.disabled=false}});
+
 let estimate=null,uploadedImageUrl='',uploadedAudioUrl='',audioSeconds=0,generatedVoiceUrl='';
 const task=$('task');
 function setStatus(message){$('status').textContent=message}
@@ -233,6 +239,7 @@ function showResult(d,taskName){
  if(d.error){const p=document.createElement('p');p.textContent=d.error;$('result').append(p)}
 }
 fields();
+refreshWallet();
 if(token())loadAvatarLibrary();
 const startup=new URLSearchParams(location.search);if(['video','motion','avatar_video','voice','music'].includes(startup.get('task'))){task.value=startup.get('task');fields()}
 </script>
