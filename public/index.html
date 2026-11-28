@@ -22,13 +22,13 @@ main{min-width:0;padding:24px clamp(16px,4vw,54px) 60px}
 h1{font-size:clamp(2.25rem,5vw,4.6rem);letter-spacing:-.065em;line-height:1.02;margin:20px 0 12px;font-weight:850}
 h1 em{font-style:normal;background:linear-gradient(90deg,#c4a7ff,#ef9bfa,#8be8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
 .sub{max-width:640px;margin:0 auto;color:#aaa5b8;font-size:1rem;line-height:1.65}
-.showcase{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:12px;max-width:940px;margin:30px auto 8px;text-align:left}
+.showcase{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;max-width:940px;margin:30px auto 8px;text-align:left}
 .showcase-card{position:relative;isolation:isolate;overflow:hidden;min-height:210px;border:1px solid #51416b;border-radius:18px;padding:17px;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;background:#171321;box-shadow:0 18px 45px #0008;transition:transform .25s,border-color .25s}
 .showcase-card:before,.showcase-card:after{content:"";position:absolute;inset:0;z-index:-1;transition:transform .6s}
 .showcase-card:before{background:radial-gradient(ellipse at 70% 20%,#f6bd6b88,transparent 35%),linear-gradient(145deg,#183b37,#17223a 55%,#40274f)}
 .showcase-card:after{background:linear-gradient(0deg,#08070df2,transparent 75%);animation:sceneDrift 9s ease-in-out infinite alternate}
 .showcase-card.coast:before{background:radial-gradient(ellipse at 30% 20%,#6ee7f988,transparent 32%),linear-gradient(145deg,#174a57,#253b59 50%,#56345a)}
-.showcase-card.city:before{background:radial-gradient(ellipse at 75% 25%,#f0abf588,transparent 34%),linear-gradient(145deg,#4b2851,#202e50 55%,#141622)}
+.showcase-card.city:before{background:radial-gradient(ellipse at 75% 25%,#f0abf588,transparent 34%),linear-gradient(145deg,#4b2851,#202e50 55%,#141622)}\n.showcase-card.lake:before{background:radial-gradient(ellipse at 28% 22%,#a5f3fc99,transparent 34%),linear-gradient(145deg,#075985,#0f766e 52%,#1e3a5f)}
 .showcase-card:hover{transform:translateY(-5px);border-color:#c4a7ff}
 .showcase-card:hover:after{transform:scale(1.12) translateX(2%)}
 .scene-tag{font-size:.64rem;letter-spacing:.15em;font-weight:900;color:#e6d8ff}
@@ -74,9 +74,9 @@ h1 em{font-style:normal;background:linear-gradient(90deg,#c4a7ff,#ef9bfa,#8be8ff
 <div class="showcase" aria-label="Mifano ya video za Mlimani Studio">
 <a class="showcase-card safari" href="/fal-studio.html?task=video"><span class="scene-tag">TANZANIA · CINEMATIC</span><span class="scene-title">Stories that move</span><span class="scene-meta">AI Video · Landscape</span></a>
 <a class="showcase-card coast" href="/fal-studio.html?task=video"><span class="scene-tag">BRAND FILMS</span><span class="scene-title">Make your brand seen</span><span class="scene-meta">Product & business videos</span></a>
-<a class="showcase-card city" href="/fal-studio.html?task=motion"><span class="scene-tag">SOCIAL CONTENT</span><span class="scene-title">Create for every moment</span><span class="scene-meta">Reels · Shorts · Stories</span></a>
+<a class="showcase-card city" href="/fal-studio.html?task=motion"><span class="scene-tag">SOCIAL CONTENT</span><span class="scene-title">Create for every moment</span><span class="scene-meta">Reels · Shorts · Stories</span></a>\n<a class="showcase-card lake" href="/fal-studio.html?task=video"><span class="scene-tag">MWANZA · LAKE VICTORIA</span><span class="scene-title">Stories by the great lake</span><span class="scene-meta">Lake Victoria · Mwanza · Tanzania</span></a>
 </div>
-<p class="local-note">Anza na mazingira ya Tanzania — Dar es Salaam, Zanzibar, Serengeti, Kilimanjaro, Bagamoyo na maeneo mengine.</p>
+<p class="local-note">Anza na mazingira ya Tanzania — Dar es Salaam, Zanzibar, Serengeti, Kilimanjaro, Bagamoyo, Mwanza na Ziwa Victoria.</p>
 <form class="prompt-card" id="promptForm">
 <div class="prompt-inner"><span class="spark">✦</span><input id="idea" type="search" autocomplete="off" placeholder="Describe the video you want to create..." aria-label="Describe your creative idea"><button class="create" type="submit">Create video ↗</button></div>
 <div class="prompt-hint"><span>✦ Start with an idea, a product or a story</span><span>AI-powered creative tools</span></div>
