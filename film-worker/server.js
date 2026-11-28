@@ -145,8 +145,8 @@ async function processJob(jobId) {
  const job=db.prepare('SELECT * FROM jobs WHERE id=?').get(jobId);
  if(!job) {active.delete(jobId);return;}
  const jobDir=path.join(DATA_DIR,'work',jobId);
- fs.mkdirSync(jobDir,{recursive:true});
  try {
+  fs.mkdirSync(jobDir,{recursive:true});
   db.prepare("UPDATE jobs SET status='processing',error=NULL,updated_at=? WHERE id=?").run(Date.now(),jobId);
   const scenes=JSON.parse(job.scenes_json);
   const chunks=chunksFor(scenes);
@@ -158,7 +158,7 @@ async function processJob(jobId) {
    const clip={...clipRows[i],...chunks[i],job_id:jobId};
    const file=await getClip(clip,jobDir);
    files.push(file);
-   const done=clipRows.filter(x=>x.status==='completed' && fs.existsSync(x.file_path||'')).length + 1;
+   const done=db.prepare(\"SELECT COUNT(*) AS n FROM clips WHERE job_id=? AND status='completed'\").get(jobId).n;
    const progress=Math.min(94,Math.round((done/clipRows.length)*90));
    const sceneStats=db.prepare('SELECT scene_index,COUNT(*) AS total,SUM(CASE WHEN status=\'completed\' THEN 1 ELSE 0 END) AS done FROM clips WHERE job_id=? GROUP BY scene_index').all(jobId);
    const completedScenes=sceneStats.filter(x=>x.total===x.done).length;
