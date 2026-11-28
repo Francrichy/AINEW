@@ -71,7 +71,7 @@ export function registerFilmJobRoutes(app, { db, need, env, cashWalletBalance, c
 
   app.post('/api/studio/film/jobs', need, async (req, res) => {
     const config = workerConfig(env);
-    if (!config) return json(res, 503, { error: 'Film Studio bado haijaunganishwa na Cloudflare. Hakuna malipo yaliyofanyika.' });
+    if (!config) return json(res, 503, { error: 'Film Worker haijaunganishwa. Hakuna malipo yaliyofanyika.' });
     const title = String(req.body?.title || 'Mlimani Film').trim().slice(0, 120);
     const language = ['sw', 'en', 'sw-en'].includes(String(req.body?.language || 'sw')) ? String(req.body?.language || 'sw') : 'sw';
     const scenes = req.body?.scenes;
@@ -113,10 +113,10 @@ export function registerFilmJobRoutes(app, { db, need, env, cashWalletBalance, c
       const created = await workerFetch(config, '/jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ownerId: String(req.user.id), title, language, scenes: normalized })
+        body: JSON.stringify({ ownerId: String(req.user.id), externalJobId: id, title, language, scenes: normalized })
       });
       if (!created.jobId) throw new Error('Cloudflare haikurudisha namba ya kazi.');
-      db.prepare("UPDATE studio_film_jobs SET worker_job_id=?,status=?,updated_at=? WHERE id=?")
+      db.prepare("UPDATE studio_film_jobs SET worker_job_id=?,status=CASE WHEN status IN ('completed','failed','refund_review') THEN status ELSE ? END,updated_at=? WHERE id=?")
         .run(created.jobId, created.status || 'queued', Date.now(), id);
       return res.status(202).json({
         jobId: id, status: created.status || 'queued', totalScenes: normalized.length,
@@ -178,9 +178,57 @@ export function registerFilmJobRoutes(app, { db, need, env, cashWalletBalance, c
     try {
       const config = workerConfig(env);
       const result = await workerFetch(config, '/jobs/' + encodeURIComponent(job.worker_job_id) + '/download?ownerId=' + encodeURIComponent(String(req.user.id)));
+      if (result.localFile) return res.json({ url: '/api/studio/film/jobs/' + encodeURIComponent(job.id) + '/file', expiresIn: result.expiresIn || 600 });
       return res.json({ url: result.url, expiresIn: result.expiresIn || 600 });
     } catch (error) {
       return json(res, error.status || 502, { error: 'Imeshindikana kuandaa kiungo cha kupakua filamu.' });
+    }
+  });
+
+
+  app.post('/api/internal/film-job-update', async (req, res) => {
+    if (!env.MLIMANI_INTERNAL_TOKEN || req.headers.authorization !== 'Bearer ' + env.MLIMANI_INTERNAL_TOKEN) return json(res, 403, { error: 'Hapana.' });
+    const appJobId = String(req.body?.appJobId || '');
+    const status = String(req.body?.status || '');
+    const job = db.prepare('SELECT * FROM studio_film_jobs WHERE id=?').get(appJobId);
+    if (!job) return json(res, 404, { error: 'Kazi haipatikani.' });
+    if (status === 'completed') {
+      db.prepare("UPDATE studio_film_jobs SET status='completed',updated_at=? WHERE id=?").run(Date.now(), appJobId);
+      return res.json({ ok: 1 });
+    }
+    if (status === 'failed' && job.billing_status === 'charged') {
+      try {
+        creditCashWallet(db, job.user_id, Number(job.charge_tzs), 'studio-film-refund:' + job.id, 'Refund ya filamu iliyoshindwa ' + job.id);
+        db.prepare("UPDATE studio_film_jobs SET billing_status='refunded',status='failed',updated_at=? WHERE id=?").run(Date.now(), appJobId);
+      } catch (error) {
+        console.error('Studio film callback refund FAILED:', job.id, error.message);
+        db.prepare("UPDATE studio_film_jobs SET status='refund_review',updated_at=? WHERE id=?").run(Date.now(), appJobId);
+        return json(res, 500, { error: 'Refund inahitaji ukaguzi wa Admin.' });
+      }
+    }
+    return res.json({ ok: 1 });
+  });
+
+  app.get('/api/studio/film/jobs/:id/file', need, async (req, res) => {
+    const job = db.prepare("SELECT * FROM studio_film_jobs WHERE id=? AND user_id=? AND status='completed'").get(req.params.id, req.user.id);
+    if (!job?.worker_job_id) return json(res, 404, { error: 'Filamu bado haijakamilika.' });
+    try {
+      const config = workerConfig(env);
+      if (!config) return json(res, 503, { error: 'Film Worker haijaunganishwa.' });
+      const response = await fetch(config.base + '/jobs/' + encodeURIComponent(job.worker_job_id) + '/file?ownerId=' + encodeURIComponent(String(req.user.id)), {
+        headers: { Authorization: 'Bearer ' + config.token }, signal: AbortSignal.timeout(120000)
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        return json(res, response.status, { error: body.error || 'Imeshindikana kupakua filamu.' });
+      }
+      const bytes = Buffer.from(await response.arrayBuffer());
+      res.set('Content-Type', 'video/mp4');
+      res.set('Content-Disposition', 'attachment; filename="mlimani-film.mp4"');
+      res.set('Content-Length', String(bytes.length));
+      return res.send(bytes);
+    } catch (error) {
+      return json(res, error.status || 502, { error: 'Imeshindikana kupakua filamu kwa sasa.' });
     }
   });
 }

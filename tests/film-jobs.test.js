@@ -33,7 +33,9 @@ test('registers authenticated estimate, create, status and download routes', () 
     'GET /api/studio/film/estimate',
     'POST /api/studio/film/jobs',
     'GET /api/studio/film/jobs/:id',
-    'GET /api/studio/film/jobs/:id/download'
+    'GET /api/studio/film/jobs/:id/download',
+    'POST /api/internal/film-job-update',
+    'GET /api/studio/film/jobs/:id/file'
   ]);
 });
 
