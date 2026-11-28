@@ -22,20 +22,21 @@ main{min-width:0;padding:24px clamp(16px,4vw,54px) 60px}
 h1{font-size:clamp(2.25rem,5vw,4.6rem);letter-spacing:-.065em;line-height:1.02;margin:20px 0 12px;font-weight:850}
 h1 em{font-style:normal;background:linear-gradient(90deg,#c4a7ff,#ef9bfa,#8be8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
 .sub{max-width:640px;margin:0 auto;color:#aaa5b8;font-size:1rem;line-height:1.65}
-.showcase{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;max-width:940px;margin:30px auto 8px;text-align:left}
-.showcase-card{position:relative;isolation:isolate;overflow:hidden;min-height:210px;border:1px solid #51416b;border-radius:18px;padding:17px;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;background:#171321;box-shadow:0 18px 45px #0008;transition:transform .25s,border-color .25s}
-.showcase-card:before,.showcase-card:after{content:"";position:absolute;inset:0;z-index:-1;transition:transform .6s}
-.showcase-card:before{background:radial-gradient(ellipse at 70% 20%,#f6bd6b88,transparent 35%),linear-gradient(145deg,#183b37,#17223a 55%,#40274f)}
-.showcase-card:after{background:linear-gradient(0deg,#08070df2,transparent 75%);animation:sceneDrift 9s ease-in-out infinite alternate}
-.showcase-card.coast:before{background:radial-gradient(ellipse at 30% 20%,#6ee7f988,transparent 32%),linear-gradient(145deg,#174a57,#253b59 50%,#56345a)}
-.showcase-card.city:before{background:radial-gradient(ellipse at 75% 25%,#f0abf588,transparent 34%),linear-gradient(145deg,#4b2851,#202e50 55%,#141622)}\n.showcase-card.lake:before{background:radial-gradient(ellipse at 28% 22%,#a5f3fc99,transparent 34%),linear-gradient(145deg,#075985,#0f766e 52%,#1e3a5f)}
-.showcase-card:hover{transform:translateY(-5px);border-color:#c4a7ff}
-.showcase-card:hover:after{transform:scale(1.12) translateX(2%)}
+.showcase{display:grid;grid-template-columns:1.45fr 1fr 1fr;gap:12px;max-width:1120px;margin:32px auto 8px;text-align:left;align-items:stretch}
+.showcase-card{position:relative;isolation:isolate;overflow:hidden;min-height:245px;border:1px solid #51416b;border-radius:18px;padding:0;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;background:#171321;box-shadow:0 18px 45px #0008;transition:transform .25s,border-color .25s}
+.showcase-card.featured{min-height:340px}
+.showcase-card video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;background:#111}
+.showcase-card:after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(0deg,#08070df2 0%,#08070d20 55%,#08070d08 100%)}
+.showcase-card:hover{transform:translateY(-4px);border-color:#c4a7ff}
+.scene-copy{position:relative;z-index:2;padding:18px;display:flex;flex-direction:column;gap:7px;pointer-events:none}
 .scene-tag{font-size:.64rem;letter-spacing:.15em;font-weight:900;color:#e6d8ff}
-.scene-title{font-size:1.22rem;line-height:1.12;font-weight:850;letter-spacing:-.03em}
-.scene-meta{font-size:.74rem;color:#c1b8d2}
-.local-note{color:#8f89a1;font-size:.78rem;margin:12px auto 0;max-width:720px}
-@keyframes sceneDrift{from{transform:scale(1) translateX(-1%)}to{transform:scale(1.09) translateX(2%)}}
+.scene-title{font-size:clamp(1.1rem,2vw,1.55rem);line-height:1.12;font-weight:850;letter-spacing:-.03em}
+.scene-meta{font-size:.74rem;color:#d2c9df}
+.play-mark{position:absolute;z-index:3;top:16px;right:16px;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#090811aa;border:1px solid #ffffff80;color:white;font-size:1.1rem;backdrop-filter:blur(8px)}
+.showcase-footnote{color:#8f89a1;font-size:.72rem;margin:12px auto 0;max-width:900px;text-align:center}
+.video-credit{color:#bba1ed;text-decoration:underline;text-underline-offset:3px}
+@media(max-width:950px){.showcase{grid-template-columns:1fr 1fr}.showcase-card.featured{grid-column:1/-1;min-height:300px}}
+@media(max-width:680px){.showcase{grid-template-columns:1fr 1fr;gap:9px;margin:22px auto 8px}.showcase-card{min-height:170px;border-radius:14px}.showcase-card.featured{grid-column:1/-1;min-height:220px}.scene-copy{padding:12px}.scene-title{font-size:1.02rem}.scene-meta{font-size:.67rem}.scene-tag{font-size:.56rem}.showcase-footnote{font-size:.66rem;padding:0 8px}}
 .prompt-card{max-width:850px;margin:22px auto 0;padding:9px;border:1px solid #55416e;border-radius:20px;background:linear-gradient(145deg,#171321,#101018);box-shadow:0 18px 70px #0008,0 0 35px #a78bfa12}
 .prompt-inner{display:flex;align-items:center;gap:12px;background:#0c0b12;border-radius:14px;padding:8px 10px 8px 16px}
 .prompt-inner .spark{font-size:1.3rem;color:#c4a7ff}.prompt-inner input{min-width:0;flex:1;background:transparent;border:0;outline:0;color:white;padding:12px 0;font-size:.96rem}
@@ -48,7 +49,7 @@ h1 em{font-style:normal;background:linear-gradient(90deg,#c4a7ff,#ef9bfa,#8be8ff
 .tool:hover{transform:translateY(-3px);border-color:#70558d;background:#1b1725}.tool .symbol{font-size:1.45rem}.tool strong{display:block;margin:11px 0 5px;font-size:.9rem}.tool p{color:#928ca0;font-size:.77rem;line-height:1.5;margin:0}
 .footer{margin-top:46px;border-top:1px solid var(--line);padding-top:18px;color:#777184;font-size:.76rem;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 @media(max-width:950px){.shell{grid-template-columns:205px minmax(0,1fr)}.tools{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:680px){.shell{display:block}aside{display:none}main{padding:15px 13px 35px}.topbar{margin-bottom:25px}.crumb{font-size:.75rem}.top-actions a{font-size:.74rem;padding:8px 10px}h1{font-size:2.55rem;margin:18px 0 10px}.sub{font-size:.9rem;padding:0 7px}.showcase{grid-template-columns:1fr 1fr;gap:9px;margin:22px auto 8px}.showcase-card{min-height:155px;padding:13px;border-radius:14px}.showcase-card:first-child{grid-column:1/-1;min-height:190px}.scene-title{font-size:1.05rem}.scene-meta{font-size:.68rem}.scene-tag{font-size:.58rem}.local-note{font-size:.7rem;padding:0 8px}.prompt-card{padding:7px;border-radius:16px}.prompt-inner{gap:7px;padding:7px 7px 7px 11px}.prompt-inner input{font-size:.82rem}.create{padding:11px 12px;font-size:.8rem}.prompt-hint{font-size:.65rem}.section-head{margin:38px 0 13px}.tools{gap:9px}.tool{padding:13px;border-radius:13px}.tool strong{font-size:.82rem}.tool p{font-size:.72rem}.footer{margin-top:32px}}
+@media(max-width:680px){.shell{display:block}aside{display:none}main{padding:15px 13px 35px}.topbar{margin-bottom:25px}.crumb{font-size:.75rem}.top-actions a{font-size:.74rem;padding:8px 10px}h1{font-size:2.55rem;margin:18px 0 10px}.sub{font-size:.9rem;padding:0 7px}.prompt-card{padding:7px;border-radius:16px}.prompt-inner{gap:7px;padding:7px 7px 7px 11px}.prompt-inner input{font-size:.82rem}.create{padding:11px 12px;font-size:.8rem}.prompt-hint{font-size:.65rem}.section-head{margin:38px 0 13px}.tools{gap:9px}.tool{padding:13px;border-radius:13px}.tool strong{font-size:.82rem}.tool p{font-size:.72rem}.footer{margin-top:32px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style></head><body>
 <div class="shell">
@@ -71,12 +72,18 @@ h1 em{font-style:normal;background:linear-gradient(90deg,#c4a7ff,#ef9bfa,#8be8ff
 <div class="eyebrow">✦ YOUR AI CREATIVE WORKSPACE</div>
 <h1>Bring your ideas<br>to <em>life.</em></h1>
 <p class="sub">Create cinematic videos, bring photos to life, and make your own AI presenters. Everything you need to create — in one studio.</p>
-<div class="showcase" aria-label="Mifano ya video za Mlimani Studio">
-<a class="showcase-card safari" href="/fal-studio.html?task=video"><span class="scene-tag">TANZANIA · CINEMATIC</span><span class="scene-title">Stories that move</span><span class="scene-meta">AI Video · Landscape</span></a>
-<a class="showcase-card coast" href="/fal-studio.html?task=video"><span class="scene-tag">BRAND FILMS</span><span class="scene-title">Make your brand seen</span><span class="scene-meta">Product & business videos</span></a>
-<a class="showcase-card city" href="/fal-studio.html?task=motion"><span class="scene-tag">SOCIAL CONTENT</span><span class="scene-title">Create for every moment</span><span class="scene-meta">Reels · Shorts · Stories</span></a>\n<a class="showcase-card lake" href="/fal-studio.html?task=video"><span class="scene-tag">MWANZA · LAKE VICTORIA</span><span class="scene-title">Stories by the great lake</span><span class="scene-meta">Lake Victoria · Mwanza · Tanzania</span></a>
+<div class="showcase" aria-label="Cinematic moving video previews">
+<a class="showcase-card featured" href="/fal-studio.html?task=video" aria-label="Create a cinematic video">
+<video autoplay muted loop playsinline preload="metadata"><source src="https://videos.pexels.com/video-files/15556088/15556088-uhd_3840_2160_24fps.mp4" type="video/mp4"></video>
+<span class="play-mark">▶</span><span class="scene-copy"><span class="scene-tag">CINEMATIC SHOWREEL</span><span class="scene-title">Stories that move. Worlds you can create.</span><span class="scene-meta">People · Landscapes · Motion · Storytelling</span></span></a>
+<div class="showcase-card">
+<video controls muted playsinline preload="none"><source src="https://videos.pexels.com/video-files/37297571/15799147_1080_1920_30fps.mp4" type="video/mp4"></video>
+<span class="scene-copy"><span class="scene-tag">WILDLIFE & ADVENTURE</span><span class="scene-title">Bring the scene to life</span><span class="scene-meta">Movement · Atmosphere · Emotion</span></span></div>
+<div class="showcase-card">
+<video controls muted playsinline preload="none"><source src="https://videos.pexels.com/video-files/15556043/15556043-uhd_3840_2160_25fps.mp4" type="video/mp4"></video>
+<span class="scene-copy"><span class="scene-tag">PEOPLE & CULTURE</span><span class="scene-title">Make every moment cinematic</span><span class="scene-meta">Human stories · Travel · Brand films</span></span></div>
 </div>
-<p class="local-note">Anza na mazingira ya Tanzania — Dar es Salaam, Zanzibar, Serengeti, Kilimanjaro, Bagamoyo, Mwanza na Ziwa Victoria.</p>
+<p class="showcase-footnote">Footage za mfano zenye leseni ya bure kutoka Pexels zinaonyesha aina ya matukio ya cinematic; si madai kwamba zimetengenezwa na AI ya Mlimani. <a class="video-credit" href="https://www.pexels.com/license/" target="_blank" rel="noopener">Pexels licence</a>.</p>
 <form class="prompt-card" id="promptForm">
 <div class="prompt-inner"><span class="spark">✦</span><input id="idea" type="search" autocomplete="off" placeholder="Describe the video you want to create..." aria-label="Describe your creative idea"><button class="create" type="submit">Create video ↗</button></div>
 <div class="prompt-hint"><span>✦ Start with an idea, a product or a story</span><span>AI-powered creative tools</span></div>
