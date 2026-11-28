@@ -447,7 +447,7 @@ app.get('/api/plans', (_req, res) => {
   const price = key => Number(db.prepare('SELECT customer_price FROM admin_pricing WHERE config_key=?').get(key)?.customer_price || 0);
   const video5sTzs = price('video_5s_tzs'), ad15sTzs = price('advertisement_15_tzs') || video5sTzs * 3;
   res.json({
-    payAsYouGo:true, minTopupTzs:5000, maxTopupTzs:2000000,
+    payAsYouGo:true, minTopupTzs:1000, maxTopupTzs:2000000,
     rates:{ chat:'Gharama hutegemea tokens zilizotumika; salio hukatwa baada ya kila jibu.', video5sTzs, video15sTzs:video5sTzs*3, advertisement15sTzs:ad15sTzs, liveTalkMinuteTzs:price('live_talk_minute_tzs') },
     payInfo:env.PAY_INFO || 'Tuma malipo kwa maelekezo ya Mlimani.'
   });
@@ -541,7 +541,7 @@ app.post('/api/wallet/topup', need, (req, res) => {
   const amount = Math.round(Number(req.body?.amountTzs));
   const phone = String(req.body?.phone || '').trim().slice(0,20);
   const ref = String(req.body?.ref || '').trim().slice(0,40);
-  if (!Number.isFinite(amount) || amount < 5000 || amount > 2000000) return res.status(400).json({ error: 'Weka kiasi kati ya TZS 5,000 na TZS 2,000,000.' });
+  if (!Number.isFinite(amount) || amount < 1000 || amount > 2000000) return res.status(400).json({ error: 'Weka kiasi kuanzia TZS 1,000 hadi TZS 2,000,000.' });
   if (!phone || !ref) return res.status(400).json({ error: 'Weka namba ya simu na namba ya muamala.' });
   if (db.prepare('select 1 from payments where ref=?').get(ref)) return res.status(409).json({ error: 'Namba hii ya muamala imeshatumwa.' });
   db.prepare("insert into payments(user_id,plan,phone,ref,created,amount_tzs) values(?,'wallet_topup',?,?,?,?)").run(req.user.id, phone, ref, Date.now(), amount);

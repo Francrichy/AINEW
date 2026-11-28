@@ -35,7 +35,7 @@
 
 ## PAYG Cash Wallet
 - Customers no longer purchase monthly Chat or Video subscriptions.
-- New top-ups are recorded as pending payments and are credited only after manual Admin confirmation.
+- New top-ups are recorded as pending payments and are credited only after manual Admin confirmation. The minimum top-up is TZS 1,000 (maximum TZS 2,000,000).
 - Cash top-ups are stored in the existing Mlimani AI SQLite Wallet tables under the `cash` service and `purchased` bucket. No old Chat, Video, Live Talk or Advertisement balances are deleted or converted.
 - AI Chat and the developer API debit actual provider token usage in TZS using the Admin markup (minimum ×4) and USD/TZS rate.
 - Mlimani Studio fal.ai video uses the Admin-configured `fal_video_second_tzs` rate per second; Talking Avatar combines per-second video generation and per-second lip-sync into one customer quote, with voice charged separately where generated. Other legacy advertisement routes retain their existing pricing until migrated.
