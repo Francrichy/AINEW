@@ -36,3 +36,30 @@ test('registers authenticated estimate, create, status and download routes', () 
     'GET /api/studio/film/jobs/:id/download'
   ]);
 });
+
+test('film estimate states prepaid token requirement and wallet shortfall before generation', () => {
+  const routes = [];
+  const app = {
+    get: (path, ...handlers) => routes.push(['GET', path, handlers]),
+    post: (path, ...handlers) => routes.push(['POST', path, handlers])
+  };
+  const db = { exec: () => {}, prepare: () => ({ get: () => ({ customer_price: 5 }) }) };
+  registerFilmJobRoutes(app, {
+    db,
+    need: (_req, _res, next) => next(),
+    env: {},
+    cashWalletBalance: () => 1000,
+    consumeWalletCredits: () => {},
+    creditCashWallet: () => {}
+  });
+  const route = routes.find(([method, path]) => method === 'GET' && path === '/api/studio/film/estimate');
+  let payload;
+  const res = { status() { return this; }, json(value) { payload = value; return this; } };
+  route[1][0]({ query: { durationSeconds: '600' }, user: { id: 7 } }, res);
+  assert.equal(payload.requiredTokens, 600);
+  assert.equal(payload.tokenDefinition, 'Token 1 = sekunde 1 ya video iliyopangwa');
+  assert.equal(payload.estimatedChargeTzs, 3000);
+  assert.equal(payload.shortfallTzs, 2000);
+  assert.equal(payload.paymentRequiredBeforeGeneration, true);
+  assert.equal(payload.enabled, false);
+});
