@@ -231,3 +231,4 @@ export function registerFilmJobRoutes(app, { db, need, env, cashWalletBalance, c
       return json(res, error.status || 502, { error: 'Imeshindikana kupakua filamu kwa sasa.' });
     }
   });
+}
