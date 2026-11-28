@@ -113,7 +113,7 @@ export function registerFilmJobRoutes(app, { db, need, env, cashWalletBalance, c
       const created = await workerFetch(config, '/jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ownerId: String(req.user.id), title, language, scenes: normalized })
+        body: JSON.stringify({ ownerId: String(req.user.id), externalJobId: id, title, language, scenes: normalized })
       });
       if (!created.jobId) throw new Error('Cloudflare haikurudisha namba ya kazi.');
       db.prepare("UPDATE studio_film_jobs SET worker_job_id=?,status=?,updated_at=? WHERE id=?")
@@ -184,7 +184,30 @@ export function registerFilmJobRoutes(app, { db, need, env, cashWalletBalance, c
       return json(res, error.status || 502, { error: 'Imeshindikana kuandaa kiungo cha kupakua filamu.' });
     }
   });
-}
+
+
+  app.post('/api/internal/film-job-update', async (req, res) => {
+    if (!env.MLIMANI_INTERNAL_TOKEN || req.headers.authorization !== 'Bearer ' + env.MLIMANI_INTERNAL_TOKEN) return json(res, 403, { error: 'Hapana.' });
+    const appJobId = String(req.body?.appJobId || '');
+    const status = String(req.body?.status || '');
+    const job = db.prepare('SELECT * FROM studio_film_jobs WHERE id=?').get(appJobId);
+    if (!job) return json(res, 404, { error: 'Kazi haipatikani.' });
+    if (status === 'completed') {
+      db.prepare("UPDATE studio_film_jobs SET status='completed',updated_at=? WHERE id=?").run(Date.now(), appJobId);
+      return res.json({ ok: 1 });
+    }
+    if (status === 'failed' && job.billing_status === 'charged') {
+      try {
+        creditCashWallet(db, job.user_id, Number(job.charge_tzs), 'studio-film-refund:' + job.id, 'Refund ya filamu iliyoshindwa ' + job.id);
+        db.prepare("UPDATE studio_film_jobs SET billing_status='refunded',status='failed',updated_at=? WHERE id=?").run(Date.now(), appJobId);
+      } catch (error) {
+        console.error('Studio film callback refund FAILED:', job.id, error.message);
+        db.prepare("UPDATE studio_film_jobs SET status='refund_review',updated_at=? WHERE id=?").run(Date.now(), appJobId);
+        return json(res, 500, { error: 'Refund inahitaji ukaguzi wa Admin.' });
+      }
+    }
+    return res.json({ ok: 1 });
+  });
 
   app.get('/api/studio/film/jobs/:id/file', need, async (req, res) => {
     const job = db.prepare("SELECT * FROM studio_film_jobs WHERE id=? AND user_id=? AND status='completed'").get(req.params.id, req.user.id);
