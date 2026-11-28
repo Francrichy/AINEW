@@ -116,7 +116,7 @@ export function registerFilmJobRoutes(app, { db, need, env, cashWalletBalance, c
         body: JSON.stringify({ ownerId: String(req.user.id), externalJobId: id, title, language, scenes: normalized })
       });
       if (!created.jobId) throw new Error('Cloudflare haikurudisha namba ya kazi.');
-      db.prepare("UPDATE studio_film_jobs SET worker_job_id=?,status=?,updated_at=? WHERE id=?")
+      db.prepare("UPDATE studio_film_jobs SET worker_job_id=?,status=CASE WHEN status IN ('completed','failed','refund_review') THEN status ELSE ? END,updated_at=? WHERE id=?")
         .run(created.jobId, created.status || 'queued', Date.now(), id);
       return res.status(202).json({
         jobId: id, status: created.status || 'queued', totalScenes: normalized.length,
