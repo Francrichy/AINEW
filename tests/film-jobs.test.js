@@ -55,7 +55,7 @@ test('film estimate states prepaid token requirement and wallet shortfall before
   const route = routes.find(([method, path]) => method === 'GET' && path === '/api/studio/film/estimate');
   let payload;
   const res = { status() { return this; }, json(value) { payload = value; return this; } };
-  route[1][0]({ query: { durationSeconds: '600' }, user: { id: 7 } }, res);
+  route[1][1]({ query: { durationSeconds: '600' }, user: { id: 7 } }, res);
   assert.equal(payload.requiredTokens, 600);
   assert.equal(payload.tokenDefinition, 'Token 1 = sekunde 1 ya video iliyopangwa');
   assert.equal(payload.estimatedChargeTzs, 3000);
