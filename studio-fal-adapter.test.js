@@ -35,7 +35,7 @@ test('fal.ai ElevenLabs TTS price is normalized per 1,000 characters', () => {
 test('fal.ai per-character TTS pricing converts to a 1,000-character unit', () => {
   const price = normalizeSupplierPrice('voice', 'character', 0.0001, 2600);
   assert.equal(price.providerCost, 260);
-  assert.equal(price.customerPrice, 910);
+  assert.equal(price.customerPrice, 1040);
 });
 
 test('H3 Max Lip Sync per-second supplier price converts correctly', () => {

@@ -45,8 +45,8 @@ test('Long Video Creator supports 10/20-minute projects and independent scene ed
 test('legacy studio route redirects to the current Mlimani home page', () => {
   const legacy = readFileSync(path.join('public', 'studio.html'), 'utf8');
   const home = readFileSync(path.join('public', 'index.html'), 'utf8');
-  assert.match(legacy, /url=\\/"/);
-  assert.match(legacy, /location\\.replace\\('\/'\\)/);
+  assert.ok(legacy.includes('content="0;url=/'));
+  assert.ok(legacy.includes("location.replace('/')"));
   assert.match(home, /Mlimani Labs Studio/);
 });
 
