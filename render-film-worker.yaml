@@ -1,0 +1,33 @@
+services:
+  - type: pserv
+    name: mlimani-film-worker
+    runtime: node
+    region: oregon
+    plan: starter
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
+    disk:
+      name: mlimani-film-data
+      mountPath: /var/data
+      sizeGB: 20
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: PORT
+        value: "10000"
+      - key: FILM_DATA_DIR
+        value: /var/data
+      - key: AGNES_API_KEY
+        sync: false
+      - key: MLIMANI_INTERNAL_TOKEN
+        sync: false
+      - key: AGNES_BASE_URL
+        value: https://apihub.agnes-ai.com
+      - key: R2_ENDPOINT
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
